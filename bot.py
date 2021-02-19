@@ -22,11 +22,6 @@ async def on_message(message):
         response = 'pong'
         await message.channel.send(response)
 
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-
     if message.content == '69':
         response = 'nice'
         await message.channel.send(response)
