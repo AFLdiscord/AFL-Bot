@@ -9,3 +9,5 @@ Gli obiettivi principali di sviluppo attualmente sono:
 Per contribuire a questo progetto occorre essere membri del server ed aver ottenuto il ruolo "dev". Per maggiori informazioni contattare gli admin su discord o direttamente qua:
 - [Skylake](https://github.com/Skylake-dev)
 - [cathartyc](https://github.com/cathartyc)
+
+Linee guida sullo stile del codice sono reperibili [a questa pagina](https://www.python.org/dev/peps/pep-0008/).
