@@ -22,7 +22,7 @@ async def on_message(message):
         response = 'pong'
         await message.channel.send(response)
 
-    if message.content == '69':
+    if message.content == '69' or message.content == '420':
         response = 'nice'
         await message.channel.send(response)
 
