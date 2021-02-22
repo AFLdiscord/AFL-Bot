@@ -41,7 +41,6 @@ async def on_member_join(member):
     Prima di iniziare a partecipare nel server presentati nel canale richiesta di afl indicando almeno
     - sesso
     - età
-    - provenienza (almeno a livello di provincia, si è invece liberi di indicare o meno anche il paese/la città)
     Ti invitiamo a leggere attentamente il regolamento del server, reperibile sul canale regole.
     Per chiarimenti rivolgiti pure ai moderatori.
     Buona permanenza!"""
