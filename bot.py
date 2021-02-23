@@ -9,6 +9,7 @@ from datetime import datetime
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 MAIN_CHANNEL = int(os.getenv('MAIN_CHANNEL'))
+banned_words = ['porco dio']  #todo caricare da file la lista delle parole bannate all'avvio
 
 intents = discord.Intents.default()
 intents.members = True
@@ -24,46 +25,25 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author == client.user:
+    if message.author == client.user or message.author.bot:  #non conta sè stesso e gli altri bot
         return
 
     if message.content.lower() == 'ping':
         response = 'pong in ' f'{round(client.latency * 1000)} ms'
         await message.channel.send(response)
+        return
 
     if message.content == '69' or message.content == '420':
         response = 'nice'
         await message.channel.send(response)
+        return
     
-    if message.content == 'porco dio':
+    if message.content in banned_words:
         await message.delete()
+        return
 
-    if message.content == 'dumpme':
-        try:
-            with open('aflers.json','r') as file:
-                prev_list = json.load(file)
-        except FileNotFoundError:
-            print('file non trovato, lo creo ora')
-            with open('aflers.json','w+') as file:
-            prev_list = []
-        finally:
-            for d in prev_list:
-                if message.author.id == d["ID"]:
-                    await message.channel.send('già in lista')
-                    return
-            afler = {
-                "ID": message.author.id,
-                "text_count": 0,
-                "violations_count": 0
-            }
-            prev_list.append(afler)
-            with open('aflers.json','w') as file:
-                json.dump(prev_list, file, indent=4)
+    update_counter(message)
 
-"""@client.event
-async def on_message_delete(message):
-    response = f"hai eliminato {len(message.content)} caratteri"
-    await message.channel.send(response)"""
 
 @client.event
 async def on_member_join(member):
@@ -77,5 +57,41 @@ async def on_member_join(member):
     Buona permanenza!"""
     channel = await member.create_dm()
     await channel.send(greetings)
+
+def update_counter(message):
+    if  not does_it_count(message):
+        return
+    try:
+        with open('aflers.json','r') as file:
+            prev_list = json.load(file)
+    except FileNotFoundError:
+        print('file non trovato, lo creo ora')
+        with open('aflers.json','w+') as file:
+            prev_list = []
+    finally:
+        for d in prev_list:
+            if message.author.id == d["ID"]:
+                print('già in lista, aggiorno contatore')
+                #stampa prima e dopo solo per praticità, da rimuovere dopo il testing
+                print(d["text_count"])
+                d["text_count"] += 1
+                print(d["text_count"])
+                update_json_file(prev_list)
+                return  
+        print('nuovo utente, creo nuova entry')      
+        afler = {
+            "ID": message.author.id,
+            "text_count": 1,
+            "violations_count": 0
+        }
+        prev_list.append(afler)
+        update_json_file(prev_list)
+
+def does_it_count(message):
+    return True   #to do, contare solo i messaggi del server AFL sui canali specificati nel regolamento
+
+def update_json_file(data):
+    with open('aflers.json', 'w') as file:
+        json.dump(data, file, indent=4)
 
 client.run(TOKEN)
