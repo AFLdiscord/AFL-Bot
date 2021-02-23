@@ -1,5 +1,6 @@
 # bot.py
 import os
+import json
 
 import discord
 from dotenv import load_dotenv
@@ -33,6 +34,30 @@ async def on_message(message):
     if message.content == '69' or message.content == '420':
         response = 'nice'
         await message.channel.send(response)
+    
+    if message.content == 'porco dio':
+        await message.delete()
+
+    if message.content == 'dumpme':
+        with open('aflers.json','r') as file:
+            prev_list = json.load(file)
+        for d in prev_list:
+            if message.author.id == d["ID"]:
+                await message.channel.send('già in lista')
+                return
+        afler = {
+            "ID": message.author.id,
+            "text_count": 0,
+            "violations_count": 0
+        }
+        prev_list.append(afler)
+        with open('aflers.json','w') as file:
+            json.dump(prev_list, file, indent=4)
+
+"""@client.event
+async def on_message_delete(message):
+    response = f"hai eliminato {len(message.content)} caratteri"
+    await message.channel.send(response)"""
 
 @client.event
 async def on_member_join(member):
