@@ -4,15 +4,25 @@ import json
 
 import discord
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-MAIN_CHANNEL = int(os.getenv('MAIN_CHANNEL'))
-banned_words = ['porco dio']  #todo caricare da file la lista delle parole bannate all'avvio
 
+#nota, forse è meglio metterle in un file di configurazione diverso?
+MAIN_CHANNEL = int(os.getenv('MAIN_CHANNEL'))
+ACTIVE_THRESHOLD = int(os.getenv('ACTIVE_THRESHOLD'))
+ACTIVE_DURATION = int(os.getenv('ACTIVE_DURATION'))
+ACTIVE_ROLE_ID = int(os.getenv('ACTIVE_ROLE'))
+
+#todo caricare da file la lista delle parole bannate all'avvio
+banned_words = ['porco dio']  
+
+#per poter ricevere le notifiche sull'unione di nuovi membri
 intents = discord.Intents.default()
 intents.members = True
+
+#istanziare il client (avvio in fondo al codice)
 client = discord.Client(intents=intents)
 
 @client.event
@@ -21,7 +31,7 @@ async def on_ready():
     print(f'{client.user} has connected to Discord! 'f'{timestamp}')
     if(MAIN_CHANNEL is not None):
         channel = client.get_channel(MAIN_CHANNEL)
-        await channel.send('Bot avviato alle 'f'{timestamp}')
+        #await channel.send('Bot avviato alle 'f'{timestamp}')
 
 @client.event
 async def on_message(message):
@@ -42,7 +52,8 @@ async def on_message(message):
         await message.delete()
         return
 
-    update_counter(message)
+    if update_counter(message):
+        await message.author.add_roles(message.guild.get_role(ACTIVE_ROLE_ID))
 
 
 @client.event
@@ -59,33 +70,43 @@ async def on_member_join(member):
     await channel.send(greetings)
 
 def update_counter(message):
+    active = False
     if  not does_it_count(message):
         return
+    prev_dict = {}
     try:
         with open('aflers.json','r') as file:
-            prev_list = json.load(file)
+            prev_dict = json.load(file)
     except FileNotFoundError:
         print('file non trovato, lo creo ora')
         with open('aflers.json','w+') as file:
-            prev_list = []
+            prev_dict = {}   #dizionario per permettere di cercare dell'ID facilmente
     finally:
-        for d in prev_list:
-            if message.author.id == d["ID"]:
-                print('già in lista, aggiorno contatore')
-                #stampa prima e dopo solo per praticità, da rimuovere dopo il testing
-                print(d["text_count"])
-                d["text_count"] += 1
-                print(d["text_count"])
-                update_json_file(prev_list)
-                return  
-        print('nuovo utente, creo nuova entry')      
+        key = str(message.author.id)
+        if key in prev_dict:
+            d = prev_dict.get(key)
+            print('già in lista, aggiorno contatore')
+            d["text_count"] += 1
+            if d["text_count"] >= ACTIVE_THRESHOLD:
+                #nota: non serve fare distinzione tra coloro che sono già attivi e coloro che 
+                #rinnovano il ruolo perchè in entrambi i casi l'operazione da fare è la stessa
+                d["text_count"] = 0
+                d["active"] = True
+                d["expiration"] = datetime.date(datetime.now() + timedelta(days=7)).__str__()
+                active = True
+            update_json_file(prev_dict)
+            return active
+        print('nuovo utente, creo nuova entry')
         afler = {
             "ID": message.author.id,
             "text_count": 1,
-            "violations_count": 0
+            "violations_count": 0,
+            "active": False,
+            "expiration": None
         }
-        prev_list.append(afler)
-        update_json_file(prev_list)
+        prev_dict[afler.get("ID")] = afler
+        update_json_file(prev_dict)
+        return active
 
 def does_it_count(message):
     return True   #to do, contare solo i messaggi del server AFL sui canali specificati nel regolamento
