@@ -17,6 +17,7 @@ ACTIVE_THRESHOLD = int(os.getenv('ACTIVE_THRESHOLD'))
 ACTIVE_DURATION = int(os.getenv('ACTIVE_DURATION'))
 ACTIVE_ROLE_ID = int(os.getenv('ACTIVE_ROLE'))
 GUILD_ID = int(os.getenv('GUILD_ID'))
+REACTION_CHECK_CHANNEL_ID = int(os.getenv('REACTION_CHECK_CHANNEL_ID'))
 
 #todo caricare da file la lista delle parole bannate all'avvio
 banned_words = [
@@ -91,7 +92,7 @@ async def on_message(message):
         await message.channel.send(response)
         return
     
-    if message.content in banned_words:
+    if contains_banned_words(message):
         await message.delete()
         return
 
@@ -115,7 +116,21 @@ async def on_message_delete(message):
             update_json_file(prev_dict)
 
 @client.event
+async def on_reaction_add(reaction, user):
+    """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
+    if reaction.message.channel.id == REACTION_CHECK_CHANNEL_ID:
+        if client.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles:
+            await reaction.remove(user)
+
+@client.event
+async def on_message_edit(before, after):
+    """"Controlla che i messaggi non vengano editati per inserire parole della lista banned_words"""
+    if (contains_banned_words(after)):
+        await after.delete()
+
+@client.event
 async def on_member_join(member):
+    """Invia il messaggio di benvenuto al membro che si è appena unito al server"""
     print('nuovo membro')
     channel = await member.create_dm()
     await channel.send(greetings)
@@ -171,6 +186,8 @@ async def periodic_checks():
     update_json_file(prev_dict)
 
 def update_counter(message):
+    """Aggiorna il contatore dell'utente che ha mandato il messaggio. Se l'utente non era presente lo aggiunge
+    al json inizializzando tutti i contatori a 0"""
     if  not does_it_count(message):
         return
     prev_dict = {}
@@ -228,5 +245,11 @@ def count_messages(item):
     for i in weekdays:
         count += item[weekdays.get(i)]
     return count
+
+def contains_banned_words(message):
+    """Implementa il controllo sulle parole bannate"""
+    if message.content.lower() in banned_words:
+        return True
+    return False
 
 client.run(TOKEN)
