@@ -37,6 +37,18 @@ active_channels_id = [
     MAIN_CHANNEL     #solo per finalità di testing, poi anche questo verrà caricato da file di config
 ]
 
+#id delle persone aggiunte al file così da averlo pronto senza aprire il file ogni volta
+tracked_people_id = []
+
+#l'inizializzazione della lista serve a non perdere quali persone sono presenti nel file in
+#caso di riavvio del bot
+try:
+    with open('aflers.json','r') as file:
+        d = json.load(file)
+        tracked_people_id.update(d.keys())
+except FileNotFoundError:
+        pass
+
 #ovviamente anche questo verrà caricato da file all'avvio
 greetings = """
 Benvenuto/a sul server discord AFL! \n
@@ -85,6 +97,22 @@ async def on_message(message):
 
     update_counter(message)
 
+@client.event
+async def on_message_delete(message):
+    """In caso di rimozione dei messaggi va decrementato il contatore della persona che
+    lo aveva scritto per evitare che messaggi non adatti vengano conteggiati nell'assegnamento del ruolo.
+    """
+    if message.author.id in tracked_people_id:
+        try:
+            with open('aflers.json','r') as file:
+                prev_dict = json.load(file)
+        except FileNotFoundError:
+            return
+        d = prev_dict.get(str(message.author.id))
+        #il contatore non può ovviamente andare sotto 0
+        if d[weekdays.get(datetime.today().weekday())] != 0:
+            d[weekdays.get(datetime.today().weekday())] -= 1
+            update_json_file(prev_dict)
 
 @client.event
 async def on_member_join(member):
@@ -176,23 +204,26 @@ def update_counter(message):
             }
             afler[weekdays.get(datetime.today().weekday())] = 1
             prev_dict[message.author.id] = afler
+            #se una nuova persona viene aggiunta al json salvo l'id
+            tracked_people_id.append(message.author.id)
         update_json_file(prev_dict)
 
 def does_it_count(message):
+    """Controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
     if message.guild.id == GUILD_ID:
         if message.channel.id in active_channels_id:
             print('counts')
             return True
     print('doesn\'t count')
     return False
-    
-    return True
 
 def update_json_file(data):
+    """Scrive su file le modifiche apportate all' archivio json con il conteggio dei messaggi"""
     with open('aflers.json', 'w') as file:
         json.dump(data, file, indent=4)
 
 def count_messages(item):
+    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti"""
     count = 0
     for i in weekdays:
         count += item[weekdays.get(i)]
