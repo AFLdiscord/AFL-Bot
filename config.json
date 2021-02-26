@@ -1,0 +1,14 @@
+{
+    "guild_id": 707623433416212520,
+    "main_channel_id": 707623433416212524,
+    "current_prefix": "<",
+    "moderation_roles_id": [],
+    "active": {
+        "role_id": 814453709127680020,
+        "channels_id": [775380249130958919],
+        "threshold": 10,
+        "duration": 7
+    },
+    "poll_channel_id": 775380249130958919,
+    "greetings": "Benvenuto/a sul server discord AFL!\nPrima di iniziare a partecipare nel server presentati nel canale richiesta di afl indicando almeno\n- sesso\n- eta'\nTi invitiamo a leggere attentamente il regolamento del server, reperibile sul canale regole.\nPer chiarimenti rivolgiti pure ai moderatori.\nBuona permanenza!"
+}

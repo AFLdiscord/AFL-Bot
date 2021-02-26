@@ -12,19 +12,30 @@ from datetime import datetime, timedelta
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-#nota, forse è meglio metterle in un file di configurazione diverso?
-MAIN_CHANNEL = int(os.getenv('MAIN_CHANNEL'))
-ACTIVE_THRESHOLD = int(os.getenv('ACTIVE_THRESHOLD'))
-ACTIVE_DURATION = int(os.getenv('ACTIVE_DURATION'))
-ACTIVE_ROLE_ID = int(os.getenv('ACTIVE_ROLE'))
-GUILD_ID = int(os.getenv('GUILD_ID'))
-REACTION_CHECK_CHANNEL_ID = int(os.getenv('REACTION_CHECK_CHANNEL_ID'))
+#modificare config.json prima di avviare il bot
+
+with open('config.json', 'r') as file:
+    config = json.load(file)
+GUILD_ID = int(config['guild_id'])
+MAIN_CHANNEL_ID = int(config['main_channel_id'])
+CURRENT_PREFIX = config['current_prefix']
+MODERATION_ROLES_ID = []
+for mod in config['moderation_roles_id']:
+    MODERATION_ROLES_ID.append(int(mod))
+ACTIVE_ROLE_ID = int(config['active']['role_id'])
+ACTIVE_CHANNELS_ID = []
+for channel in config['active']['channels_id']:
+    ACTIVE_CHANNELS_ID.append(int(channel))
+ACTIVE_THRESHOLD = config['active']['threshold']
+ACTIVE_DURATION = config['active']['duration']
+POLL_CHANNEL_ID = int(config['poll_channel_id'])
+greetings = config['greetings']
 
 #parole bannate
 try:
     with open('banned_words.json','r') as file:
         banned_words = json.load(file)
-except FileNotFoundError:
+except (FileNotFoundError, json.decoder.JSONDecodeError):
     with open('banned_words.json','w+') as file:
         banned_words = []
 
@@ -37,11 +48,6 @@ weekdays = {
     5: "sat",
     6: "sun"
 }
-
-#canali di cui tenere conto dei messaggi
-active_channels_id = [
-    MAIN_CHANNEL     #solo per finalità di testing, poi anche questo verrà caricato da file di config
-]
 
 #id delle persone aggiunte al file così da averlo pronto senza aprire il file ogni volta
 tracked_people_id = []
@@ -56,35 +62,26 @@ except FileNotFoundError:
     pass
 
 #ovviamente anche questo verrà caricato da file all'avvio
-greetings = """
-Benvenuto/a sul server discord AFL! \n
-Prima di iniziare a partecipare nel server presentati nel canale richiesta di afl indicando almeno
-- sesso
-- età
-Ti invitiamo a leggere attentamente il regolamento del server, reperibile sul canale regole.
-Per chiarimenti rivolgiti pure ai moderatori.
-Buona permanenza!
-"""
 
 #per poter ricevere le notifiche sull'unione di nuovi membri
 intents = discord.Intents.default()
 intents.members = True
 
 #istanziare il bot (avvio in fondo al codice)
-bot = commands.Bot(command_prefix = '\\', intents=intents)
+bot = commands.Bot(command_prefix = CURRENT_PREFIX, intents=intents)
 
 @bot.event
 async def on_ready():
     timestamp = datetime.time(datetime.now())
     print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
-    if(MAIN_CHANNEL is not None):
-        channel = bot.get_channel(MAIN_CHANNEL)
+    if(MAIN_CHANNEL_ID is not None):
+        channel = bot.get_channel(MAIN_CHANNEL_ID)
         await channel.send('Bot avviato alle 'f'{timestamp}. Il prefisso è: {bot.command_prefix}')
         periodic_checks.start()
 
 @bot.event
 async def on_message(message):
-    if message.author == bot.user or message.author.bot:  #non conta sè stesso e gli altri bot
+    if message.author == bot.user or message.author.bot:  #non conta sé stesso e gli altri bot
         return
 
     if message.content.lower() == 'ping':
@@ -92,9 +89,14 @@ async def on_message(message):
         await message.channel.send(response)
         return
 
-    if message.content == '69' or message.content == '420':
+    if (message.content == '69' or
+        message.content == '420'):
         response = 'nice'
         await message.channel.send(response)
+        return
+
+    if message.content == 'greta':
+        await message.channel.send(greetings)
         return
     
     if contains_banned_words(message):
@@ -126,7 +128,7 @@ async def on_message_delete(message):
 @bot.event
 async def on_reaction_add(reaction, user):
     """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
-    if reaction.message.channel.id == REACTION_CHECK_CHANNEL_ID:
+    if reaction.message.channel.id == POLL_CHANNEL_ID:
         if bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles:
             await reaction.remove(user)
 
@@ -191,7 +193,7 @@ async def periodic_checks():
             guild = bot.get_guild(GUILD_ID)
             await guild.get_member(int(key)).add_roles(guild.get_role(ACTIVE_ROLE_ID))
             print('member ' + key + ' is active')
-            channel = bot.get_channel(MAIN_CHANNEL)
+            channel = bot.get_channel(MAIN_CHANNEL_ID)
             await channel.send('membro ' + key + ' è diventato attivo')
 
         #rimuovo i messaggi contati 7 giorni fa
@@ -204,7 +206,7 @@ async def periodic_checks():
 
         if item["active"] is True:
             expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%d'))
-            channel = bot.get_channel(MAIN_CHANNEL)
+            channel = bot.get_channel(MAIN_CHANNEL_ID)
             check = (datetime.date(datetime.now()) + timedelta(days=ACTIVE_DURATION))
             await channel.send('expire = ' + expiration.__str__() + ' check = ' + check.__str__())
             if expiration.__eq__((datetime.date(datetime.now()) + timedelta(days=ACTIVE_DURATION))): #prova per vedere se va
@@ -258,7 +260,7 @@ def update_counter(message):
 def does_it_count(message):
     """Controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
     if message.guild.id == GUILD_ID:
-        if message.channel.id in active_channels_id:
+        if message.channel.id in ACTIVE_CHANNELS_ID:
             print('counts')
             return True
     print('doesn\'t count')
