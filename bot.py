@@ -20,10 +20,14 @@ ACTIVE_ROLE_ID = int(os.getenv('ACTIVE_ROLE'))
 GUILD_ID = int(os.getenv('GUILD_ID'))
 REACTION_CHECK_CHANNEL_ID = int(os.getenv('REACTION_CHECK_CHANNEL_ID'))
 
-#todo caricare da file la lista delle parole bannate all'avvio
-banned_words = [
-    'porco dio'
-]
+#parole bannate
+try:
+    with open('banned_words.json','r') as file:
+        banned_words = json.load(file)
+except FileNotFoundError:
+    with open('banned_words.json','w+') as file:
+        banned_words = []
+
 weekdays = {
     0: "mon",
     1: "tue",
@@ -47,9 +51,9 @@ tracked_people_id = []
 try:
     with open('aflers.json','r') as file:
         d = json.load(file)
-        tracked_people_id.update(d.keys())
+        tracked_people_id.extend(d.keys())
 except FileNotFoundError:
-        pass
+    pass
 
 #ovviamente anche questo verrà caricato da file all'avvio
 greetings = """
@@ -75,7 +79,7 @@ async def on_ready():
     print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
     if(MAIN_CHANNEL is not None):
         channel = bot.get_channel(MAIN_CHANNEL)
-        await channel.send('Bot avviato alle 'f'{timestamp}')
+        await channel.send('Bot avviato alle 'f'{timestamp}. Il prefisso è: {bot.command_prefix}')
         periodic_checks.start()
 
 @bot.event
@@ -98,6 +102,9 @@ async def on_message(message):
         return
 
     update_counter(message)
+    #istruzione necessaria per processare i messaggi come comandi.
+    #TODO escludere i comandi da update_counter
+    await bot.process_commands(message)
 
 @bot.event
 async def on_message_delete(message):
@@ -114,7 +121,7 @@ async def on_message_delete(message):
         #il contatore non può ovviamente andare sotto 0
         if d[weekdays.get(datetime.today().weekday())] != 0:
             d[weekdays.get(datetime.today().weekday())] -= 1
-            update_json_file(prev_dict)
+            update_json_file(prev_dict, 'aflers.json')
 
 @bot.event
 async def on_reaction_add(reaction, user):
@@ -136,7 +143,29 @@ async def on_member_join(member):
     channel = await member.create_dm()
     await channel.send(greetings)
 
-@tasks.loop(minutes=1)
+#comando che aggiunge stringhe alla lista contenuta in banned_words.json
+@bot.command()
+async def blackadd(ctx, ban_word):
+    if ban_word in banned_words:
+        ctx.send(f'la parola è già contenuta nel vocabolario')
+        return
+    banned_words.append(ban_word)
+    update_json_file(banned_words, 'banned_words.json')
+    await ctx.send(f'parola aggiunta correttamente')
+
+#comando che imposta prefix come nuovo prefisso del bot
+@bot.command()
+async def setprefix(ctx, prefix):
+    bot.command_prefix = prefix
+    os.putenv('CURRENT_PREFIX', prefix)
+    await ctx.send(f"Prefisso cambiato in ``{prefix}``")
+
+#comando di prova, che ti saluta in una lingua diversa dalla tua
+@bot.command()
+async def hello(ctx):
+    await ctx.send(f"ciao")
+
+@tasks.loop(hours=24)
 async def periodic_checks():
     """Task periodica per la gestione di:
            - assegnamento ruolo attivo
@@ -184,7 +213,7 @@ async def periodic_checks():
                 await channel.send('membro ' + key + ' non più attivo :(')
                 item["active"] = False
                 item["expiration"] = None
-    update_json_file(prev_dict)
+    update_json_file(prev_dict, 'aflers.json')
 
 def update_counter(message):
     """Aggiorna il contatore dell'utente che ha mandato il messaggio. Se l'utente non era presente lo aggiunge
@@ -224,7 +253,7 @@ def update_counter(message):
             prev_dict[message.author.id] = afler
             #se una nuova persona viene aggiunta al json salvo l'id
             tracked_people_id.append(message.author.id)
-        update_json_file(prev_dict)
+        update_json_file(prev_dict, 'aflers.json')
 
 def does_it_count(message):
     """Controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
@@ -235,9 +264,9 @@ def does_it_count(message):
     print('doesn\'t count')
     return False
 
-def update_json_file(data):
+def update_json_file(data, json_file):
     """Scrive su file le modifiche apportate all' archivio json con il conteggio dei messaggi"""
-    with open('aflers.json', 'w') as file:
+    with open(json_file, 'w') as file:
         json.dump(data, file, indent=4)
 
 def count_messages(item):

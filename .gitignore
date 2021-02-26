@@ -1,3 +1,4 @@
 .env
 .vscode
 aflers.json
+banned_words.json
