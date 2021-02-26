@@ -5,6 +5,7 @@ import asyncio
 
 import discord
 from discord.ext import tasks
+from discord.ext import commands
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
@@ -65,25 +66,25 @@ Buona permanenza!
 intents = discord.Intents.default()
 intents.members = True
 
-#istanziare il client (avvio in fondo al codice)
-client = discord.Client(intents=intents)
+#istanziare il bot (avvio in fondo al codice)
+bot = commands.Bot(command_prefix = '\\', intents=intents)
 
-@client.event
+@bot.event
 async def on_ready():
     timestamp = datetime.time(datetime.now())
-    print(f'{client.user} has connected to Discord! 'f'{timestamp}')
+    print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
     if(MAIN_CHANNEL is not None):
-        channel = client.get_channel(MAIN_CHANNEL)
+        channel = bot.get_channel(MAIN_CHANNEL)
         await channel.send('Bot avviato alle 'f'{timestamp}')
         periodic_checks.start()
 
-@client.event
+@bot.event
 async def on_message(message):
-    if message.author == client.user or message.author.bot:  #non conta sè stesso e gli altri bot
+    if message.author == bot.user or message.author.bot:  #non conta sè stesso e gli altri bot
         return
 
     if message.content.lower() == 'ping':
-        response = 'pong in ' f'{round(client.latency * 1000)} ms'
+        response = 'pong in ' f'{round(bot.latency * 1000)} ms'
         await message.channel.send(response)
         return
 
@@ -98,7 +99,7 @@ async def on_message(message):
 
     update_counter(message)
 
-@client.event
+@bot.event
 async def on_message_delete(message):
     """In caso di rimozione dei messaggi va decrementato il contatore della persona che
     lo aveva scritto per evitare che messaggi non adatti vengano conteggiati nell'assegnamento del ruolo.
@@ -115,20 +116,20 @@ async def on_message_delete(message):
             d[weekdays.get(datetime.today().weekday())] -= 1
             update_json_file(prev_dict)
 
-@client.event
+@bot.event
 async def on_reaction_add(reaction, user):
     """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
     if reaction.message.channel.id == REACTION_CHECK_CHANNEL_ID:
-        if client.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles:
+        if bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles:
             await reaction.remove(user)
 
-@client.event
+@bot.event
 async def on_message_edit(before, after):
     """"Controlla che i messaggi non vengano editati per inserire parole della lista banned_words"""
     if (contains_banned_words(after)):
         await after.delete()
 
-@client.event
+@bot.event
 async def on_member_join(member):
     """Invia il messaggio di benvenuto al membro che si è appena unito al server"""
     print('nuovo membro')
@@ -158,10 +159,10 @@ async def periodic_checks():
             #rinnovano il ruolo perchè in entrambi i casi l'operazione da fare è la stessa
             item["active"] = True
             item["expiration"] = datetime.date(datetime.now() + timedelta(days=ACTIVE_DURATION)).__str__()
-            guild = client.get_guild(GUILD_ID)
+            guild = bot.get_guild(GUILD_ID)
             await guild.get_member(int(key)).add_roles(guild.get_role(ACTIVE_ROLE_ID))
             print('member ' + key + ' is active')
-            channel = client.get_channel(MAIN_CHANNEL)
+            channel = bot.get_channel(MAIN_CHANNEL)
             await channel.send('membro ' + key + ' è diventato attivo')
 
         #rimuovo i messaggi contati 7 giorni fa
@@ -174,11 +175,11 @@ async def periodic_checks():
 
         if item["active"] is True:
             expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%d'))
-            channel = client.get_channel(MAIN_CHANNEL)
+            channel = bot.get_channel(MAIN_CHANNEL)
             check = (datetime.date(datetime.now()) + timedelta(days=ACTIVE_DURATION))
             await channel.send('expire = ' + expiration.__str__() + ' check = ' + check.__str__())
             if expiration.__eq__((datetime.date(datetime.now()) + timedelta(days=ACTIVE_DURATION))): #prova per vedere se va
-                guild = client.get_guild(GUILD_ID)
+                guild = bot.get_guild(GUILD_ID)
                 await guild.get_member(int(key)).remove_roles(guild.get_role(ACTIVE_ROLE_ID))
                 await channel.send('membro ' + key + ' non più attivo :(')
                 item["active"] = False
@@ -252,4 +253,4 @@ def contains_banned_words(message):
         return True
     return False
 
-client.run(TOKEN)
+bot.run(TOKEN)
