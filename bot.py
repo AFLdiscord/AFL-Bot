@@ -103,10 +103,12 @@ async def on_message(message):
         await message.delete()
         return
 
-    update_counter(message)
+    if message.author.id not in MODERATION_ROLES_ID:
+        update_counter(message)
+
     #istruzione necessaria per processare i messaggi come comandi.
-    #TODO escludere i comandi da update_counter
     await bot.process_commands(message)
+    #escludere i comandi da update_counter?
 
 @bot.event
 async def on_message_delete(message):
@@ -129,7 +131,8 @@ async def on_message_delete(message):
 async def on_reaction_add(reaction, user):
     """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
     if reaction.message.channel.id == POLL_CHANNEL_ID:
-        if bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles:
+        if (bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles or
+            not list_comparator(user.roles, MODERATION_ROLES_ID)):
             await reaction.remove(user)
 
 @bot.event
@@ -160,7 +163,7 @@ async def blackadd(ctx, ban_word):
 async def setprefix(ctx, prefix):
     bot.command_prefix = prefix
     os.putenv('CURRENT_PREFIX', prefix)
-    await ctx.send(f"Prefisso cambiato in ``{prefix}``")
+    await ctx.send(f'Prefisso cambiato in ``{prefix}``')
 
 #comando di prova, che ti saluta in una lingua diversa dalla tua
 @bot.command()
@@ -282,6 +285,13 @@ def contains_banned_words(message):
     """Implementa il controllo sulle parole bannate"""
     if message.content.lower() in banned_words:
         return True
+    return False
+
+#verifica che le liste abbiano almeno un elemento in comune
+def list_comparator(list1, list2):
+    for el in list1:
+        if el in list2:
+            return True
     return False
 
 bot.run(TOKEN)
