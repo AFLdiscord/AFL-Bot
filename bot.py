@@ -131,9 +131,10 @@ async def on_message_delete(message):
 async def on_reaction_add(reaction, user):
     """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
     if reaction.message.channel.id == POLL_CHANNEL_ID:
-        if (bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles or
-            not list_comparator(user.roles, MODERATION_ROLES_ID)):
-            await reaction.remove(user)
+        if bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles:
+            for role in user.roles:
+                if role.id not in MODERATION_ROLES_ID:
+                    await reaction.remove(user)
 
 @bot.event
 async def on_message_edit(before, after):
@@ -148,29 +149,35 @@ async def on_member_join(member):
     channel = await member.create_dm()
     await channel.send(greetings)
 
-#comando che aggiunge stringhe alla lista contenuta in banned_words.json
 @bot.command()
 async def blackadd(ctx, ban_word):
+    """Aggiunge stringhe alla lista contenuta in banned_words.json.
+    Se la parola è composta da più parole separate da uno spazio, va messa tra ""
+    """
+    if ctx.author.top_role.id not in MODERATION_ROLES_ID:
+        return
     if ban_word in banned_words:
-        ctx.send(f'la parola è già contenuta nel vocabolario')
+        await ctx.send(f'la parola è già contenuta nel vocabolario')
         return
     banned_words.append(ban_word)
     update_json_file(banned_words, 'banned_words.json')
     await ctx.send(f'parola aggiunta correttamente')
 
-#comando che imposta prefix come nuovo prefisso del bot
 @bot.command()
 async def setprefix(ctx, prefix):
+    """imposta prefix come nuovo prefisso del bot"""
+    if ctx.author.top_role.id not in MODERATION_ROLES_ID:
+        return
     bot.command_prefix = prefix
     os.putenv('CURRENT_PREFIX', prefix)
     await ctx.send(f'Prefisso cambiato in ``{prefix}``')
 
-#comando di prova, che ti saluta in una lingua diversa dalla tua
 @bot.command()
 async def hello(ctx):
+    """comando di prova, che ti saluta in una lingua diversa dalla tua"""
     await ctx.send(f"ciao")
 
-@tasks.loop(hours=24)
+@tasks.loop(minutes=1)
 async def periodic_checks():
     """Task periodica per la gestione di:
            - assegnamento ruolo attivo
@@ -222,7 +229,8 @@ async def periodic_checks():
 
 def update_counter(message):
     """Aggiorna il contatore dell'utente che ha mandato il messaggio. Se l'utente non era presente lo aggiunge
-    al json inizializzando tutti i contatori a 0"""
+    al json inizializzando tutti i contatori a 0
+    """
     if  not does_it_count(message):
         return
     prev_dict = {}
@@ -287,8 +295,8 @@ def contains_banned_words(message):
         return True
     return False
 
-#verifica che le liste abbiano almeno un elemento in comune
 def list_comparator(list1, list2):
+    """verifica che le liste abbiano almeno un elemento in comune"""
     for el in list1:
         if el in list2:
             return True
