@@ -61,8 +61,6 @@ try:
 except FileNotFoundError:
     pass
 
-#ovviamente anche questo verrà caricato da file all'avvio
-
 #per poter ricevere le notifiche sull'unione di nuovi membri
 intents = discord.Intents.default()
 intents.members = True
@@ -205,6 +203,9 @@ async def periodic_checks():
             print('member ' + key + ' is active')
             channel = bot.get_channel(MAIN_CHANNEL_ID)
             await channel.send('membro ' + key + ' è diventato attivo')
+            #azzero tutti i contatori
+            for i in weekdays:
+                item[weekdays.get(i)] = 0
 
         #rimuovo i messaggi contati 7 giorni fa
         item[weekdays.get(datetime.today().weekday())] = 0
