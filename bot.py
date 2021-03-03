@@ -2,6 +2,7 @@
 import os
 import json
 import asyncio
+import re
 
 import discord
 from discord.ext import tasks
@@ -292,8 +293,11 @@ def count_messages(item):
 
 def contains_banned_words(message):
     """Implementa il controllo sulle parole bannate"""
-    if message.content.lower() in banned_words:
-        return True
+    for word in banned_words:
+        regex_word = " *.{0,3}".join(word)
+        x = re.search(regex_word, message.content.lower())
+        if x is not None:
+            return True
     return False
 
 def list_comparator(list1, list2):
