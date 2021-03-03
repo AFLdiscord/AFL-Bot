@@ -293,9 +293,18 @@ def count_messages(item):
 
 def contains_banned_words(message):
     """Implementa il controllo sulle parole bannate"""
+    text_to_check = message.content.lower()
+    text_to_check = re.sub("0", "o", text_to_check)
+    text_to_check = re.sub("1", "i", text_to_check)
+    text_to_check = re.sub("5", "s", text_to_check)
+    text_to_check = re.sub("2", "z", text_to_check)
+    text_to_check = re.sub("8", "b", text_to_check)
+    text_to_check = re.sub("4", "a", text_to_check)
+    text_to_check = re.sub("3", "e", text_to_check)
+    text_to_check = re.sub("7", "t", text_to_check)
     for word in banned_words:
-        regex_word = " *.{0,3}".join(word)
-        x = re.search(regex_word, message.content.lower())
+        regex_word = "+ *\W*".join(word)
+        x = re.search(regex_word, text_to_check)
         if x is not None:
             return True
     return False
