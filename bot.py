@@ -30,6 +30,8 @@ for channel in config['active']['channels_id']:
 ACTIVE_THRESHOLD = config['active']['threshold']
 ACTIVE_DURATION = config['active']['duration']
 POLL_CHANNEL_ID = int(config['poll_channel_id'])
+UNDER_SURVEILLANCE_ID = int(config['under_surveillance_id'])
+VIOLATIONS_RESET_DAYS = config["violations_reset_days"]
 greetings = config['greetings']
 
 #parole bannate
@@ -100,6 +102,7 @@ async def on_message(message):
     
     if contains_banned_words(message):
         await message.delete()
+        await warn(message.author, "linguaggio inappropriato")
         return
 
     if message.author.id not in MODERATION_ROLES_ID:
@@ -141,6 +144,7 @@ async def on_message_edit(before, after):
     if (contains_banned_words(after)):
         await after.delete()
 
+
 @bot.event
 async def on_member_join(member):
     """Invia il messaggio di benvenuto al membro che si è appena unito al server"""
@@ -181,7 +185,7 @@ async def periodic_checks():
     """Task periodica per la gestione di:
            - assegnamento ruolo attivo
            - rimozione ruolo attivo
-           - (TODO)rimozione strike/violazioni
+           - rimozione strike/violazioni
 
         L'avvio è programmato ogni giorno allo scatto della mezzanotte.
     """
@@ -207,6 +211,14 @@ async def periodic_checks():
             #azzero tutti i contatori
             for i in weekdays:
                 item[weekdays.get(i)] = 0
+
+        #controllo sulla data dell'ultima violazione, ed eventuale reset
+        if item["last_violation_count"] is not None:
+            expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d'))
+            if (expiration + timedelta(days=VIOLATIONS_RESET_DAYS)).__eq__(datetime.date(datetime.now())):
+                print('reset violazioni di ' + key)
+                item["violations_count"] = 0
+                item["last_violation_count"] = None
 
         #rimuovo i messaggi contati 7 giorni fa
         item[weekdays.get(datetime.today().weekday())] = 0
@@ -260,7 +272,7 @@ def update_counter(message):
                 "sat": 0,
                 "sun": 0,
                 "violations_count": 0,
-                "start_of_violation_count": None,
+                "last_violation_count": None,
                 "active": False,
                 "expiration": None
             }
@@ -309,11 +321,50 @@ def contains_banned_words(message):
             return True
     return False
 
-def list_comparator(list1, list2):
-    """verifica che le liste abbiano almeno un elemento in comune"""
-    for el in list1:
-        if el in list2:
-            return True
-    return False
+async def warn(member, reason):
+    """incrementa il numero di violazioni e tiene traccia della prima violazione commesa"""
+    prev_dict = {}
+    penalty = "warnato."
+    try:
+        with open('aflers.json','r') as file:
+            prev_dict = json.load(file)
+    except FileNotFoundError:
+        print('file non trovato, lo creo ora')
+        with open('aflers.json','w+') as file:
+            prev_dict = {}
+    finally:
+        key = str(member.id)
+        if key in prev_dict:
+            d = prev_dict.get(key)
+            if d["violations_count"] == 2:
+                await member.add_roles(bot.get_guild(GUILD_ID).get_role(UNDER_SURVEILLANCE_ID))
+                penalty = "sottoposto a sorveglianza, il prossimo sara' un ban."
+            elif d["violations_count"] == 3:
+                k = reason
+                await member.ban(reason = k)
+                penalty = "bannato dal server."
+            d["last_violation_count"] = datetime.date(datetime.now()).__str__()
+            d["violations_count"] += 1
+        else:
+            #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
+            afler = {
+                "mon": 0,
+                "tue": 0,
+                "wed": 0,
+                "thu": 0,
+                "fri": 0,
+                "sat": 0,
+                "sun": 0,
+                "violations_count": 1,
+                "last_violation_count": datetime.date(datetime.now()).__str__(),
+                "active": False,
+                "expiration": None
+            }
+            prev_dict[key] = afler
+            #se una nuova persona viene aggiunta al json salvo l'id
+            tracked_people_id.append(afler)
+        channel = await member.create_dm()
+        await channel.send("Sei stato " + penalty + " Motivo: " + reason + ".")
+        update_json_file(prev_dict, 'aflers.json')
 
 bot.run(TOKEN)
