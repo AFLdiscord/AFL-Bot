@@ -29,6 +29,7 @@ for channel in config['active']['channels_id']:
     ACTIVE_CHANNELS_ID.append(int(channel))
 ACTIVE_THRESHOLD = config['active']['threshold']
 ACTIVE_DURATION = config['active']['duration']
+ANARCHY_CHANNEL_ID = int(config['anarchy_channel_id'])
 POLL_CHANNEL_ID = int(config['poll_channel_id'])
 UNDER_SURVEILLANCE_ID = int(config['under_surveillance_id'])
 VIOLATIONS_RESET_DAYS = config["violations_reset_days"]
@@ -100,7 +101,7 @@ async def on_message(message):
         await message.channel.send(greetings)
         return
     
-    if contains_banned_words(message.content):
+    if contains_banned_words(message.content) and message.channel.id != ANARCHY_CHANNEL_ID:
         await message.delete()
         await warn(message.author, "linguaggio inappropriato")
         return
