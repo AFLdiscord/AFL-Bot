@@ -92,7 +92,7 @@ async def on_message(message):
     
     if contains_banned_words(message.content) and message.channel.id not in EXCEPTIONAL_CHANNELS_ID:
         await message.delete()
-        await warn(message.author, "linguaggio inappropriato")
+        await add_warn(message.author, "linguaggio inappropriato")
         return
 
     if message.author.id not in MODERATION_ROLES_ID:
@@ -222,9 +222,11 @@ async def setprefix(ctx, prefix):
     await ctx.send(f'Prefisso cambiato in ``{prefix}``')
 
 @bot.command()
-async def hello(ctx):
-    """comando di prova, che ti saluta in una lingua diversa dalla tua"""
-    await ctx.send(f'ciao {ctx.author.display_name}')
+async def warn(ctx, member: discord.Member, reason=None):
+    """aggiunge un warn all'utente menzionato nel messaggio"""
+    if ctx.author.top_role.id not in MODERATION_ROLES_ID:
+        return
+    await add_warn(member, reason)
 
 @tasks.loop(minutes=1)
 async def periodic_checks():
@@ -366,7 +368,7 @@ def contains_banned_words(text):
             return True
     return False
 
-async def warn(member, reason):
+async def add_warn(member, reason):
     """incrementa il numero di violazioni e tiene traccia della prima violazione commesa"""
     prev_dict = {}
     penalty = "warnato."
