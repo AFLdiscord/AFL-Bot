@@ -100,7 +100,7 @@ async def on_message(message):
         await message.channel.send(greetings)
         return
     
-    if contains_banned_words(message):
+    if contains_banned_words(message.content):
         await message.delete()
         await warn(message.author, "linguaggio inappropriato")
         return
@@ -147,10 +147,36 @@ async def on_message_edit(before, after):
 
 @bot.event
 async def on_member_join(member):
-    """Invia il messaggio di benvenuto al membro che si è appena unito al server"""
+    """Invia il messaggio di benvenuto al membro che si è appena unito al server e controlla che l'username
+    sia adeguato
+    """
     print('nuovo membro')
     channel = await member.create_dm()
     await channel.send(greetings)
+    if contains_banned_words(member.display_name):
+        await member.kick(reason="ForbiddenUsername")
+        await channel.send(f'Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
+
+@bot.event
+async def on_member_update(before, after):
+    """controlla che chi è entrato e ha modificato il nickname ne abbia messo uno adeguato"""
+    guild = bot.get_guild(GUILD_ID)
+    if contains_banned_words(after.display_name):
+        if before.nick is not None:
+            print('ripristino nickname a ' + str(after.id))
+            await guild.get_member(after.id).edit(nick=before.display_name)
+        else:
+            channel = await member.create_dm()
+            await member.kick(reason="ForbiddenNickname")
+            await channel.send(f'Il tuo nickname non è consentito, quando rientri impostane uno valido')
+
+@bot.event
+async def on_user_update(before, after):
+    """controlla che gli utenti non cambino nome mostrato qualora cambiassero username"""
+    guild = bot.get_guild(GUILD_ID)
+    if after.display_name != before.display_name:
+        print('cambio nickname')
+        await guild.get_member(after.id).edit(nick=before.display_name)
 
 @bot.command()
 async def blackadd(ctx, ban_word):
@@ -178,7 +204,7 @@ async def setprefix(ctx, prefix):
 @bot.command()
 async def hello(ctx):
     """comando di prova, che ti saluta in una lingua diversa dalla tua"""
-    await ctx.send(f"ciao")
+    await ctx.send(f'ciao {ctx.author.display_name}')
 
 @tasks.loop(minutes=1)
 async def periodic_checks():
@@ -284,11 +310,12 @@ def update_counter(message):
 
 def does_it_count(message):
     """Controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
-    if message.guild.id == GUILD_ID:
-        if message.channel.id in ACTIVE_CHANNELS_ID:
-            print('counts')
-            return True
-    print('doesn\'t count')
+    if message.guild is not None:
+        if message.guild.id == GUILD_ID:
+            if message.channel.id in ACTIVE_CHANNELS_ID:
+                print('counts')
+                return True
+        print('doesn\'t count')
     return False
 
 def update_json_file(data, json_file):
@@ -303,9 +330,9 @@ def count_messages(item):
         count += item[weekdays.get(i)]
     return count
 
-def contains_banned_words(message):
+def contains_banned_words(text):
     """Implementa il controllo sulle parole bannate"""
-    text_to_check = message.content.lower()
+    text_to_check = text.lower()
     text_to_check = re.sub("0", "o", text_to_check)
     text_to_check = re.sub("1", "i", text_to_check)
     text_to_check = re.sub("5", "s", text_to_check)
