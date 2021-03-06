@@ -29,7 +29,9 @@ for channel in config['active']['channels_id']:
     ACTIVE_CHANNELS_ID.append(int(channel))
 ACTIVE_THRESHOLD = config['active']['threshold']
 ACTIVE_DURATION = config['active']['duration']
-ANARCHY_CHANNEL_ID = int(config['anarchy_channel_id'])
+EXCEPTIONAL_CHANNELS_ID = []
+for channel in config['exceptional_channels_id']:
+    EXCEPTIONAL_CHANNELS_ID.append(int(channel))
 POLL_CHANNEL_ID = int(config['poll_channel_id'])
 UNDER_SURVEILLANCE_ID = int(config['under_surveillance_id'])
 VIOLATIONS_RESET_DAYS = config["violations_reset_days"]
@@ -101,7 +103,7 @@ async def on_message(message):
         await message.channel.send(greetings)
         return
     
-    if contains_banned_words(message.content) and message.channel.id != ANARCHY_CHANNEL_ID:
+    if contains_banned_words(message.content) and message.channel.id not in EXCEPTIONAL_CHANNELS_ID:
         await message.delete()
         await warn(message.author, "linguaggio inappropriato")
         return
@@ -187,11 +189,23 @@ async def blackadd(ctx, ban_word):
     if ctx.author.top_role.id not in MODERATION_ROLES_ID:
         return
     if ban_word in banned_words:
-        await ctx.send(f'la parola è già contenuta nel vocabolario')
+        await ctx.send(f'la parola è già contenuta nell\'elenco')
         return
     banned_words.append(ban_word)
     update_json_file(banned_words, 'banned_words.json')
     await ctx.send(f'parola aggiunta correttamente')
+
+@bot.command()
+async def blackremove(ctx, ban_word):
+    """elimina una banned_word dall'elenco"""
+    if ctx.author.top_role.id not in MODERATION_ROLES_ID:
+        return
+    if ban_word in banned_words:
+        banned_words.remove(ban_word)
+        update_json_file(banned_words, 'banned_words.json')
+        await ctx.send(f'la parola è stata rimossa')
+    else:
+        await ctx.send(f'la parola non è presente nell\'elenco')
 
 @bot.command()
 async def setprefix(ctx, prefix):
@@ -369,7 +383,7 @@ async def warn(member, reason):
                 penalty = "sottoposto a sorveglianza, il prossimo sara' un ban."
             elif d["violations_count"] == 3:
                 k = reason
-                await member.ban(reason = k)
+                await member.ban(delete_message_days = 0, reason = k)
                 penalty = "bannato dal server."
             d["last_violation_count"] = datetime.date(datetime.now()).__str__()
             d["violations_count"] += 1

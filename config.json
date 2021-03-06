@@ -9,7 +9,10 @@
         "threshold": 3,
         "duration": 1
     },
-    "anarchy_channel_id": 817814268837625876,
+    "exceptional_channels_id": [
+        817814268837625876,
+        817820646154698804
+    ],
     "poll_channel_id": 707623433416212524,
     "under_surveillance_id": 817184237719126068,
     "violations_reset_days": 7,
