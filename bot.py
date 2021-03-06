@@ -14,7 +14,6 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 #modificare config.json prima di avviare il bot
-
 with open('config.json', 'r') as file:
     config = json.load(file)
 GUILD_ID = int(config['guild_id'])
@@ -54,18 +53,6 @@ weekdays = {
     5: "sat",
     6: "sun"
 }
-
-#id delle persone aggiunte al file così da averlo pronto senza aprire il file ogni volta
-tracked_people_id = []
-
-#l'inizializzazione della lista serve a non perdere quali persone sono presenti nel file in
-#caso di riavvio del bot
-try:
-    with open('aflers.json','r') as file:
-        d = json.load(file)
-        tracked_people_id.extend(d.keys())
-except FileNotFoundError:
-    pass
 
 #per poter ricevere le notifiche sull'unione di nuovi membri
 intents = discord.Intents.default()
@@ -120,17 +107,21 @@ async def on_message_delete(message):
     """In caso di rimozione dei messaggi va decrementato il contatore della persona che
     lo aveva scritto per evitare che messaggi non adatti vengano conteggiati nell'assegnamento del ruolo.
     """
-    if message.author.id in tracked_people_id:
-        try:
-            with open('aflers.json','r') as file:
-                prev_dict = json.load(file)
-        except FileNotFoundError:
-            return
+    try:
+       with open('aflers.json','r') as file:
+            prev_dict = json.load(file)
+    except FileNotFoundError:
+        return
+    try:
         d = prev_dict.get(str(message.author.id))
-        #il contatore non può ovviamente andare sotto 0
-        if d[weekdays.get(datetime.today().weekday())] != 0:
-            d[weekdays.get(datetime.today().weekday())] -= 1
-            update_json_file(prev_dict, 'aflers.json')
+    except KeyError:
+        print('utente non presente')
+        return
+    #il contatore non può ovviamente andare sotto 0
+    if d[weekdays.get(datetime.today().weekday())] != 0:
+        d[weekdays.get(datetime.today().weekday())] -= 1
+        update_json_file(prev_dict, 'aflers.json')
+        print('rimosso un messaggio')
 
 @bot.event
 async def on_reaction_add(reaction, user):
@@ -147,18 +138,32 @@ async def on_message_edit(before, after):
     if (contains_banned_words(after)):
         await after.delete()
 
-
 @bot.event
 async def on_member_join(member):
     """Invia il messaggio di benvenuto al membro che si è appena unito al server e controlla che l'username
     sia adeguato
     """
+    if member.bot:
+        return
     print('nuovo membro')
     channel = await member.create_dm()
     await channel.send(greetings)
     if contains_banned_words(member.display_name):
         await member.kick(reason="ForbiddenUsername")
         await channel.send(f'Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
+
+@bot.event
+async def on_member_remove(member):
+    """rimuove l'utente da aflers.json"""
+    if member.bot:
+        return
+    with open('aflers.json','w+') as file:
+        prev_dict = json.load(file)
+        try:
+            del prev_dict[str(member.id)]
+            json.dump(data, file, indent=4)
+        except KeyError:
+            return
 
 @bot.event
 async def on_member_update(before, after):
@@ -319,8 +324,6 @@ def update_counter(message):
             }
             afler[weekdays.get(datetime.today().weekday())] = 1
             prev_dict[message.author.id] = afler
-            #se una nuova persona viene aggiunta al json salvo l'id
-            tracked_people_id.append(message.author.id)
         update_json_file(prev_dict, 'aflers.json')
 
 def does_it_count(message):
@@ -346,7 +349,7 @@ def count_messages(item):
     return count
 
 def contains_banned_words(text):
-    """Implementa il controllo sulle parole bannate"""
+    """Implementa il controllo sulle parole bannate tramite regex"""
     text_to_check = text.lower()
     text_to_check = re.sub("0", "o", text_to_check)
     text_to_check = re.sub("1", "i", text_to_check)
@@ -403,8 +406,6 @@ async def warn(member, reason):
                 "expiration": None
             }
             prev_dict[key] = afler
-            #se una nuova persona viene aggiunta al json salvo l'id
-            tracked_people_id.append(afler)
         channel = await member.create_dm()
         await channel.send("Sei stato " + penalty + " Motivo: " + reason + ".")
         update_json_file(prev_dict, 'aflers.json')
