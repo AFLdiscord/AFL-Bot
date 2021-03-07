@@ -14,8 +14,12 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 #modificare config.json prima di avviare il bot
-with open('config.json', 'r') as file:
-    config = json.load(file)
+try:
+   with open('config.json', 'r') as file:
+       config = json.load(file)
+except FileNotFoundError:
+    print('crea il file config.json seguendo le indicazioni del template')
+    exit()
 GUILD_ID = int(config['guild_id'])
 MAIN_CHANNEL_ID = int(config['main_channel_id'])
 CURRENT_PREFIX = config['current_prefix']

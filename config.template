@@ -1,0 +1,18 @@
+{
+    #attenzione cancella questo commento: compila i campi coi dati richiesti
+    "guild_id": id del server in cui contare i messaggi,
+    "main_channel_id": canale dei messaggi di sistema del bot,
+    "current_prefix": "<",
+    "moderation_roles_id": [id dei ruoli di moderazione separati da virgola se più di uno],
+    "active": {
+        "role_id": id del ruolo attivo,
+        "channels_id": [id dei canali rilevanti al conteggio, separati da virgola se più di uno],
+        "threshold": numero di messaggi da mandare prima di ricevere il ruolo attivo,
+        "duration": durata del ruolo attivo in giorni
+    },
+    "exceptional_channels_id": [elenco dei canali non controllati dal bot, separati da virgola se più di uno],
+    "poll_channel_id": canale in cui controllare le reaction alle proposte,
+    "under_surveillance_id": id del ruolo sotto sorveglianza (vedi regole),
+    "violations_reset_days": tempo dopo cui si resettano le violazioni in giorni,
+    "greetings": "Benvenuto/a sul server discord AFL!\nPrima di iniziare a partecipare nel server presentati nel canale richiesta di afl indicando almeno\n- sesso\n- eta'\nTi invitiamo a leggere attentamente il regolamento del server, reperibile sul canale regole.\nPer chiarimenti rivolgiti pure ai moderatori.\nBuona permanenza!"
+}
