@@ -71,7 +71,7 @@ async def on_ready():
     print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
     if(MAIN_CHANNEL_ID is not None):
         channel = bot.get_channel(MAIN_CHANNEL_ID)
-        #await channel.send('Bot avviato alle 'f'{timestamp}. Il prefisso è: {bot.command_prefix}')
+        await channel.send('Bot avviato alle 'f'{timestamp}. Il prefisso è: {bot.command_prefix}')
         periodic_checks.start()
 
 @bot.event
@@ -238,6 +238,7 @@ async def unwarn(ctx, member: discord.Member):
     await ctx.message.delete(delay=5)
 
 @bot.command(aliases=['warnc', 'wc'])
+@commands.check(is_mod)
 async def warncount(ctx, member:discord.Member = None):
     """stampa nel canale in cui viene chiamato l'elenco di tutti i warn degli utenti. può accettare come parametro un 
     username (tramite menzione) e in tal caso stampa i warn riguardanti quel membro. Può essere chiamata da chiunque
@@ -273,6 +274,42 @@ async def warncount(ctx, member:discord.Member = None):
         count = str(user["violations_count"])
         warnc += name + ': ' + count + ' warn'
     await ctx.send(warnc)
+
+@bot.command()
+async def status(ctx, member:discord.Member):
+    """mostra lo status del membro fornito come parametro"""
+    try:
+        with open('aflers.json','r') as file:
+            prev_dict = json.load(file)
+    except FileNotFoundError:
+        await ctx.send('nessun elenco', delete_after=5)
+        await ctx.message.delete(delay=5)
+        return
+    try:
+        item = prev_dict.get(str(member.id))
+        if item is None:
+            await ctx.send('nessun utente registrato', delete_after=5)
+            await ctx.message.delete(delay=5)
+            return 
+    except KeyError:
+        await ctx.send('l\'utente indicato non è registrato', delete_after=5)
+        await ctx.message.delete(delay=5)
+        return
+    status = discord.Embed(
+        title=f'Status di {member.display_name}',
+        color=member.top_role.color
+    )
+    status.set_thumbnail(url=member.avatar_url)
+    status.add_field(name='**Messaggi ultimi 7 giorni:**', value=str(count_messages(item)), inline=False)
+    if item["active"] == False:
+        status.add_field(name='**Attivo:**', value='no', inline=False)
+    else:
+        status.add_field(name='**Attivo:**', value='sì (scade il ' + item["expiration"] + ')', inline=False)
+    if item["violations_count"] == 0:
+        status.add_field(name='**Violazioni:**', value='0', inline=False)
+    else:
+        status.add_field(name='**Violazioni:**', value=str(item["violations_count"]) + ' (scade il ' + item["last_violation_count"] + ')', inline=False)
+    await ctx.send(embed=status)
 
 @bot.command()
 @commands.check(is_mod)
