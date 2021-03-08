@@ -71,7 +71,7 @@ async def on_ready():
     print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
     if(MAIN_CHANNEL_ID is not None):
         channel = bot.get_channel(MAIN_CHANNEL_ID)
-        await channel.send('Bot avviato alle 'f'{timestamp}. Il prefisso è: {bot.command_prefix}')
+        #await channel.send('Bot avviato alle 'f'{timestamp}. Il prefisso è: {bot.command_prefix}')
         periodic_checks.start()
 
 @bot.event
@@ -117,6 +117,9 @@ async def on_message_delete(message):
     except KeyError:
         print('utente non presente')
         return
+    finally:
+        if d is None:
+            return
     #il contatore non può ovviamente andare sotto 0
     if d[weekdays.get(datetime.today().weekday())] != 0:
         d[weekdays.get(datetime.today().weekday())] -= 1
@@ -304,6 +307,7 @@ async def periodic_checks():
     print('controllo conteggio messaggi')
     prev_dict = open_file()
     if not prev_dict:
+        os.remove('aflers.json')
         return
     for key in prev_dict:
         item = prev_dict.get(key)
@@ -382,7 +386,6 @@ def does_it_count(message):
         if message.guild.id == GUILD_ID:
             if message.channel.id in ACTIVE_CHANNELS_ID:
                 return True
-        print('doesn\'t count')
     return False
 
 def update_json_file(data, json_file):
@@ -421,6 +424,7 @@ def contains_banned_words(text):
     text_to_check = re.sub("4", "a", text_to_check)
     text_to_check = re.sub("3", "e", text_to_check)
     text_to_check = re.sub("7", "t", text_to_check)
+    text_to_check = re.sub("9", "g", text_to_check)
     for word in banned_words:
         regex_word = '+ *\W*'.join(word)
         x = re.search(regex_word, text_to_check)
@@ -429,15 +433,18 @@ def contains_banned_words(text):
     return False
 
 async def add_warn(member, reason, number):
-    """incrementa o decremente il numero di violazioni di numero e tiene traccia dell'ultima violazione commesa"""
+    """incrementa o decremente il numero di violazioni di numero e tiene traccia dell'ultima violazione commessa"""
     prev_dict = open_file()
+    if not prev_dict():
+        os.remove('aflers.json')
+        return
     penalty = 'warnato.'
     key = str(member.id)
     if key in prev_dict:
         d = prev_dict.get(key)
         d["violations_count"] += number
         d["last_violation_count"] = datetime.date(datetime.now()).__str__()
-        if d["violations_count"] < 0:
+        if d["violations_count"] <= 0:
             d["violations_count"] = 0
             d["last_violation_count"] = None
             return
