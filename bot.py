@@ -134,8 +134,9 @@ async def on_reaction_add(reaction, user):
     if reaction.message.channel.id == POLL_CHANNEL_ID:
         if bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles:
             for role in user.roles:
-                if role.id not in MODERATION_ROLES_ID:
-                    await reaction.remove(user)
+                if role.id in MODERATION_ROLES_ID:
+                    return
+            await reaction.remove(user)
 
 @bot.event
 async def on_message_edit(before, after):
@@ -308,7 +309,10 @@ async def status(ctx, member:discord.Member):
     if item["violations_count"] == 0:
         status.add_field(name='**Violazioni:**', value='0', inline=False)
     else:
-        status.add_field(name='**Violazioni:**', value=str(item["violations_count"]) + ' (scade il ' + item["last_violation_count"] + ')', inline=False)
+        violations_expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d') +
+            timedelta(days=VIOLATIONS_RESET_DAYS)).__str__()
+        status.add_field(name='**Violazioni:**', value=str(item["violations_count"]) +
+            ' (scade il ' + violations_expiration + ')', inline=False)
     await ctx.send(embed=status)
 
 @bot.command()
