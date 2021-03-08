@@ -109,8 +109,10 @@ async def on_message_delete(message):
     """
     if message.author == bot.user or message.author.bot:
         return
-    prev_dict = open_file()
-    if not prev_dict:
+    try:
+       with open('aflers.json','r') as file:
+            prev_dict = json.load(file)
+    except FileNotFoundError:
         return
     try:
         d = prev_dict.get(str(message.author.id))
@@ -240,8 +242,10 @@ async def warncount(ctx, member:discord.Member = None):
     """stampa nel canale in cui viene chiamato l'elenco di tutti i warn degli utenti. può accettare come parametro un 
     username (tramite menzione) e in tal caso stampa i warn riguardanti quel membro. Può essere chiamata da chiunque
     """
-    prev_dict = open_file()
-    if not prev_dict:
+    try:
+        with open('aflers.json','r') as file:
+            prev_dict = json.load(file)
+    except FileNotFoundError:
         await ctx.send('nessuna attività registrata', delete_after=5)
         await ctx.message.delete(delay=5)
         return
@@ -305,9 +309,10 @@ async def periodic_checks():
         L'avvio è programmato ogni giorno allo scatto della mezzanotte.
     """
     print('controllo conteggio messaggi')
-    prev_dict = open_file()
-    if not prev_dict:
-        os.remove('aflers.json')
+    try:
+        with open('aflers.json','r') as file:
+            prev_dict = json.load(file)
+    except FileNotFoundError:
         return
     for key in prev_dict:
         item = prev_dict.get(key)
@@ -355,30 +360,38 @@ def update_counter(message):
     """
     if  not does_it_count(message):
         return
-    prev_dict = open_file()
-    key = str(message.author.id)
-    if key in prev_dict:
-        d = prev_dict.get(key)
-        #incrementa solo il campo corrispondente al giorno corrente
-        d[weekdays.get(datetime.today().weekday())] += 1
-    else:
-        #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
-        afler = {
-            "mon": 0,
-            "tue": 0,
-            "wed": 0,
-            "thu": 0,
-            "fri": 0,
-            "sat": 0,
-            "sun": 0,
-            "violations_count": 0,
-            "last_violation_count": None,
-            "active": False,
-            "expiration": None
-        }
-        afler[weekdays.get(datetime.today().weekday())] = 1
-        prev_dict[message.author.id] = afler
-    update_json_file(prev_dict, 'aflers.json')
+    prev_dict = {}
+    try:
+        with open('aflers.json','r') as file:
+            prev_dict = json.load(file)
+    except FileNotFoundError:
+        print('file non trovato, lo creo ora')
+        with open('aflers.json','w+') as file:
+            prev_dict = {}   #dizionario per permettere di cercare dell'ID facilmente
+    finally:
+        key = str(message.author.id)
+        if key in prev_dict:
+            d = prev_dict.get(key)
+            #incrementa solo il campo corrispondente al giorno corrente
+            d[weekdays.get(datetime.today().weekday())] += 1
+        else:
+            #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
+            afler = {
+                "mon": 0,
+                "tue": 0,
+                "wed": 0,
+                "thu": 0,
+                "fri": 0,
+                "sat": 0,
+                "sun": 0,
+                "violations_count": 0,
+                "last_violation_count": None,
+                "active": False,
+                "expiration": None
+            }
+            afler[weekdays.get(datetime.today().weekday())] = 1
+            prev_dict[message.author.id] = afler
+        update_json_file(prev_dict, 'aflers.json')
 
 def does_it_count(message):
     """Controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
@@ -392,19 +405,6 @@ def update_json_file(data, json_file):
     """Scrive su file le modifiche apportate all' archivio json con il conteggio dei messaggi"""
     with open(json_file, 'w') as file:
         json.dump(data, file, indent=4)
-
-def open_file():
-    """apre il file aflers.json, se non esiste ne crea uno vuoto
-    ritorna il contenuto del file.
-    """
-    try:
-       with open('aflers.json','r') as file:
-            prev_dict = json.load(file)
-    except FileNotFoundError:
-        with open('aflers.json','w+') as file:
-            prev_dict = {}
-    finally:
-        return prev_dict
 
 def count_messages(item):
     """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti"""
@@ -434,53 +434,58 @@ def contains_banned_words(text):
 
 async def add_warn(member, reason, number):
     """incrementa o decremente il numero di violazioni di numero e tiene traccia dell'ultima violazione commessa"""
-    prev_dict = open_file()
-    if not prev_dict():
-        os.remove('aflers.json')
-        return
+    prev_dict = {}
     penalty = 'warnato.'
-    key = str(member.id)
-    if key in prev_dict:
-        d = prev_dict.get(key)
-        d["violations_count"] += number
-        d["last_violation_count"] = datetime.date(datetime.now()).__str__()
-        if d["violations_count"] <= 0:
-            d["violations_count"] = 0
-            d["last_violation_count"] = None
-            return
-        if number < 0:  #non deve controllare se è un unwarn
-            return
-        if d["violations_count"] == 3:
-            await member.add_roles(bot.get_guild(GUILD_ID).get_role(UNDER_SURVEILLANCE_ID))
-            penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
-            channel = await member.create_dm()
-            await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-        elif d["violations_count"] == 4:
-            penalty = 'bannato dal server.' 
-            channel = await member.create_dm()
-            await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-            await member.ban(delete_message_days = 0, reason = reason)   
+    try:
+        with open('aflers.json','r') as file:
+            prev_dict = json.load(file)
+    except FileNotFoundError:
+        print('file non trovato, lo creo ora')
+        with open('aflers.json','w+') as file:
+            prev_dict = {}
+    finally:
+        key = str(member.id)
+        if key in prev_dict:
+            d = prev_dict.get(key)
+            d["violations_count"] += number
+            d["last_violation_count"] = datetime.date(datetime.now()).__str__()
+            if d["violations_count"] <= 0:
+                d["violations_count"] = 0
+                d["last_violation_count"] = None
+                return
+            if number < 0:  #non deve controllare se è un unwarn
+                return
+            if d["violations_count"] == 3:
+                await member.add_roles(bot.get_guild(GUILD_ID).get_role(UNDER_SURVEILLANCE_ID))
+                penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
+                channel = await member.create_dm()
+                await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
+            elif d["violations_count"] == 4:
+                penalty = 'bannato dal server.' 
+                channel = await member.create_dm()
+                await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
+                await member.ban(delete_message_days = 0, reason = reason)   
+            else:
+                channel = await member.create_dm()
+                await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
         else:
-            channel = await member.create_dm()
-            await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-    else:
-        #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
-        if number < 0:
-            return
-        afler = {
-            "mon": 0,
-            "tue": 0,
-            "wed": 0,
-            "thu": 0,
-            "fri": 0,
-            "sat": 0,
-            "sun": 0,
-            "violations_count": number,
-            "last_violation_count": datetime.date(datetime.now()).__str__(),
-            "active": False,
-            "expiration": None
-        }
-        prev_dict[key] = afler
-    update_json_file(prev_dict, 'aflers.json')
+            #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
+            if number < 0:
+                return
+            afler = {
+                "mon": 0,
+                "tue": 0,
+                "wed": 0,
+                "thu": 0,
+                "fri": 0,
+                "sat": 0,
+                "sun": 0,
+                "violations_count": number,
+                "last_violation_count": datetime.date(datetime.now()).__str__(),
+                "active": False,
+                "expiration": None
+            }
+            prev_dict[key] = afler
+        update_json_file(prev_dict, 'aflers.json')
 
 bot.run(TOKEN)
