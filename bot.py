@@ -249,14 +249,14 @@ async def warncount(ctx, member:discord.Member = None):
         await ctx.send('nessuna attività registrata', delete_after=5)
         await ctx.message.delete(delay=5)
         return
-    warnc = []
+    warnc = ''
     if member is None:
         for user in prev_dict:
-            mention = '<@!' + user + '>'
+            name = bot.get_guild(GUILD_ID).get_member(int(user)).display_name
             item = prev_dict.get(user)
             count = str(item["violations_count"])
-            msg = mention + ': ' + count + ' warn'
-            warnc.append(msg)
+            msg = name + ': ' + count + ' warn\n'
+            warnc += msg
     else:
         try:
             user = prev_dict.get(str(member.id))
@@ -268,9 +268,10 @@ async def warncount(ctx, member:discord.Member = None):
             await ctx.send('nessuna attività registrata', delete_after=5)
             await ctx.message.delete(delay=5)
             return
-        mention = '<@!' + str(member.id) + '>'
+        name = bot.get_guild(GUILD_ID).get_member(user).display_name
+        item = prev_dict.get(user)
         count = str(user["violations_count"])
-        warnc.append(mention + ': ' + count + ' warn')
+        warnc += name + ': ' + count + ' warn'
     await ctx.send(warnc)
 
 @bot.command()
