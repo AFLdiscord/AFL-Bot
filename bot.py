@@ -261,7 +261,7 @@ async def unwarn(ctx, member: discord.Member):
 @commands.check(is_mod)
 async def warncount(ctx, member:discord.Member = None):
     """stampa nel canale in cui viene chiamato l'elenco di tutti i warn degli utenti. può accettare come parametro un 
-    username (tramite menzione) e in tal caso stampa i warn riguardanti quel membro. Può essere chiamata da chiunque
+    username (tramite menzione) e in tal caso stampa i warn riguardanti quel membro.
     """
     try:
         with open('aflers.json','r') as file:
@@ -291,8 +291,10 @@ async def warncount(ctx, member:discord.Member = None):
     await ctx.send(warnc)
 
 @bot.command()
-async def status(ctx, member:discord.Member = ctx.author):
-    """mostra lo status del membro fornito come parametro"""
+async def status(ctx, member:discord.Member = None):
+    """mostra il proprio status oppure quello del membro fornito come parametro"""
+    if member is None:
+        member = ctx.author
     try:
         with open('aflers.json','r') as file:
             prev_dict = json.load(file)
