@@ -115,7 +115,7 @@ async def on_message_delete(message):
     except FileNotFoundError:
         return
     try:
-        d = prev_dict.get(str(message.author.id))
+        d = prev_dict[str(message.author.id)]
     except KeyError:
         print('utente non presente')
         return
@@ -129,14 +129,19 @@ async def on_message_delete(message):
         print('rimosso un messaggio')
 
 @bot.event
-async def on_reaction_add(reaction, user):
+async def on_raw_reaction_add(payload):
     """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
-    if reaction.message.channel.id == POLL_CHANNEL_ID:
-        if bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in user.roles:
-            for role in user.roles:
+    if payload.channel_id == POLL_CHANNEL_ID and payload.event_type == 'REACTION_ADD':
+        if bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in payload.member.roles:
+            for role in payload.member.roles:
                 if role.id in MODERATION_ROLES_ID:
                     return
-            await reaction.remove(user)
+            try:
+                message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+                await message.remove_reaction(payload.emoji, payload.member)
+            except discord.NotFound:
+                print('impossibile trovare il messaggio o la reaction cercate')
+                return
 
 @bot.event
 async def on_message_edit(before, after):
@@ -157,6 +162,20 @@ async def on_member_join(member):
     if contains_banned_words(member.display_name):
         await member.kick(reason="ForbiddenUsername")
         await channel.send(f'Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
+
+@bot.event
+async def on_member_remove(member):
+    """rimuove l'utente da aflers.json se questo esce dal server"""
+    if member.bot:
+        return
+    with open('aflers.json','r') as file:
+        prev_dict = json.load(file)
+        try:
+            del prev_dict[str(member.id)]
+        except KeyError:
+            print('utente non trovato')
+            return
+    update_json_file(prev_dict, 'aflers.json')
 
 @bot.event
 async def on_member_update(before, after):
@@ -255,29 +274,24 @@ async def warncount(ctx, member:discord.Member = None):
     if member is None:
         for user in prev_dict:
             name = bot.get_guild(GUILD_ID).get_member(int(user)).display_name
-            item = prev_dict.get(user)
+            item = prev_dict[user]
             count = str(item["violations_count"])
             msg = name + ': ' + count + ' warn\n'
             warnc += msg
     else:
         try:
-            user = prev_dict.get(str(member.id))
-            if user is None:
-               await ctx.send('nessuna attività registrata', delete_after=5)
-               await ctx.message.delete(delay=5)
-               return 
+            user = prev_dict[str(member.id)]
         except KeyError:
             await ctx.send('nessuna attività registrata', delete_after=5)
             await ctx.message.delete(delay=5)
             return
         name = bot.get_guild(GUILD_ID).get_member(user).display_name
-        item = prev_dict.get(user)
         count = str(user["violations_count"])
         warnc += name + ': ' + count + ' warn'
     await ctx.send(warnc)
 
 @bot.command()
-async def status(ctx, member:discord.Member):
+async def status(ctx, member:discord.Member = ctx.author):
     """mostra lo status del membro fornito come parametro"""
     try:
         with open('aflers.json','r') as file:
@@ -287,12 +301,9 @@ async def status(ctx, member:discord.Member):
         await ctx.message.delete(delay=5)
         return
     try:
-        item = prev_dict.get(str(member.id))
-        if item is None:
-            await ctx.send('nessun utente registrato', delete_after=5)
-            await ctx.message.delete(delay=5)
-            return 
+        item = prev_dict[str(member.id)]
     except KeyError:
+        print('non presente')
         await ctx.send('l\'utente indicato non è registrato', delete_after=5)
         await ctx.message.delete(delay=5)
         return
@@ -357,7 +368,7 @@ async def periodic_checks():
     except FileNotFoundError:
         return
     for key in prev_dict:
-        item = prev_dict.get(key)
+        item = prev_dict[key]
         count = count_messages(item)
         if count >= ACTIVE_THRESHOLD:
             #nota: non serve fare distinzione tra coloro che sono già attivi e coloro che 
@@ -413,7 +424,7 @@ def update_counter(message):
     finally:
         key = str(message.author.id)
         if key in prev_dict:
-            d = prev_dict.get(key)
+            d = prev_dict[key]
             #incrementa solo il campo corrispondente al giorno corrente
             d[weekdays.get(datetime.today().weekday())] += 1
         else:
@@ -488,7 +499,7 @@ async def add_warn(member, reason, number):
     finally:
         key = str(member.id)
         if key in prev_dict:
-            d = prev_dict.get(key)
+            d = prev_dict[key]
             d["violations_count"] += number
             d["last_violation_count"] = datetime.date(datetime.now()).__str__()
             if d["violations_count"] <= 0:
