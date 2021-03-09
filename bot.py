@@ -114,6 +114,7 @@ async def on_message_delete(message):
             prev_dict = json.load(file)
     except FileNotFoundError:
         return
+    d = None
     try:
         d = prev_dict[str(message.author.id)]
     except KeyError:
@@ -400,8 +401,7 @@ async def periodic_checks():
         if item["active"] is True:
             expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%d'))
             channel = bot.get_channel(MAIN_CHANNEL_ID)
-            check = (datetime.date(datetime.now()) + timedelta(days=ACTIVE_DURATION))
-            if expiration.__eq__((datetime.date(datetime.now()) + timedelta(days=ACTIVE_DURATION))): #prova per vedere se va
+            if expiration.__eq__((datetime.date(datetime.now()))):
                 guild = bot.get_guild(GUILD_ID)
                 await guild.get_member(int(key)).remove_roles(guild.get_role(ACTIVE_ROLE_ID))
                 await channel.send('membro ' + key + ' non più attivo :(')
