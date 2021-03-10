@@ -58,9 +58,10 @@ weekdays = {
     6: "sun"
 }
 
-#per poter ricevere le notifiche sull'unione di nuovi membri
+#per poter ricevere le notifiche sull'unione di nuovi membri e i ban
 intents = discord.Intents.default()
 intents.members = True
+intents.bans = True
 
 #istanziare il bot (avvio in fondo al codice)
 bot = commands.Bot(command_prefix = CURRENT_PREFIX, intents=intents)
@@ -77,7 +78,7 @@ async def on_ready():
 @bot.event
 async def on_message(message):
     """azioni da eseguire ad ogni messaggio"""
-    if message.author == bot.user or message.author.bot:  #non conta sé stesso e gli altri bot
+    if message.author == bot.user or message.author.bot or message.guild is None:
         return
 
     if message.content.lower() == 'ping':
@@ -107,7 +108,7 @@ async def on_message_delete(message):
     """In caso di rimozione dei messaggi va decrementato il contatore della persona che
     lo aveva scritto per evitare che messaggi non adatti vengano conteggiati nell'assegnamento del ruolo.
     """
-    if message.author == bot.user or message.author.bot:
+    if message.author == bot.user or message.author.bot or message.guild is None:
         return
     try:
        with open('aflers.json','r') as file:
@@ -172,6 +173,9 @@ async def on_member_remove(member):
     with open('aflers.json','r') as file:
         prev_dict = json.load(file)
         try:
+            print(member)
+            print(member.id)
+            print(prev_dict)
             del prev_dict[str(member.id)]
         except KeyError:
             print('utente non trovato')
@@ -232,7 +236,6 @@ async def blackremove(ctx, ban_word):
 async def setprefix(ctx, prefix):
     """imposta prefix come nuovo prefisso del bot"""
     bot.command_prefix = prefix
-    os.putenv('CURRENT_PREFIX', prefix)
     await ctx.send(f'Prefisso cambiato in ``{prefix}``')
 
 @bot.command()
@@ -260,10 +263,8 @@ async def unwarn(ctx, member: discord.Member):
 
 @bot.command(aliases=['warnc', 'wc'])
 @commands.check(is_mod)
-async def warncount(ctx, member:discord.Member = None):
-    """stampa nel canale in cui viene chiamato l'elenco di tutti i warn degli utenti. può accettare come parametro un 
-    username (tramite menzione) e in tal caso stampa i warn riguardanti quel membro.
-    """
+async def warncount(ctx):
+    """stampa nel canale in cui viene chiamato l'elenco di tutti i warn degli utenti."""
     try:
         with open('aflers.json','r') as file:
             prev_dict = json.load(file)
@@ -272,23 +273,12 @@ async def warncount(ctx, member:discord.Member = None):
         await ctx.message.delete(delay=5)
         return
     warnc = ''
-    if member is None:
-        for user in prev_dict:
-            name = bot.get_guild(GUILD_ID).get_member(int(user)).display_name
-            item = prev_dict[user]
-            count = str(item["violations_count"])
-            msg = name + ': ' + count + ' warn\n'
-            warnc += msg
-    else:
-        try:
-            user = prev_dict[str(member.id)]
-        except KeyError:
-            await ctx.send('nessuna attività registrata', delete_after=5)
-            await ctx.message.delete(delay=5)
-            return
-        name = bot.get_guild(GUILD_ID).get_member(user).display_name
-        count = str(user["violations_count"])
-        warnc += name + ': ' + count + ' warn'
+    for user in prev_dict:
+        name = bot.get_guild(GUILD_ID).get_member(int(user)).display_name
+        item = prev_dict[user]
+        count = str(item["violations_count"])
+        msg = name + ': ' + count + ' warn\n'
+        warnc += msg
     await ctx.send(warnc)
 
 @bot.command()
@@ -504,9 +494,11 @@ async def add_warn(member, reason, number):
             d = prev_dict[key]
             d["violations_count"] += number
             d["last_violation_count"] = datetime.date(datetime.now()).__str__()
+            update_json_file(prev_dict, 'aflers.json')
             if d["violations_count"] <= 0:
                 d["violations_count"] = 0
                 d["last_violation_count"] = None
+                update_json_file(prev_dict, 'aflers.json')
                 return
             if number < 0:  #non deve controllare se è un unwarn
                 return
@@ -514,14 +506,17 @@ async def add_warn(member, reason, number):
                 await member.add_roles(bot.get_guild(GUILD_ID).get_role(UNDER_SURVEILLANCE_ID))
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
+                update_json_file(prev_dict, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-            elif d["violations_count"] == 4:
+            elif d["violations_count"] >= 4:
                 penalty = 'bannato dal server.' 
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
+                update_json_file(prev_dict, 'aflers.json')
                 await member.ban(delete_message_days = 0, reason = reason)   
             else:
                 channel = await member.create_dm()
+                update_json_file(prev_dict, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
         else:
             #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
@@ -541,6 +536,6 @@ async def add_warn(member, reason, number):
                 "expiration": None
             }
             prev_dict[key] = afler
-        update_json_file(prev_dict, 'aflers.json')
+            update_json_file(prev_dict, 'aflers.json')
 
 bot.run(TOKEN)
