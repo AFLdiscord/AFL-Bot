@@ -231,6 +231,15 @@ async def blackremove(ctx, ban_word):
     else:
         await ctx.send(f'la parola non è presente nell\'elenco', delete_after=5)
 
+@bot.command(aliases=['black', 'bl'])
+@commands.check(is_mod)
+async def blacklist(ctx):
+    """stampa l'elenco delle parole attualmente bannate"""
+    string = ''
+    for w in banned_words:
+        string += w + '\n'
+    await ctx.send(string)
+
 @bot.command()
 @commands.check(is_mod)
 async def setprefix(ctx, prefix):
