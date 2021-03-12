@@ -107,8 +107,11 @@ async def on_message(message):
 async def on_message_delete(message):
     """In caso di rimozione dei messaggi va decrementato il contatore della persona che
     lo aveva scritto per evitare che messaggi non adatti vengano conteggiati nell'assegnamento del ruolo.
+    Vanno considerate le cancellazioni solo dai canali conteggiati.
     """
     if message.author == bot.user or message.author.bot or message.guild is None:
+        return
+    if not does_it_count(message):
         return
     try:
        with open('aflers.json','r') as file:
@@ -357,7 +360,7 @@ async def on_command_error(ctx, error):
 @tasks.loop(hours=24)
 async def periodic_checks():
     """Task periodica per la gestione di:
-           - assegnamento ruolo attivo
+           - assegnamento ruolo attivo (i mod sono esclusi)
            - rimozione ruolo attivo
            - rimozione strike/violazioni
 
@@ -372,9 +375,7 @@ async def periodic_checks():
     for key in prev_dict:
         item = prev_dict[key]
         count = count_messages(item)
-        if count >= ACTIVE_THRESHOLD:
-            #nota: non serve fare distinzione tra coloro che sono già attivi e coloro che 
-            #rinnovano il ruolo perchè in entrambi i casi l'operazione da fare è la stessa
+        if count >= ACTIVE_THRESHOLD and bot.get_guild(GUILD_ID).get_member(int(key)).top_role.id not in MODERATION_ROLES_ID:
             item["active"] = True
             item["expiration"] = datetime.date(datetime.now() + timedelta(days=ACTIVE_DURATION)).__str__()
             guild = bot.get_guild(GUILD_ID)
@@ -412,7 +413,7 @@ def update_counter(message):
     """Aggiorna il contatore dell'utente che ha mandato il messaggio. Se l'utente non era presente lo aggiunge
     al json inizializzando tutti i contatori a 0
     """
-    if  not does_it_count(message):
+    if not does_it_count(message):
         return
     prev_dict = {}
     try:
