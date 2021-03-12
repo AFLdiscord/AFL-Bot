@@ -317,18 +317,24 @@ async def status(ctx, member:discord.Member = None):
         color=member.top_role.color
     )
     status.set_thumbnail(url=member.avatar_url)
-    status.add_field(name='**Messaggi ultimi 7 giorni:**', value=str(count_messages(item)), inline=False)
-    if item["active"] == False:
-        status.add_field(name='**Attivo:**', value='no', inline=False)
-    else:
-        status.add_field(name='**Attivo:**', value='sì (scade il ' + item["expiration"] + ')', inline=False)
-    if item["violations_count"] == 0:
-        status.add_field(name='**Violazioni:**', value='0', inline=False)
-    else:
-        violations_expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d') +
-            timedelta(days=VIOLATIONS_RESET_DAYS)).__str__()
-        status.add_field(name='**Violazioni:**', value=str(item["violations_count"]) +
-            ' (scade il ' + violations_expiration + ')', inline=False)
+    status.add_field(name='Messaggi ultimi 7 giorni:', value=str(count_messages(item)), inline=False)
+    is_a_mod = False
+    for role in member.roles:
+        if role.id in MODERATION_ROLES_ID:
+            is_a_mod = True
+            status.add_field(name='Ruolo:', value=role.name, inline=False)
+            break
+    if not is_a_mod:
+        if item["active"] == False:
+            status.add_field(name='Attivo:', value='no', inline=False)
+        else:
+            status.add_field(name='Attivo:', value='sì (scade il ' + item["expiration"] + ')', inline=False)
+        if item["violations_count"] == 0:
+            status.add_field(name='Violazioni:', value='0', inline=False)
+    violations_expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d') +
+        timedelta(days=VIOLATIONS_RESET_DAYS)).__str__()
+    status.add_field(name='Violazioni:', value=str(item["violations_count"]) +
+        ' (scade il ' + violations_expiration + ')', inline=False)
     await ctx.send(embed=status)
 
 @bot.command()
