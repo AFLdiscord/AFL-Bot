@@ -332,6 +332,23 @@ async def status(ctx, member:discord.Member = None):
     await ctx.send(embed=status)
 
 @bot.command()
+async def avatar(ctx, user: discord.User = None):
+    """invia sulla chat la pfp dell'utente menzionato, indipendentemente dal fatto che l'utente sia
+    un membro del server o meno
+    """
+    if user is None:
+        user = ctx.author
+    #se l'utente è nel server, stampo il suo nickname invece del suo username
+    member = bot.get_guild(GUILD_ID).get_member(user.id)
+    if member is not None:
+        user = member
+    avatar = discord.Embed(
+        title=f'Avatar di {user.display_name}:'
+    )
+    avatar.set_image(url=user.avatar_url)
+    await ctx.send(embed=avatar)
+
+@bot.command()
 @commands.check(is_mod)
 async def ban(ctx, member: discord.Member = None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
     """banna un membro dal server"""
