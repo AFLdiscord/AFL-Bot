@@ -329,12 +329,13 @@ async def status(ctx, member:discord.Member = None):
             status.add_field(name='Attivo:', value='no', inline=False)
         else:
             status.add_field(name='Attivo:', value='sì (scade il ' + item["expiration"] + ')', inline=False)
-        if item["violations_count"] == 0:
-            status.add_field(name='Violazioni:', value='0', inline=False)
-    violations_expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d') +
-        timedelta(days=VIOLATIONS_RESET_DAYS)).__str__()
-    status.add_field(name='Violazioni:', value=str(item["violations_count"]) +
-        ' (scade il ' + violations_expiration + ')', inline=False)
+    if item["violations_count"] == 0:
+        status.add_field(name='Violazioni:', value='0', inline=False)
+    else:
+        violations_expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d') +
+            timedelta(days=VIOLATIONS_RESET_DAYS)).__str__()
+        status.add_field(name='Violazioni:', value=str(item["violations_count"]) +
+            ' (scade il ' + violations_expiration + ')', inline=False)
     await ctx.send(embed=status)
 
 @bot.command()
