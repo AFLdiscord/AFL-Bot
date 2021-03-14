@@ -69,6 +69,8 @@ bot = commands.Bot(command_prefix = CURRENT_PREFIX, intents=intents)
 @bot.event
 async def on_ready():
     timestamp = datetime.time(datetime.now())
+    botstat = discord.Activity(name='AFL', type=1)
+    await bot.change_presence(activity=botstat)
     print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
     if(MAIN_CHANNEL_ID is not None):
         channel = bot.get_channel(MAIN_CHANNEL_ID)
