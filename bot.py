@@ -270,25 +270,23 @@ async def warn(ctx, attempted_member=None, *, reason='un moderatore ha ritenuto 
             await msg.delete()
     else:   #con argomenti al warn
         if not ctx.message.mentions:   #nessuna menzione nel messaggio
-            #spiegazione: se non c'è nessun membro con quel nome probabilmente fa parte della ragione
-            #non posso bypassare il fatto che la prima parola che legge dopo <warn vada in member
-            member = ctx.guild.get_member_named(attempted_member)
-            if member is None:
-                #se non è nessuno devo controllare che sia stato mandato in risposta (uguale a sopra)
-                if ctx.message.reference is None:
-                    await ctx.send("Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando", delete_after=5)
-                    return
+            await ctx.send("Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando", delete_after=5)
+            return
+        else:
+            if ctx.message.reference is None:
+                #ho chiamato il warn a mano <warn @somebody ragione
+                member = ctx.message.mentions[0]
+            else:
+                #ho menzionato qualcuno, prendo come target del warn
+                msg = await ctx.fetch_message(ctx.message.reference.message_id)
+                member = msg.author
+                await msg.delete()
+                #solo se vado per reference devo sistemare la reason perchè la prima parola va in attempted_member
+                if reason == 'un moderatore ha ritenuto inopportuno il tuo comportamento':
+                    reason = attempted_member   #ragione di una sola parola, altrimenti poi concatena tutto
                 else:
-                    msg = await ctx.fetch_message(ctx.message.reference.message_id)
-                    member = msg.author
-                    await msg.delete()
-                    if reason == 'un moderatore ha ritenuto inopportuno il tuo comportamento':
-                        reason = attempted_member   #ragione di una sola parola, altrimenti poi concatena tutto
-                    else:
-                        reason = attempted_member + ' ' + reason  #devo inserire uno spazio altrimenti scrive tutto appicciato
-        else:    #ho menzioni nel messaggio
-            member = ctx.message.mentions[0]
-    if member.bot:
+                    reason = attempted_member + ' ' + reason  #devo inserire uno spazio altrimenti scrive tutto appicciato
+    if member.bot or member == ctx.author:
         return
     await add_warn(member, reason, 1)
     user = '<@!' + str(member.id) + '>'
