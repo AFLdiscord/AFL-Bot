@@ -178,9 +178,6 @@ async def on_member_remove(member):
     with open('aflers.json','r') as file:
         prev_dict = json.load(file)
         try:
-            print(member)
-            print(member.id)
-            print(prev_dict)
             del prev_dict[str(member.id)]
         except KeyError:
             print('utente non trovato')
@@ -254,14 +251,49 @@ async def setprefix(ctx, prefix):
 
 @bot.command()
 @commands.check(is_mod)
-async def warn(ctx, member: discord.Member, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
-    """aggiunge un warn all'utente menzionato nel messaggio"""
+async def warn(ctx, attempted_member=None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
+    """aggiunge un warn all'utente menzionato nel messaggio (basta il nome)
+    L'effetto è il seguente:
+    - aggiunge un warn all'autore del messaggio a cui si risponde/utente menzionato
+    - cancella il messaggio citato (se presente)
+    - cancella il comando di warn
+    """
+    if attempted_member is None:   #nessun argomento passato al warn
+        if ctx.message.reference is None:
+            #sono in questo caso quando mando <warn da solo
+            await ctx.send("Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando", delete_after=5)
+            return
+        else:
+            #in questo caso ho risposto a un messaggio con <warn
+            msg = await ctx.fetch_message(ctx.message.reference.message_id)
+            member = msg.author
+            await msg.delete()
+    else:   #con argomenti al warn
+        if not ctx.message.mentions:   #nessuna menzione nel messaggio
+            #spiegazione: se non c'è nessun membro con quel nome probabilmente fa parte della ragione
+            #non posso bypassare il fatto che la prima parola che legge dopo <warn vada in member
+            member = ctx.guild.get_member_named(attempted_member)
+            if member is None:
+                #se non è nessuno devo controllare che sia stato mandato in risposta (uguale a sopra)
+                if ctx.message.reference is None:
+                    await ctx.send("Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando", delete_after=5)
+                    return
+                else:
+                    msg = await ctx.fetch_message(ctx.message.reference.message_id)
+                    member = msg.author
+                    await msg.delete()
+                    if reason == 'un moderatore ha ritenuto inopportuno il tuo comportamento':
+                        reason = attempted_member   #ragione di una sola parola, altrimenti poi concatena tutto
+                    else:
+                        reason = attempted_member + ' ' + reason  #devo inserire uno spazio altrimenti scrive tutto appicciato
+        else:    #ho menzioni nel messaggio
+            member = ctx.message.mentions[0]
     if member.bot:
         return
     await add_warn(member, reason, 1)
     user = '<@!' + str(member.id) + '>'
     await ctx.send(user + ' warnato. Motivo: ' + reason)
-    await ctx.message.delete(delay=5)
+    await ctx.message.delete(delay=5)   
 
 @bot.command()
 @commands.check(is_mod)
