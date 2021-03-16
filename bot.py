@@ -10,6 +10,8 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
+__version__ = '0.2.1'
+
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
@@ -69,12 +71,12 @@ bot = commands.Bot(command_prefix = CURRENT_PREFIX, intents=intents)
 @bot.event
 async def on_ready():
     timestamp = datetime.time(datetime.now())
-    botstat = discord.Activity(name='AFL', type=1)
+    botstat = discord.Game(name='AFL')
     await bot.change_presence(activity=botstat)
     print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
     if(MAIN_CHANNEL_ID is not None):
         channel = bot.get_channel(MAIN_CHANNEL_ID)
-        await channel.send('Bot avviato alle 'f'{timestamp}. Il prefisso è: {bot.command_prefix}')
+        await channel.send('AFL Bot ' + __version__ + ' avviato alle 'f'{timestamp}. Il prefisso è: {bot.command_prefix}')
         periodic_checks.start()
 
 @bot.event
@@ -99,8 +101,7 @@ async def on_message(message):
         await add_warn(message.author, 'linguaggio inappropriato', 1)
         return
 
-    if message.author.id not in MODERATION_ROLES_ID:
-        update_counter(message)
+    update_counter(message)
 
     #istruzione necessaria per processare i messaggi come comandi.
     await bot.process_commands(message)
