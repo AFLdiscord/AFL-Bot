@@ -235,7 +235,7 @@ async def periodic_checks():
             await guild.get_member(int(key)).add_roles(guild.get_role(ACTIVE_ROLE_ID))
             print('member ' + key + ' is active')
             channel = bot.get_channel(MAIN_CHANNEL_ID)
-            await channel.send('membro ' + key + ' è diventato attivo')
+            await channel.send('membro <@!' + key + '> è diventato attivo')
             #azzero tutti i contatori
             for i in sharedFunctions.weekdays:
                 item[sharedFunctions.weekdays.get(i)] = 0
