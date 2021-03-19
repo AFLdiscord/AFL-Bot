@@ -63,6 +63,24 @@ extensions = [
 for ext in extensions:
     bot.load_extension(ext)
 
+async def is_mod(ctx):
+    """check sui comandi per bloccare l'utilizzo dei comandi di moderazione"""
+    #TODO spostare le funzioni di check nello stesso posto
+    return ctx.author.top_role.id in MODERATION_ROLES_ID
+
+@bot.command()
+@commands.check(is_mod)
+async def reload(ctx):
+    """ricarica tutte le cogs aggiornando le funzionalità"""
+    try:
+        for ext in extensions:
+            bot.reload_extension(ext)
+        await ctx.send("Estensioni ricaricate correttamente")
+    except Exception as e:
+        print(e)
+        await ctx.send("Errore nella ricarica dei moduli, vedi log del bot", delete_after=5)
+        await ctx.message.delete(delay=5)
+
 @bot.event
 async def on_ready():
     timestamp = datetime.time(datetime.now())
