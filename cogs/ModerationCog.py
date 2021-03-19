@@ -178,6 +178,8 @@ class ModerationCog(commands.Cog):
                     "fri": 0,
                     "sat": 0,
                     "sun": 0,
+                    "counter": 0,
+                    "last_message_date": None,
                     "violations_count": number,
                     "last_violation_count": datetime.date(datetime.now()).__str__(),
                     "active": False,

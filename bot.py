@@ -245,6 +245,7 @@ async def periodic_checks():
         return
     for key in prev_dict:
         item = prev_dict[key]
+        sharedFunctions.clean(item)
         count = sharedFunctions.count_messages(item)
         if count >= ACTIVE_THRESHOLD and bot.get_guild(GUILD_ID).get_member(int(key)).top_role.id not in MODERATION_ROLES_ID:
             item["active"] = True
@@ -281,8 +282,8 @@ async def periodic_checks():
     sharedFunctions.update_json_file(prev_dict, 'aflers.json')
 
 def update_counter(message):
-    """Aggiorna il contatore dell'utente che ha mandato il messaggio. Se l'utente non era presente lo aggiunge
-    al json inizializzando tutti i contatori a 0
+    """aggiorna il contatore dell'utente che ha mandato il messaggio. Se l'utente non era presente lo aggiunge
+    al json inizializzando tutti i contatori a 0. Si occupa anche di aggiornare il campo "last_message_date".
     """
     if not does_it_count(message):
         return
@@ -298,8 +299,20 @@ def update_counter(message):
         key = str(message.author.id)
         if key in prev_dict:
             d = prev_dict[key]
-            #incrementa solo il campo corrispondente al giorno corrente
-            d[sharedFunctions.weekdays.get(datetime.today().weekday())] += 1
+            if d["last_message_date"] == datetime.date(datetime.now()).__str__():   
+                #messaggi dello stesso giorno, continuo a contare
+                d["counter"] += 1
+            elif d["last_message_date"] is None:
+                #può succedere in teoria se uno riceve un warn senza aver mai scritto un messaggio (tecnicamente add_warn lo prevede)
+                #oppure se resetto il file a mano per qualche motivo
+                d["counter"] = 1
+                d["last_message_date"] = datetime.date(datetime.now()).__str__()
+            else:
+                #è finito il giorno, salva i messaggi di "counter" nel giorno corrispondente e aggiorna data ultimo messaggio
+                day = sharedFunctions.weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
+                d[day] = counter   #ah ah D-day
+                d["counter"] = 1
+                d["last_message_date"] = datetime.date(datetime.now()).__str__()
         else:
             #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
             afler = {
@@ -310,17 +323,18 @@ def update_counter(message):
                 "fri": 0,
                 "sat": 0,
                 "sun": 0,
+                "counter": 1,
+                "last_message_date": datetime.date(datetime.now()).__str__(),
                 "violations_count": 0,
                 "last_violation_count": None,
                 "active": False,
                 "expiration": None
             }
-            afler[sharedFunctions.weekdays.get(datetime.today().weekday())] = 1
             prev_dict[message.author.id] = afler
         sharedFunctions.update_json_file(prev_dict, 'aflers.json')
 
 def does_it_count(message):
-    """Controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
+    """controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
     if message.guild is not None:
         if message.guild.id == GUILD_ID:
             if message.channel.id in ACTIVE_CHANNELS_ID:

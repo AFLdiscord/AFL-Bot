@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import datetime, timedelta
 
 """funzioni condivise tra varie cogs"""
 
@@ -56,8 +57,33 @@ def update_json_file(data, json_file):
         json.dump(data, file, indent=4)
         
 def count_messages(item):
-    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti"""
+    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti. Il parametro item è un dizionario."""
     count = 0
     for i in weekdays:
-        count += item[weekdays.get(i)]
+        if i != datetime.today().weekday():
+            count += item[weekdays.get(i)]
+    count += item["counter"]
     return count
+
+def clean(item):
+    """Si occupa di controllare il campo last_message_date e sistemare di conseguenza il conteggio dei singoli giorni"""
+    if (item["last_message_date"] is None) or (item["last_message_date"] == datetime.date(datetime.now()).__str__()):      
+        #(None) tecnicamente previsto da add_warn se uno viene warnato senza aver mai scritto
+        #(Oggi) vuol dire che il bot è stato riavviato a metà giornata non devo toccare i contatori
+        return
+    elif item["last_message_date"] == datetime.date(datetime.today() - timedelta(days=1)).__str__:
+        #messaggio di ieri, devo salvare il counter nel giorno corrispondente
+        day = weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
+        d[day] = counter
+        d["counter"] = 0
+    else:
+        #devo azzerare tutti i giorni della settimana tra la data segnata (esclusa) e oggi (incluso)
+        #in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga eseguito tutti i giorni
+        #ma preferisco azzerare tutti in caso di downtime di qualche giorno
+        last_day = datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()
+        today = datetime.today().weekday()
+        while(last_day != today):
+            last_day += 1
+            if last_day > 6:
+                last_day = 0
+            item[weekdays[last_day]] = 0
