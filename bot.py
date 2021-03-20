@@ -143,8 +143,8 @@ async def on_message_delete(message):
         if item is None:
             return
     #il contatore non può ovviamente andare sotto 0
-    if item[sharedFunctions.weekdays.get(datetime.today().weekday())] != 0:
-        item[sharedFunctions.weekdays.get(datetime.today().weekday())] -= 1
+    if item["counter"] != 0:
+        item["counter"] -= 1
         sharedFunctions.update_json_file(prev_dict, 'aflers.json')
         print('rimosso un messaggio')
 
@@ -261,7 +261,7 @@ async def periodic_checks():
 
         #controllo sulla data dell'ultima violazione, ed eventuale reset
         if item["last_violation_count"] is not None:
-            expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%item'))
+            expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d'))
             if (expiration + timedelta(days=VIOLATIONS_RESET_DAYS)).__eq__(datetime.date(datetime.now())):
                 print('reset violazioni di ' + key)
                 item["violations_count"] = 0
@@ -271,7 +271,7 @@ async def periodic_checks():
         item[sharedFunctions.weekdays.get(datetime.today().weekday())] = 0
 
         if item["active"] is True:
-            expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%item'))
+            expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%d'))
             channel = bot.get_channel(MAIN_CHANNEL_ID)
             if expiration.__eq__((datetime.date(datetime.now()))):
                 guild = bot.get_guild(GUILD_ID)
