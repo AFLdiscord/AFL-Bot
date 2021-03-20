@@ -73,13 +73,18 @@ def clean(item):
         return
     elif item["last_message_date"] == datetime.date(datetime.today() - timedelta(days=1)).__str__():
         #messaggio di ieri, devo salvare il counter nel giorno corrispondente
-        day = weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
-        item[day] = item["counter"]
-        item["counter"] = 0
+        if item["counter"] != 0:
+            day = weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
+            item[day] = item["counter"]
+            item["counter"] = 0
     else:
         #devo azzerare tutti i giorni della settimana tra la data segnata (esclusa) e oggi (incluso)
         #in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga eseguito tutti i giorni
         #ma preferisco azzerare tutti in caso di downtime di qualche giorno
+        if item["counter"] != 0:
+            day = weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
+            item[day] = item["counter"]
+            item["counter"] = 0
         last_day = datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()
         today = datetime.today().weekday()
         while(last_day != today):
