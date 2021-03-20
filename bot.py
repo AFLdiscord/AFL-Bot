@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from cogs import sharedFunctions
 
-__version__ = 'v0.3'
+__version__ = 'v0.3.1'
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
