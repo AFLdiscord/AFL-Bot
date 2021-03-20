@@ -84,7 +84,7 @@ async def reload(ctx):
 @bot.event
 async def on_ready():
     timestamp = datetime.time(datetime.now())
-    botstat = discord.Game(name='AFL')
+    botstat = discord.Game(name='AFL ' + __version__)
     await bot.change_presence(activity=botstat)
     print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
     if(MAIN_CHANNEL_ID is not None):

@@ -42,7 +42,11 @@ class UtilityCog(commands.Cog):
             color=member.top_role.color
         )
         status.set_thumbnail(url=member.avatar_url)
-        status.add_field(name='Messaggi ultimi 7 giorni:', value=str(sharedFunctions.count_messages(item)), inline=False)
+        if item["last_message_date"] is None:
+            status.add_field(name='Messaggi ultimi 7 giorni:', value='0', inline=False)
+        else: 
+            status.add_field(name='Messaggi ultimi 7 giorni:', value=str(sharedFunctions.count_messages(item)) +
+                ' (ultimo il ' + item["last_message_date"] + ')', inline=False)  
         is_a_mod = False
         for role in member.roles:
             if role.id in self.MODERATION_ROLES_ID:
