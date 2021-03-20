@@ -309,8 +309,9 @@ def update_counter(message):
                 d["last_message_date"] = datetime.date(datetime.now()).__str__()
             else:
                 #è finito il giorno, salva i messaggi di "counter" nel giorno corrispondente e aggiorna data ultimo messaggio
-                day = sharedFunctions.weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
-                d[day] = counter   #ah ah D-day
+                if d["counter"] != 0:
+                    day = sharedFunctions.weekdays[datetime.date(datetime.strptime(d["last_message_date"], '%Y-%m-%d')).weekday()]
+                    d[day] = d["counter"]   #ah ah D-day
                 d["counter"] = 1
                 d["last_message_date"] = datetime.date(datetime.now()).__str__()
         else:

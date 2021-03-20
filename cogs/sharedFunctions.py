@@ -71,11 +71,11 @@ def clean(item):
         #(None) tecnicamente previsto da add_warn se uno viene warnato senza aver mai scritto
         #(Oggi) vuol dire che il bot è stato riavviato a metà giornata non devo toccare i contatori
         return
-    elif item["last_message_date"] == datetime.date(datetime.today() - timedelta(days=1)).__str__:
+    elif item["last_message_date"] == datetime.date(datetime.today() - timedelta(days=1)).__str__():
         #messaggio di ieri, devo salvare il counter nel giorno corrispondente
         day = weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
-        d[day] = counter
-        d["counter"] = 0
+        item[day] = item["counter"]
+        item["counter"] = 0
     else:
         #devo azzerare tutti i giorni della settimana tra la data segnata (esclusa) e oggi (incluso)
         #in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga eseguito tutti i giorni
