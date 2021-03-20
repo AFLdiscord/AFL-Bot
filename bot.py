@@ -133,18 +133,18 @@ async def on_message_delete(message):
             prev_dict = json.load(file)
     except FileNotFoundError:
         return
-    d = None
+    item = None
     try:
-        d = prev_dict[str(message.author.id)]
+        item = prev_dict[str(message.author.id)]
     except KeyError:
         print('utente non presente')
         return
     finally:
-        if d is None:
+        if item is None:
             return
     #il contatore non può ovviamente andare sotto 0
-    if d[sharedFunctions.weekdays.get(datetime.today().weekday())] != 0:
-        d[sharedFunctions.weekdays.get(datetime.today().weekday())] -= 1
+    if item[sharedFunctions.weekdays.get(datetime.today().weekday())] != 0:
+        item[sharedFunctions.weekdays.get(datetime.today().weekday())] -= 1
         sharedFunctions.update_json_file(prev_dict, 'aflers.json')
         print('rimosso un messaggio')
 
@@ -261,7 +261,7 @@ async def periodic_checks():
 
         #controllo sulla data dell'ultima violazione, ed eventuale reset
         if item["last_violation_count"] is not None:
-            expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d'))
+            expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%item'))
             if (expiration + timedelta(days=VIOLATIONS_RESET_DAYS)).__eq__(datetime.date(datetime.now())):
                 print('reset violazioni di ' + key)
                 item["violations_count"] = 0
@@ -271,7 +271,7 @@ async def periodic_checks():
         item[sharedFunctions.weekdays.get(datetime.today().weekday())] = 0
 
         if item["active"] is True:
-            expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%d'))
+            expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%item'))
             channel = bot.get_channel(MAIN_CHANNEL_ID)
             if expiration.__eq__((datetime.date(datetime.now()))):
                 guild = bot.get_guild(GUILD_ID)
@@ -298,22 +298,22 @@ def update_counter(message):
     finally:
         key = str(message.author.id)
         if key in prev_dict:
-            d = prev_dict[key]
-            if d["last_message_date"] == datetime.date(datetime.now()).__str__():   
+            item = prev_dict[key]
+            if item["last_message_date"] == datetime.date(datetime.now()).__str__():   
                 #messaggi dello stesso giorno, continuo a contare
-                d["counter"] += 1
-            elif d["last_message_date"] is None:
+                item["counter"] += 1
+            elif item["last_message_date"] is None:
                 #può succedere in teoria se uno riceve un warn senza aver mai scritto un messaggio (tecnicamente add_warn lo prevede)
                 #oppure se resetto il file a mano per qualche motivo
-                d["counter"] = 1
-                d["last_message_date"] = datetime.date(datetime.now()).__str__()
+                item["counter"] = 1
+                item["last_message_date"] = datetime.date(datetime.now()).__str__()
             else:
                 #è finito il giorno, salva i messaggi di "counter" nel giorno corrispondente e aggiorna data ultimo messaggio
-                if d["counter"] != 0:
-                    day = sharedFunctions.weekdays[datetime.date(datetime.strptime(d["last_message_date"], '%Y-%m-%d')).weekday()]
-                    d[day] = d["counter"]   #ah ah D-day
-                d["counter"] = 1
-                d["last_message_date"] = datetime.date(datetime.now()).__str__()
+                if item["counter"] != 0:
+                    day = sharedFunctions.weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
+                    item[day] = item["counter"]   #ah ah D-day
+                item["counter"] = 1
+                item["last_message_date"] = datetime.date(datetime.now()).__str__()
         else:
             #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
             afler = {
