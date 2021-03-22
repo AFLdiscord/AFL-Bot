@@ -58,7 +58,8 @@ bot = commands.Bot(command_prefix = CURRENT_PREFIX, intents=intents)
 extensions = [
     'cogs.ModerationCog',
     'cogs.ConfigCog',
-    'cogs.UtilityCog'
+    'cogs.UtilityCog',
+    'cogs.EventsCog'
 ]
 for ext in extensions:
     bot.load_extension(ext)
@@ -91,142 +92,6 @@ async def on_ready():
         channel = bot.get_channel(MAIN_CHANNEL_ID)
         await channel.send('AFL Bot `' + __version__ + '` avviato alle `'f'{timestamp}`. Il prefisso è: `{bot.command_prefix}`')
         periodic_checks.start()
-
-@bot.event
-async def on_message(message):
-    """azioni da eseguire ad ogni messaggio"""
-    if message.author == bot.user or message.author.bot or message.guild is None:
-        return
-
-    if message.content.lower() == 'ping':
-        response = 'pong in ' f'{round(bot.latency * 1000)} ms'
-        await message.channel.send(response)
-        return
-
-    if (message.content == '69' or
-        message.content == '420'):
-        response = 'nice'
-        await message.channel.send(response)
-        return
-    
-    if sharedFunctions.BannedWords.contains_banned_words(message.content) and message.channel.id not in EXCEPTIONAL_CHANNELS_ID:
-        #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
-        return
-
-    update_counter(message)
-
-    #istruzione necessaria per processare i messaggi come comandi.
-    await bot.process_commands(message)
-
-@bot.event
-async def on_message_delete(message):
-    """In caso di rimozione dei messaggi va decrementato il contatore della persona che
-    lo aveva scritto per evitare che messaggi non adatti vengano conteggiati nell'assegnamento del ruolo.
-    Vanno considerate le cancellazioni solo dai canali conteggiati.
-    """
-    if message.author == bot.user or message.author.bot or message.guild is None:
-        return
-    if not does_it_count(message):
-        return
-    try:
-       with open('aflers.json','r') as file:
-            prev_dict = json.load(file)
-    except FileNotFoundError:
-        return
-    item = None
-    try:
-        item = prev_dict[str(message.author.id)]
-    except KeyError:
-        print('utente non presente')
-        return
-    finally:
-        if item is None:
-            return
-    #il contatore non può ovviamente andare sotto 0
-    if item["counter"] != 0:
-        item["counter"] -= 1
-        sharedFunctions.update_json_file(prev_dict, 'aflers.json')
-        print('rimosso un messaggio')
-
-@bot.event
-async def on_raw_reaction_add(payload):
-    """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
-    if payload.channel_id == POLL_CHANNEL_ID and payload.event_type == 'REACTION_ADD':
-        if bot.get_guild(GUILD_ID).get_role(ACTIVE_ROLE_ID) not in payload.member.roles:
-            for role in payload.member.roles:
-                if role.id in MODERATION_ROLES_ID:
-                    return
-            try:
-                message = await bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-                await message.remove_reaction(payload.emoji, payload.member)
-            except discord.NotFound:
-                print('impossibile trovare il messaggio o la reaction cercate')
-                return
-
-@bot.event
-async def on_message_edit(before, after):
-    """"Controlla che i messaggi non vengano editati per inserire parole della lista banned_words"""
-    if (sharedFunctions.BannedWords.contains_banned_words(after.content)):
-        await after.delete()
-
-@bot.event
-async def on_member_join(member):
-    """Invia il messaggio di benvenuto al membro che si è appena unito al server e controlla che l'username
-    sia adeguato
-    """
-    if member.bot:
-        return
-    print('nuovo membro')
-    channel = await member.create_dm()
-    await channel.send(greetings)
-    if sharedFunctions.BannedWords.contains_banned_words(member.display_name):
-        await member.kick(reason="ForbiddenUsername")
-        await channel.send(f'Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
-
-@bot.event
-async def on_member_remove(member):
-    """rimuove l'utente da aflers.json se questo esce dal server"""
-    if member.bot:
-        return
-    with open('aflers.json','r') as file:
-        prev_dict = json.load(file)
-        try:
-            del prev_dict[str(member.id)]
-        except KeyError:
-            print('utente non trovato')
-            return
-    sharedFunctions.update_json_file(prev_dict, 'aflers.json')
-
-@bot.event
-async def on_member_update(before, after):
-    """controlla che chi è entrato e ha modificato il nickname ne abbia messo uno adeguato"""
-    guild = bot.get_guild(GUILD_ID)
-    if sharedFunctions.BannedWords.contains_banned_words(after.display_name):
-        if before.nick is not None:
-            print('ripristino nickname a ' + str(after.id))
-            await guild.get_member(after.id).edit(nick=before.display_name)
-        else:
-            channel = await member.create_dm()
-            await member.kick(reason="ForbiddenNickname")
-            await channel.send(f'Il tuo nickname non è consentito, quando rientri impostane uno valido')
-
-@bot.event
-async def on_user_update(before, after):
-    """controlla che gli utenti non cambino nome mostrato qualora cambiassero username"""
-    guild = bot.get_guild(GUILD_ID)
-    if after.display_name != before.display_name:
-        print('cambio nickname')
-        await guild.get_member(after.id).edit(nick=before.display_name)
-
-@bot.event
-async def on_command_error(ctx, error):
-    """generica gestione errori per evitare crash banali, da espandare in futuro"""
-    if isinstance(error, commands.CommandNotFound):
-       print('comando non trovato (se hai prefisso < ogni menzione a inizio messaggio da questo errore)')
-    elif isinstance(error, commands.CheckFailure):
-        await ctx.send('non hai i permessi per usare questo comando', delete_after=5)
-        await ctx.message.delete(delay=5)
-    print(error)
 
 @tasks.loop(hours=24)
 async def periodic_checks():
@@ -280,66 +145,5 @@ async def periodic_checks():
                 item["active"] = False
                 item["expiration"] = None
     sharedFunctions.update_json_file(prev_dict, 'aflers.json')
-
-def update_counter(message):
-    """aggiorna il contatore dell'utente che ha mandato il messaggio. Se l'utente non era presente lo aggiunge
-    al json inizializzando tutti i contatori a 0. Si occupa anche di aggiornare il campo "last_message_date".
-    """
-    if not does_it_count(message):
-        return
-    prev_dict = {}
-    try:
-        with open('aflers.json','r') as file:
-            prev_dict = json.load(file)
-    except FileNotFoundError:
-        print('file non trovato, lo creo ora')
-        with open('aflers.json','w+') as file:
-            prev_dict = {}   #dizionario per permettere di cercare dell'ID facilmente
-    finally:
-        key = str(message.author.id)
-        if key in prev_dict:
-            item = prev_dict[key]
-            if item["last_message_date"] == datetime.date(datetime.now()).__str__():   
-                #messaggi dello stesso giorno, continuo a contare
-                item["counter"] += 1
-            elif item["last_message_date"] is None:
-                #può succedere in teoria se uno riceve un warn senza aver mai scritto un messaggio (tecnicamente add_warn lo prevede)
-                #oppure se resetto il file a mano per qualche motivo
-                item["counter"] = 1
-                item["last_message_date"] = datetime.date(datetime.now()).__str__()
-            else:
-                #è finito il giorno, salva i messaggi di "counter" nel giorno corrispondente e aggiorna data ultimo messaggio
-                if item["counter"] != 0:
-                    day = sharedFunctions.weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
-                    item[day] = item["counter"]   #ah ah D-day
-                item["counter"] = 1
-                item["last_message_date"] = datetime.date(datetime.now()).__str__()
-        else:
-            #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
-            afler = {
-                "mon": 0,
-                "tue": 0,
-                "wed": 0,
-                "thu": 0,
-                "fri": 0,
-                "sat": 0,
-                "sun": 0,
-                "counter": 1,
-                "last_message_date": datetime.date(datetime.now()).__str__(),
-                "violations_count": 0,
-                "last_violation_count": None,
-                "active": False,
-                "expiration": None
-            }
-            prev_dict[message.author.id] = afler
-        sharedFunctions.update_json_file(prev_dict, 'aflers.json')
-
-def does_it_count(message):
-    """controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
-    if message.guild is not None:
-        if message.guild.id == GUILD_ID:
-            if message.channel.id in ACTIVE_CHANNELS_ID:
-                return True
-    return False
 
 bot.run(TOKEN)
