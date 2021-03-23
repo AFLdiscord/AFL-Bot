@@ -111,7 +111,7 @@ async def periodic_checks():
     for key in prev_dict:
         item = prev_dict[key]
         sharedFunctions.clean(item)
-        count = sharedFunctions.count_messages(item)
+        count = sharedFunctions.count_consolidated_messages(item)
         if count >= ACTIVE_THRESHOLD and bot.get_guild(GUILD_ID).get_member(int(key)).top_role.id not in MODERATION_ROLES_ID:
             item["active"] = True
             item["expiration"] = datetime.date(datetime.now() + timedelta(days=ACTIVE_DURATION)).__str__()

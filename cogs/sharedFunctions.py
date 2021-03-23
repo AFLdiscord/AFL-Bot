@@ -57,12 +57,22 @@ def update_json_file(data, json_file):
         json.dump(data, file, indent=4)
         
 def count_messages(item):
-    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti. Il parametro item è un dizionario."""
+    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo counter + tutti gli altri giorni
+    salvati escluso il giorno corrente."""
     count = 0
     for i in weekdays:
         if i != datetime.today().weekday():
             count += item[weekdays.get(i)]
     count += item["counter"]
+    return count
+
+def count_consolidated_messages(item):
+    """Ritorna il conteggio dei messaggi salvati nei campi mon, tue, wed, ... non include counter
+    Lo scopo è contare i messaggi che sono stati consolidati nello storico ai fini di stabilire se
+    si è raggiunta la soglia dell'attivo"""
+    count = 0
+    for i in weekdays:
+        count += item[weekdays.get(i)]
     return count
 
 def clean(item):
