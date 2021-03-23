@@ -74,15 +74,12 @@ async def reload(ctx, *args):
     <reload ModerationCog                #ricarica solo ModerationCog
     <reload ModerationCog UtilityCog     #più cogs separate da spazi
     """
-    print(args)
     if not args:
-        print('None')
         cogs = extensions
     else:
         cogs = []
         for e in args:
             cogs.append('cogs.' + e)
-    print(cogs)
     reloaded = ''
     for ext in cogs:
         try:
