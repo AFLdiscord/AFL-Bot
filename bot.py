@@ -55,12 +55,8 @@ intents.bans = True
 bot = commands.Bot(command_prefix = CURRENT_PREFIX, intents=intents)
 
 #carico i moduli dei comandi
-extensions = [
-    'cogs.ModerationCog',
-    'cogs.ConfigCog',
-    'cogs.UtilityCog',
-    'cogs.EventsCog'
-]
+with open('extensions.json', 'r') as file:
+    extensions = json.load(file)
 for ext in extensions:
     bot.load_extension(ext)
 
@@ -71,16 +67,32 @@ async def is_mod(ctx):
 
 @bot.command()
 @commands.check(is_mod)
-async def reload(ctx):
-    """ricarica tutte le cogs aggiornando le funzionalità"""
-    try:
-        for ext in extensions:
+async def reload(ctx, *args):
+    """Ricarica le cogs specificate aggiornando le funzionalità. Se nessuna cog è specificata ricarica tutte.
+    Sintassi:
+    <reload                              #ricarica tutte le estensioni
+    <reload ModerationCog                #ricarica solo ModerationCog
+    <reload ModerationCog UtilityCog     #più cogs separate da spazi
+    """
+    print(args)
+    if not args:
+        print('None')
+        cogs = extensions
+    else:
+        cogs = []
+        for e in args:
+            cogs.append('cogs.' + e)
+    print(cogs)
+    reloaded = ''
+    for ext in cogs:
+        try:
             bot.reload_extension(ext)
-        await ctx.send("Estensioni ricaricate correttamente")
-    except Exception as e:
-        print(e)
-        await ctx.send("Errore nella ricarica dei moduli, vedi log del bot", delete_after=5)
-        await ctx.message.delete(delay=5)
+            reloaded += ext + ' ' 
+        except Exception as e:
+            print(e)
+            await ctx.send('Errore nella ricarica di ' + ext + ' , vedi log del bot.', delete_after=5)
+            await ctx.message.delete(delay=5)
+    await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
 
 @bot.event
 async def on_ready():
