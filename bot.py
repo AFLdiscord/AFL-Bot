@@ -3,6 +3,7 @@ import os
 import json
 import asyncio
 import re
+import logging
 
 import discord
 from discord.ext import tasks
@@ -11,8 +12,9 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from cogs import sharedFunctions
 
-__version__ = 'v0.3.1'
+__version__ = 'v0.3.2'
 
+logging.basicConfig(level=logging.INFO)
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
