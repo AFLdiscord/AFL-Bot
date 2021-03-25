@@ -102,7 +102,11 @@ async def on_ready():
     if(MAIN_CHANNEL_ID is not None):
         channel = bot.get_channel(MAIN_CHANNEL_ID)
         await channel.send('AFL Bot `' + __version__ + '` avviato alle `'f'{timestamp}`. Il prefisso è: `{bot.command_prefix}`')
-        periodic_checks.start()
+        if not periodic_checks.is_running():    #per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
+            print('avvio task')
+            periodic_checks.start()
+        else:
+            print('task già avviata')
 
 @tasks.loop(hours=24)
 async def periodic_checks():
