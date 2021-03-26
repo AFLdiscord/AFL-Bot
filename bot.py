@@ -51,7 +51,7 @@ if not Config.load():
     print('controlla di avere creato correttamente config.json')
     exit()
 #carica le parole bannate
-BannedWords()
+BannedWords.load()
 
 #per poter ricevere le notifiche sull'unione di nuovi membri e i ban
 intents = discord.Intents.default()

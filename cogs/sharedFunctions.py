@@ -18,7 +18,8 @@ class BannedWords():
 
     banned_words = []
 
-    def __init__(self):
+    @staticmethod
+    def load():
         try:
             with open('banned_words.json','r') as file:
                 BannedWords.banned_words = json.load(file)
@@ -26,12 +27,15 @@ class BannedWords():
             with open('banned_words.json','w+') as file:
                 BannedWords.banned_words = []
 
+    @staticmethod
     def add(word):
         BannedWords.banned_words.append(word)
 
+    @staticmethod
     def remove(word):
         BannedWords.banned_words.remove(word)
 
+    @staticmethod
     def contains_banned_words(text):
         """Implementa il controllo sulle parole bannate tramite regex"""
         text_to_check = text.lower()
