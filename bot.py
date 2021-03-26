@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from cogs import sharedFunctions
 from cogs.sharedFunctions import BannedWords, Config
 
-__version__ = 'v0.3.2'
+__version__ = 'v0.4'
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
