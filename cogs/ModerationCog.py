@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 from datetime import datetime, timedelta
 from cogs import sharedFunctions
+from cogs.sharedFunctions import BannedWords, Config
 
 """contiene i comandi relativi alla moderazione, in particolare:
 - warn
@@ -14,28 +15,20 @@ Inoltre effettua il controllo sul contenuto dei messaggi e elimina quelli dal co
 """
 
 class ModerationCog(commands.Cog):
-    def __init__(self, bot, config):
+    def __init__(self, bot):
         self.bot = bot
-        self.GUILD_ID = int(config['guild_id'])
-        self.MODERATION_ROLES_ID = []
-        for mod in config['moderation_roles_id']:
-            self.MODERATION_ROLES_ID.append(int(mod))
-        self.EXCEPTIONAL_CHANNELS_ID = []
-        for channel in config['exceptional_channels_id']:
-            self.EXCEPTIONAL_CHANNELS_ID.append(int(channel))
-        self.UNDER_SURVEILLANCE_ID = int(config['under_surveillance_id'])
 
     async def cog_check(self, ctx):
         """check sui comandi per bloccare l'utilizzo dei comandi di moderazione"""
-        return ctx.author.top_role.id in self.MODERATION_ROLES_ID
+        return ctx.author.top_role.id in Config.config['moderation_roles_id']
 
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
-        if sharedFunctions.BannedWords.contains_banned_words(message.content) and message.channel.id not in self.EXCEPTIONAL_CHANNELS_ID:
+        if sharedFunctions.BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             await message.delete()
-            await ModerationCog._add_warn(message.author, 'linguaggio inappropriato', 1, self.bot, self.GUILD_ID, self.UNDER_SURVEILLANCE_ID)
+            await ModerationCog._add_warn(message.author, 'linguaggio inappropriato', 1, self.bot)
 
     @commands.command()
     async def warn(self, ctx, attempted_member=None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
@@ -75,7 +68,7 @@ class ModerationCog(commands.Cog):
                         reason = attempted_member + ' ' + reason  #devo inserire uno spazio altrimenti scrive tutto appicciato
         if member.bot:   # or member == ctx.author:
             return
-        await ModerationCog._add_warn(member, reason, 1, self.bot, self.GUILD_ID, self.UNDER_SURVEILLANCE_ID)
+        await ModerationCog._add_warn(member, reason, 1, self.bot)
         user = '<@!' + str(member.id) + '>'
         await ctx.send(user + ' warnato. Motivo: ' + reason)
         await ctx.message.delete(delay=5)   
@@ -86,7 +79,7 @@ class ModerationCog(commands.Cog):
         if member.bot:
             return
         reason = 'buona condotta'
-        await ModerationCog._add_warn(member, reason, -1, self.bot, self.GUILD_ID, self.UNDER_SURVEILLANCE_ID)
+        await ModerationCog._add_warn(member, reason, -1, self.bot)
         user = '<@!' + str(member.id) + '>'
         await ctx.send(user + ' rimosso un warn.')
         await ctx.message.delete(delay=5)
@@ -103,7 +96,7 @@ class ModerationCog(commands.Cog):
             return
         warnc = ''
         for user in prev_dict:
-            name = self.bot.get_guild(self.GUILD_ID).get_member(int(user)).display_name
+            name = self.bot.get_guild(Config.config['guild_id']).get_member(int(user)).display_name
             item = prev_dict[user]
             count = str(item["violations_count"])
             msg = name + ': ' + count + ' warn\n'
@@ -125,7 +118,7 @@ class ModerationCog(commands.Cog):
         await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
         await member.ban(delete_message_days = 0, reason = reason)
 
-    async def _add_warn(member, reason, number, bot, GUILD_ID, UNDER_SURVEILLANCE_ID):
+    async def _add_warn(member, reason, number, bot):
         """incrementa o decremente il numero di violazioni di numero e tiene traccia dell'ultima violazione commessa"""
         prev_dict = {}
         penalty = 'warnato.'
@@ -151,7 +144,7 @@ class ModerationCog(commands.Cog):
                 if number < 0:  #non deve controllare se è un unwarn
                     return
                 if d["violations_count"] == 3:
-                    await member.add_roles(bot.get_guild(GUILD_ID).get_role(UNDER_SURVEILLANCE_ID))
+                    await member.add_roles(bot.get_guild(Config.config['guild_id']).get_role(Config.config['under_surveillance_id']))
                     penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                     channel = await member.create_dm()
                     sharedFunctions.update_json_file(prev_dict, 'aflers.json')
@@ -189,10 +182,4 @@ class ModerationCog(commands.Cog):
                 sharedFunctions.update_json_file(prev_dict, 'aflers.json')
 
 def setup(bot):
-    try:
-        with open('config.json', 'r') as file:
-            config = json.load(file)
-    except FileNotFoundError:
-        print('crea il file config.json seguendo le indicazioni del template')
-        exit()
-    bot.add_cog(ModerationCog(bot, config))
+    bot.add_cog(ModerationCog(bot))

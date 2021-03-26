@@ -3,6 +3,7 @@ import discord
 from discord.ext import commands
 from datetime import datetime, timedelta
 from cogs import sharedFunctions
+from cogs.sharedFunctions import BannedWords, Config
 
 """contiene i comandi di uso generale:
 - status
@@ -10,13 +11,8 @@ from cogs import sharedFunctions
 """
 
 class UtilityCog(commands.Cog):
-    def __init__(self, bot, config):
+    def __init__(self, bot):
         self.bot = bot
-        self.GUILD_ID = int(config['guild_id'])
-        self.MODERATION_ROLES_ID = []
-        for mod in config['moderation_roles_id']:
-            self.MODERATION_ROLES_ID.append(int(mod))
-        self.VIOLATIONS_RESET_DAYS = config["violations_reset_days"]
 
     @commands.command()
     async def status(self, ctx, member:discord.Member = None):
@@ -49,7 +45,7 @@ class UtilityCog(commands.Cog):
                 ' (ultimo il ' + item["last_message_date"] + ')', inline=False)  
         is_a_mod = False
         for role in member.roles:
-            if role.id in self.MODERATION_ROLES_ID:
+            if role.id in Config.config['moderation_roles_id']:
                 is_a_mod = True
                 status.add_field(name='Ruolo:', value=role.name, inline=False)
                 break
@@ -62,7 +58,7 @@ class UtilityCog(commands.Cog):
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
             violations_expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d') +
-                timedelta(days=self.VIOLATIONS_RESET_DAYS)).__str__()
+                timedelta(days=Config.config["violations_reset_days"])).__str__()
             status.add_field(name='Violazioni:', value=str(item["violations_count"]) +
                 ' (scade il ' + violations_expiration + ')', inline=False)
         await ctx.send(embed=status)
@@ -75,7 +71,7 @@ class UtilityCog(commands.Cog):
         if user is None:
             user = ctx.author
         #se l'utente è nel server, stampo il suo nickname invece del suo username
-        member = self.bot.get_guild(self.GUILD_ID).get_member(user.id)
+        member = self.bot.get_guild(Config.config['guild_id']).get_member(user.id)
         if member is not None:
             user = member
         avatar = discord.Embed(
@@ -85,10 +81,4 @@ class UtilityCog(commands.Cog):
         await ctx.send(embed=avatar)
 
 def setup(bot):
-    try:
-        with open('config.json', 'r') as file:
-            config = json.load(file)
-    except FileNotFoundError:
-        print('crea il file config.json seguendo le indicazioni del template')
-        exit()
-    bot.add_cog(UtilityCog(bot, config))
+    bot.add_cog(UtilityCog(bot))

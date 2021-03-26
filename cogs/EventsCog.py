@@ -3,27 +3,14 @@ import discord
 from discord.ext import commands
 from datetime import datetime, timedelta
 from cogs import sharedFunctions
+from cogs.sharedFunctions import BannedWords, Config
 
 """contiene tutti gli eventi di interesse"""
 
 class EventCog(commands.Cog):
 
-    def __init__(self, bot, config):
+    def __init__(self, bot):
         self.bot = bot
-        self.GUILD_ID = int(config['guild_id'])
-        self.MAIN_CHANNEL_ID = int(config['main_channel_id'])
-        self.MODERATION_ROLES_ID = []
-        for mod in config['moderation_roles_id']:
-            self.MODERATION_ROLES_ID.append(int(mod))
-        self.ACTIVE_ROLE_ID = int(config['active']['role_id'])
-        self.ACTIVE_CHANNELS_ID = []
-        for channel in config['active']['channels_id']:
-            self.ACTIVE_CHANNELS_ID.append(int(channel))
-        self.EXCEPTIONAL_CHANNELS_ID = []
-        for channel in config['exceptional_channels_id']:
-            self.EXCEPTIONAL_CHANNELS_ID.append(int(channel))
-        self.POLL_CHANNEL_ID = int(config['poll_channel_id'])
-        self.greetings = config['greetings']
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -39,7 +26,7 @@ class EventCog(commands.Cog):
             response = 'nice'
             await message.channel.send(response)
             return
-        if sharedFunctions.BannedWords.contains_banned_words(message.content) and message.channel.id not in self.EXCEPTIONAL_CHANNELS_ID:
+        if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
         update_counter(self, message)
@@ -77,10 +64,10 @@ class EventCog(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
-        if payload.channel_id == self.POLL_CHANNEL_ID and payload.event_type == 'REACTION_ADD':
-            if self.bot.get_guild(self.GUILD_ID).get_role(self.ACTIVE_ROLE_ID) not in payload.member.roles:
+        if payload.channel_id == Config.config['poll_channel_id'] and payload.event_type == 'REACTION_ADD':
+            if self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['active_role_id']) not in payload.member.roles:
                 for role in payload.member.roles:
-                    if role.id in self.MODERATION_ROLES_ID:
+                    if role.id in Config.config['moderation_roles_id']:
                         return
                 try:
                     message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
@@ -92,7 +79,7 @@ class EventCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
         """"Controlla che i messaggi non vengano editati per inserire parole della lista banned_words"""
-        if (sharedFunctions.BannedWords.contains_banned_words(after.content)):
+        if (BannedWords.contains_banned_words(after.content)):
             await after.delete()
 
     @commands.Cog.listener()
@@ -104,8 +91,8 @@ class EventCog(commands.Cog):
             return
         print('nuovo membro')
         channel = await member.create_dm()
-        await channel.send(self.greetings)
-        if sharedFunctions.BannedWords.contains_banned_words(member.display_name):
+        await channel.send(Config.config['greetings'])
+        if BannedWords.contains_banned_words(member.display_name):
             await member.kick(reason="ForbiddenUsername")
             await channel.send(f'Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
 
@@ -126,8 +113,8 @@ class EventCog(commands.Cog):
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
         """controlla che chi è entrato e ha modificato il nickname ne abbia messo uno adeguato"""
-        guild = self.bot.get_guild(self.GUILD_ID)
-        if sharedFunctions.BannedWords.contains_banned_words(after.display_name):
+        guild = self.bot.get_guild(Config.config['guild_id'])
+        if BannedWords.contains_banned_words(after.display_name):
             if before.nick is not None:
                 print('ripristino nickname a ' + str(after.id))
                 await guild.get_member(after.id).edit(nick=before.display_name)
@@ -139,7 +126,7 @@ class EventCog(commands.Cog):
     @commands.Cog.listener()
     async def on_user_update(self, before, after):
         """controlla che gli utenti non cambino nome mostrato qualora cambiassero username"""
-        guild = self.bot.get_guild(self.GUILD_ID)
+        guild = self.bot.get_guild(Config.config['guild_id'])
         if after.display_name != before.display_name:
             print('cambio nickname')
             await guild.get_member(after.id).edit(nick=before.display_name)
@@ -210,16 +197,10 @@ def update_counter(cog, message):
 def does_it_count(cog, message):
     """controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
     if message.guild is not None:
-        if message.guild.id == cog.GUILD_ID:
-            if message.channel.id in cog.ACTIVE_CHANNELS_ID:
+        if message.guild.id == Config.config['guild_id']:
+            if message.channel.id in Config.config['active_channels_id']:
                 return True
     return False
 
 def setup(bot):
-    try:
-        with open('config.json', 'r') as file:
-            config = json.load(file)
-    except FileNotFoundError:
-        print('crea il file config.json seguendo le indicazioni del template')
-        exit()
-    bot.add_cog(EventCog(bot, config))
+    bot.add_cog(EventCog(bot))

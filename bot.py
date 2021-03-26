@@ -11,6 +11,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from cogs import sharedFunctions
+from cogs.sharedFunctions import BannedWords, Config
 
 __version__ = 'v0.3.2'
 
@@ -45,8 +46,12 @@ UNDER_SURVEILLANCE_ID = int(config['under_surveillance_id'])
 VIOLATIONS_RESET_DAYS = config["violations_reset_days"]
 greetings = config['greetings']
 
-#salva le parole bannate
-b = sharedFunctions.BannedWords()
+#carica la configurzione
+if not Config.load():
+    print('controlla di avere creato correttamente config.json')
+    exit()
+#carica le parole bannate
+BannedWords()
 
 #per poter ricevere le notifiche sull'unione di nuovi membri e i ban
 intents = discord.Intents.default()
@@ -91,7 +96,8 @@ async def reload(ctx, *args):
             print(e)
             await ctx.send('Errore nella ricarica di ' + ext + ' , vedi log del bot.', delete_after=5)
             await ctx.message.delete(delay=5)
-    await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
+    if reloaded.__len__ != 0:
+        await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
 
 @bot.event
 async def on_ready():

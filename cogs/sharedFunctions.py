@@ -51,6 +51,47 @@ class BannedWords():
                 return True
         return False
 
+class Config():
+
+    config = {}
+    
+    @staticmethod
+    def load():
+        """ritorna vero se la configurazione è stata aggiornata correttamente, falso negli altri casi"""
+        try:
+            with open('config.json', 'r') as file:
+                data = json.load(file)
+                Config._loadConfig(data)
+                print('configurazione ricaricata correttamente')
+                return True
+        except Exception as e:
+            print(e)
+            print('errore nella ricarica della configurazione, mantengo configurazione precedente')
+            return False
+
+    @staticmethod
+    def _loadConfig(data):
+        """Converte i valori letti dal dizionario nei tipi corretti"""
+        Config.config['guild_id'] = int(data['guild_id'])
+        Config.config['main_channel_id'] = int(data['main_channel_id'])
+        Config.config['current_prefix'] = data['current_prefix']
+        Config.config['moderation_roles_id'] = []
+        for mod in data['moderation_roles_id']:
+            Config.config['moderation_roles_id'].append(int(mod))
+        Config.config['active_role_id'] = int(data['active']['role_id'])
+        Config.config['active_channels_id'] = []
+        for channel in data['active']['channels_id']:
+            Config.config['active_channels_id'].append(int(channel))
+        Config.config['active_threshold'] = data['active']['threshold']
+        Config.config['active_duration'] = data['active']['duration']
+        Config.config['exceptional_channels_id'] = []
+        for channel in data['exceptional_channels_id']:
+            Config.config['exceptional_channels_id'].append(int(channel))
+        Config.config['poll_channel_id'] = int(data['poll_channel_id'])
+        Config.config['under_surveillance_id'] = int(data['under_surveillance_id'])
+        Config.config['violations_reset_days'] = data["violations_reset_days"]
+        Config.config['greetings'] = data['greetings']
+
 def update_json_file(data, json_file):
     """Scrive su file le modifiche apportate all' archivio json con il conteggio dei messaggi"""
     with open(json_file, 'w') as file:
