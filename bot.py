@@ -19,34 +19,7 @@ logging.basicConfig(level=logging.INFO)
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-#modificare config.json prima di avviare il bot
-try:
-   with open('config.json', 'r') as file:
-       config = json.load(file)
-except FileNotFoundError:
-    print('crea il file config.json seguendo le indicazioni del template')
-    exit()
-GUILD_ID = int(config['guild_id'])
-MAIN_CHANNEL_ID = int(config['main_channel_id'])
-CURRENT_PREFIX = config['current_prefix']
-MODERATION_ROLES_ID = []
-for mod in config['moderation_roles_id']:
-    MODERATION_ROLES_ID.append(int(mod))
-ACTIVE_ROLE_ID = int(config['active']['role_id'])
-ACTIVE_CHANNELS_ID = []
-for channel in config['active']['channels_id']:
-    ACTIVE_CHANNELS_ID.append(int(channel))
-ACTIVE_THRESHOLD = config['active']['threshold']
-ACTIVE_DURATION = config['active']['duration']
-EXCEPTIONAL_CHANNELS_ID = []
-for channel in config['exceptional_channels_id']:
-    EXCEPTIONAL_CHANNELS_ID.append(int(channel))
-POLL_CHANNEL_ID = int(config['poll_channel_id'])
-UNDER_SURVEILLANCE_ID = int(config['under_surveillance_id'])
-VIOLATIONS_RESET_DAYS = config["violations_reset_days"]
-greetings = config['greetings']
-
-#carica la configurzione
+#carica la configurzione, ricorda di modificare config.json seguendo indicazioni del template
 if not Config.load():
     print('controlla di avere creato correttamente config.json')
     exit()
@@ -59,7 +32,7 @@ intents.members = True
 intents.bans = True
 
 #istanziare il bot (avvio in fondo al codice)
-bot = commands.Bot(command_prefix = CURRENT_PREFIX, intents=intents)
+bot = commands.Bot(command_prefix = Config.config['current_prefix'], intents=intents)
 
 #carico i moduli dei comandi
 with open('extensions.json', 'r') as file:
@@ -70,7 +43,7 @@ for ext in extensions:
 async def is_mod(ctx):
     """check sui comandi per bloccare l'utilizzo dei comandi di moderazione"""
     #TODO spostare le funzioni di check nello stesso posto
-    return ctx.author.top_role.id in MODERATION_ROLES_ID
+    return ctx.author.top_role.id in Config.config['moderation_roles_id']
 
 @bot.command()
 @commands.check(is_mod)
@@ -105,8 +78,8 @@ async def on_ready():
     botstat = discord.Game(name='AFL ' + __version__)
     await bot.change_presence(activity=botstat)
     print(f'{bot.user} has connected to Discord! 'f'{timestamp}')
-    if(MAIN_CHANNEL_ID is not None):
-        channel = bot.get_channel(MAIN_CHANNEL_ID)
+    if(Config.config['main_channel_id'] is not None):
+        channel = bot.get_channel(Config.config['main_channel_id'])
         await channel.send('AFL Bot `' + __version__ + '` avviato alle `'f'{timestamp}`. Il prefisso è: `{bot.command_prefix}`')
     if not periodic_checks.is_running():    #per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
         print('avvio task')
@@ -133,13 +106,13 @@ async def periodic_checks():
         item = prev_dict[key]
         sharedFunctions.clean(item)
         count = sharedFunctions.count_consolidated_messages(item)
-        if count >= ACTIVE_THRESHOLD and bot.get_guild(GUILD_ID).get_member(int(key)).top_role.id not in MODERATION_ROLES_ID:
+        if count >= Config.config['active_threshold'] and bot.get_guild(Config.config['guild_id']).get_member(int(key)).top_role.id not in Config.config['moderation_roles_id']:
             item["active"] = True
-            item["expiration"] = datetime.date(datetime.now() + timedelta(days=ACTIVE_DURATION)).__str__()
-            guild = bot.get_guild(GUILD_ID)
-            await guild.get_member(int(key)).add_roles(guild.get_role(ACTIVE_ROLE_ID))
+            item["expiration"] = datetime.date(datetime.now() + timedelta(days=Config.config['active_duration'])).__str__()
+            guild = bot.get_guild(Config.config['guild_id'])
+            await guild.get_member(int(key)).add_roles(guild.get_role(Config.config['active_role_id']))
             print('member ' + key + ' is active')
-            channel = bot.get_channel(MAIN_CHANNEL_ID)
+            channel = bot.get_channel(Config.config['main_channel_id'])
             await channel.send('membro <@!' + key + '> è diventato attivo')
             #azzero tutti i contatori
             for i in sharedFunctions.weekdays:
@@ -148,7 +121,7 @@ async def periodic_checks():
         #controllo sulla data dell'ultima violazione, ed eventuale reset
         if item["last_violation_count"] is not None:
             expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d'))
-            if (expiration + timedelta(days=VIOLATIONS_RESET_DAYS)).__eq__(datetime.date(datetime.now())):
+            if (expiration + timedelta(days=Config.config["violations_reset_days"])).__eq__(datetime.date(datetime.now())):
                 print('reset violazioni di ' + key)
                 item["violations_count"] = 0
                 item["last_violation_count"] = None
@@ -158,10 +131,10 @@ async def periodic_checks():
 
         if item["active"] is True:
             expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%d'))
-            channel = bot.get_channel(MAIN_CHANNEL_ID)
+            channel = bot.get_channel(Config.config['main_channel_id'])
             if expiration.__eq__((datetime.date(datetime.now()))):
-                guild = bot.get_guild(GUILD_ID)
-                await guild.get_member(int(key)).remove_roles(guild.get_role(ACTIVE_ROLE_ID))
+                guild = bot.get_guild(Config.config['guild_id'])
+                await guild.get_member(int(key)).remove_roles(guild.get_role(Config.config['active_role_id']))
                 await channel.send('membro ' + key + ' non più attivo :(')
                 item["active"] = False
                 item["expiration"] = None
