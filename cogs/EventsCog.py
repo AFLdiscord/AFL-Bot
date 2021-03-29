@@ -62,6 +62,35 @@ class EventCog(commands.Cog):
             print('rimosso un messaggio')
 
     @commands.Cog.listener()
+    async def on_bulk_message_delete(self, messages):
+        """Aggiorna i contatori di tutti i membri i cui messaggi sono coinvolti nella bulk delete. Si comporta come la 
+        on_message_delete per tutti i messaggi rimossi."""
+        if not does_it_count(self, messages[0]):
+            return
+        try:
+            with open('aflers.json','r') as file:
+                prev_dict = json.load(file)
+        except FileNotFoundError:
+            return
+        counter = 0
+        for message in messages:
+            item = None
+            try:
+                item = prev_dict[str(message.author.id)]
+            except KeyError:
+                print('utente non presente')
+                continue
+            finally:
+                if item is None:
+                    continue
+            #il contatore non può ovviamente andare sotto 0
+            if item["counter"] != 0:
+                item["counter"] -= 1
+                counter += 1
+        sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+        print('rimossi ' + str(counter) + ' messaggi')
+
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
         if payload.channel_id == Config.config['poll_channel_id'] and payload.event_type == 'REACTION_ADD':
