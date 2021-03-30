@@ -47,7 +47,7 @@ class BannedWords():
     banned_words = []
 
     @staticmethod
-    def load():
+    def load() -> None:
         """Carica l'elenco delle parole bannate dal file banned_words.json
         Se il file non è presente o incorre in un errore nella procedura l'elenco rimane vuoto.
         """
@@ -59,7 +59,7 @@ class BannedWords():
                 BannedWords.banned_words = []
 
     @staticmethod
-    def add(word: str):
+    def add(word: str) -> None:
         """Aggiunge una stringa all'elenco banned_words
 
         :param word: la parola da aggiungere
@@ -67,7 +67,7 @@ class BannedWords():
         BannedWords.banned_words.append(word)
 
     @staticmethod
-    def remove(word: str):
+    def remove(word: str) -> None:
         """Rimuove una stringa all'elenco banned_words
 
         :param word: la parola da rimuovere

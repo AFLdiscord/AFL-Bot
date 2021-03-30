@@ -5,18 +5,28 @@ from datetime import datetime, timedelta
 from cogs import sharedFunctions
 from cogs.sharedFunctions import BannedWords, Config
 
-"""contiene i comandi di uso generale:
-- status
-- avatar
+"""Contiene i comandi destinati ad essere usati da tutti con funzionalità varie:
+- status ritorna lo status del membro citato
+- avatar ritorna la foto profilo dell'utente citato
 """
 
-class UtilityCog(commands.Cog):
+class UtilityCog(commands.Cog, name='Utility'):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    async def status(self, ctx, member:discord.Member = None):
-        """mostra il proprio status oppure quello del membro fornito come parametro"""
+    @commands.command(brief="ritorna statistiche sul membro menzionato")
+    async def status(self, ctx, member: discord.Member = None):
+        """Mostra il proprio status oppure quello del membro fornito come parametro tramite embed.
+        Lo status comprende:
+        - numero di messaggi degli ultimi 7 giorni
+        - data ultimo messaggio conteggiato (inviato nei canali da contare)
+        - possesso del ruolo attivo e relativa scadenza (assente per i mod)
+        - numero di violaizoni e relativa scadenza
+        
+        Sintassi:
+        <status             ritorna lo status del chiamante
+        <status @someone    ritorna lo status di someone se presente nel file
+        """
         if member is None:
             member = ctx.author
         try:
@@ -63,10 +73,14 @@ class UtilityCog(commands.Cog):
                 ' (scade il ' + violations_expiration + ')', inline=False)
         await ctx.send(embed=status)
 
-    @commands.command()
+    @commands.command(brief='invia la propic dell\'utente')
     async def avatar(self, ctx, user: discord.User = None):
-        """invia sulla chat la pfp dell'utente menzionato, indipendentemente dal fatto che l'utente sia
-        un membro del server o meno
+        """Invia la propria propic o quella dell'utente menzionato. Non è necessario che l'utente faccia
+        parte del server basta che la menzione sia valida.
+
+        Sintassi:
+        <avatar             invia la propria propic
+        <avatar @someone    invia la propic di someone
         """
         if user is None:
             user = ctx.author
