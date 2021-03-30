@@ -2,8 +2,20 @@ import json
 import re
 from datetime import datetime, timedelta
 
-"""funzioni condivise tra varie cogs"""
+"""Funzionalità condivise tra le diverse cog per facilitare la manutenzione. In particolare:
+Classi:
+- BannedWords per gestione delle parole bannate
+- Config per la gestione dei parametri di configuarazione del bot
 
+Funzioni:
+- update_json_file per salvare in json le modifiche
+- count_messages conta i messaggi presenti nei giorni della settimana e counter
+- count_consolidated_messages conta solo i messaggi già salvati nel giorno
+- clean aggiorna i contatori dei vari giorni controllando la data
+"""
+
+#utile per passare dal giorno della settimana restituito da weekday() direttamente
+#al campo corrispondente nel dizionario del json
 weekdays = {
     0: "mon",
     1: "tue",
@@ -15,11 +27,30 @@ weekdays = {
 }
 
 class BannedWords():
+    """Gestione delle parole bannate. In particolare si occupa di caricare la lista dal rispettivo file
+    banned_words.json che si aspetta di trovare nella stessa cartella del bot. L'elenco è salvato in un attributo di 
+    classe e tutti i metodi sono statici. Non è fornito un metodo __init__ poichè non ci si aspetta che questa classe 
+    debba essere istanziata, occorre sfruttare metodi e attributi di classe.
+
+    Attributes
+    -------------
+    banned_words: List[str] attributo di classe contenente l'elenco delle parole bannate
+    
+    Methods
+    -------------
+    load()  carica dal file banned_words.json l'elenco della parole bannate
+    add(word) aggiunge la parola all'elenco
+    remove(word) rimuove la parola dall'elenco
+    contains_banned_words(text) controlla se sono presenti parole bannate nel testo fornito
+    """
 
     banned_words = []
 
     @staticmethod
     def load():
+        """Carica l'elenco delle parole bannate dal file banned_words.json
+        Se il file non è presente o incorre in un errore nella procedura l'elenco rimane vuoto.
+        """
         try:
             with open('banned_words.json','r') as file:
                 BannedWords.banned_words = json.load(file)
@@ -28,16 +59,30 @@ class BannedWords():
                 BannedWords.banned_words = []
 
     @staticmethod
-    def add(word):
+    def add(word: str):
+        """Aggiunge una stringa all'elenco banned_words
+
+        :param word: la parola da aggiungere
+        """
         BannedWords.banned_words.append(word)
 
     @staticmethod
-    def remove(word):
+    def remove(word: str):
+        """Rimuove una stringa all'elenco banned_words
+
+        :param word: la parola da rimuovere
+        """
         BannedWords.banned_words.remove(word)
 
     @staticmethod
-    def contains_banned_words(text):
-        """Implementa il controllo sulle parole bannate tramite regex"""
+    def contains_banned_words(text: str) -> bool:
+        """Controlla se sono presenti parole bannate tramite regex.
+
+        :param text: il testo da controllare
+        
+        :returns: se il testo contiene o meno una parola bannata
+        :rtype: bool
+        """
         text_to_check = text.lower()
         text_to_check = re.sub("0", "o", text_to_check)
         text_to_check = re.sub("1", "i", text_to_check)
@@ -56,12 +101,32 @@ class BannedWords():
         return False
 
 class Config():
+    """Gestione dei parametri di configurazione del bot. Salva tutti i parametri in un dizionario
+    che può essere usato dal resto del bot per svolgere la sua funzione. I parametri possono essere
+    aggiornati in ogni momento ricaricando i valori dal file config.json che si aspetta di trovare nella cartella
+    del bot. Non è fornito un metodo __init__ poichè questa classe è pensata solo per utilizzare metodi e 
+    attributi statici.
+    
+    Attributes
+    -------------
+    config: dict attributo di classe che conserva tutti i parametri di configurazione in un dizionario
+    
+    Methods
+    -------------
+    load()  carica i valori dal file config.json
+    """
 
     config = {}
     
     @staticmethod
-    def load():
-        """ritorna vero se la configurazione è stata aggiornata correttamente, falso negli altri casi"""
+    def load() -> bool:
+        """Carica i parametri dal file config.json nell'attributo di classe config. Il formato del file
+        deve essere quello specificato nel template (vedi config.template). Deve essere chiamato all'avvio del bot.
+        Ritorna un booleano con l'esito. In caso di fallimento mantiene inalterato il config attuale.
+    
+        :returns: vero o falso a seconda dell'esito
+        :rtype: bool
+        """
         try:
             with open('config.json', 'r') as file:
                 data = json.load(file)
@@ -74,8 +139,10 @@ class Config():
             return False
 
     @staticmethod
-    def _loadConfig(data):
-        """Converte i valori letti dal dizionario nei tipi corretti"""
+    def _loadConfig(data) -> None:
+        """Converte i valori letti dal dizionario nei tipi corretti. Chiamato dalla load, non utilizzare
+        direttamente questo metodo.
+        """
         Config.config['guild_id'] = int(data['guild_id'])
         Config.config['main_channel_id'] = int(data['main_channel_id'])
         Config.config['current_prefix'] = data['current_prefix']
@@ -96,14 +163,24 @@ class Config():
         Config.config['violations_reset_days'] = data["violations_reset_days"]
         Config.config['greetings'] = data['greetings']
 
-def update_json_file(data, json_file):
-    """Scrive su file le modifiche apportate all' archivio json con il conteggio dei messaggi"""
+def update_json_file(data, json_file: str) -> None:
+    """Scrive su file json i dati passati.
+
+    :param data: i dati da scrivere sul json
+    :json_file: il nome del file da aprire (es. config.json)
+    """
     with open(json_file, 'w') as file:
         json.dump(data, file, indent=4)
         
-def count_messages(item):
+def count_messages(item: dict) -> int:
     """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo counter + tutti gli altri giorni
-    salvati escluso il giorno corrente."""
+    salvati escluso il giorno corrente.
+    
+    :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
+    
+    :returns: il conteggio dei messaggi
+    :rtype: int
+    """
     count = 0
     for i in weekdays:
         if i != datetime.today().weekday():
@@ -111,17 +188,26 @@ def count_messages(item):
     count += item["counter"]
     return count
 
-def count_consolidated_messages(item):
+def count_consolidated_messages(item: dict) -> int:
     """Ritorna il conteggio dei messaggi salvati nei campi mon, tue, wed, ... non include counter
     Lo scopo è contare i messaggi che sono stati consolidati nello storico ai fini di stabilire se
-    si è raggiunta la soglia dell'attivo"""
+    si è raggiunta la soglia dell'attivo.
+    
+    :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
+    
+    :returns: il conteggio dei messaggi
+    :rtype: int
+    """
     count = 0
     for i in weekdays:
         count += item[weekdays.get(i)]
     return count
 
-def clean(item):
-    """Si occupa di controllare il campo last_message_date e sistemare di conseguenza il conteggio dei singoli giorni"""
+def clean(item: dict) -> None:
+    """Si occupa di controllare il campo last_message_date e sistemare di conseguenza il conteggio dei singoli giorni.
+            
+    :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
+    """
     if (item["last_message_date"] is None) or (item["last_message_date"] == datetime.date(datetime.now()).__str__()):      
         #(None) tecnicamente previsto da add_warn se uno viene warnato senza aver mai scritto
         #(Oggi) vuol dire che il bot è stato riavviato a metà giornata non devo toccare i contatori
