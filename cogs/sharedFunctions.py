@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import datetime, timedelta
+from typing import List
 
 """Funzionalità condivise tra le diverse cog per facilitare la manutenzione. In particolare:
 Classi:
@@ -171,6 +172,21 @@ def update_json_file(data, json_file: str) -> None:
     """
     with open(json_file, 'w') as file:
         json.dump(data, file, indent=4)
+
+def get_extensions() -> List[str]:
+    """Carica le estensioni dal file extensions.json. Si aspetta di trovare una lista con
+    i nomi delle estensioni da aggiungere al bot. Se non trova il file o ci sono errori ritorna
+    una lista vuota.
+    
+    :returns: la lista coi nomi delle estensioni"""
+    try:
+        with open('extensions.json', 'r') as file:
+            extensions = json.load(file)
+    except Exception:
+        print('nessuna estensione trovata, controlla file extensions.json')
+        extensions = []
+    finally:
+        return extensions
         
 def count_messages(item: dict) -> int:
     """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo counter + tutti gli altri giorni

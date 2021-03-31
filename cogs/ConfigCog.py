@@ -67,5 +67,31 @@ class ConfigCog(commands.Cog):
             await ctx.send('Errore nel caricamento della configurazione, mantengo impostazioni precedenti')
         pass
 
+    @commands.command()
+    async def reload(self, ctx, *args):
+        """Ricarica le cogs specificate aggiornando le funzionalità. Se nessuna cog è specificata ricarica tutte.
+        Sintassi:
+        <reload                              #ricarica tutte le estensioni
+        <reload ModerationCog                #ricarica solo ModerationCog
+        <reload ModerationCog UtilityCog     #più cogs separate da spazi
+        """
+        if not args:
+            cogs = sharedFunctions.get_extensions()
+        else:
+            cogs = []
+            for e in args:
+                cogs.append('cogs.' + e)
+        reloaded = ''
+        for ext in cogs:
+            try:
+                self.bot.reload_extension(ext)
+                reloaded += ext + ' ' 
+            except Exception as e:
+                print(e)
+                await ctx.send('Errore nella ricarica di ' + ext + ' , vedi log del bot.', delete_after=5)
+                await ctx.message.delete(delay=5)
+        if reloaded.__len__ != 0:
+            await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
+
 def setup(bot):
     bot.add_cog(ConfigCog(bot))
