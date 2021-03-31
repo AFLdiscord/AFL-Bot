@@ -5,7 +5,31 @@ from datetime import datetime, timedelta
 from cogs import sharedFunctions
 from cogs.sharedFunctions import BannedWords, Config
 
-"""contiene tutti gli eventi di interesse"""
+"""Questo modulo contiene tutti i listener per i diversi eventi rilevanti per il bot. Gli eventi
+gestiti sono elencati qua sotto, raggruppati per categoria (nomi eventi autoesplicativi).
+Messaggi:
+- on_message
+- on_message_delete
+- on_bulk_message_delete
+- on_message_edit
+
+Reazioni:
+- on_raw_reaction_add
+
+Membri:
+- on_member_join
+- on_member_remove
+- on_member_update
+- on_user_update
+
+Gestione bot:
+- on_command_error
+- on_ready
+
+Sono inoltre presenti due funzioni usiliarie alle funzioni del bot:
+- update_counter   aggiorna il contatore dell'utente passato e aggiunge al file
+- does_it_count    determina se il canale in cui è stato mandato il messaggio è conteggiato o meno
+"""
 
 class EventCog(commands.Cog):
 
@@ -15,7 +39,13 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """azioni da eseguire ad ogni messaggio"""
+        """Azioni da eseguire ad ogni messaggio. Ignora i messaggi provenienti da:
+        - il bot stesso
+        - altri bot
+        - canali di chat privata
+        Risponde al messaggio 'ping' ritornando l'intervallo di tempo tra un HEARTBEAT e il suo ack in ms.'
+        Invoca la funzione update_counter per aggiornare il conteggio.
+        """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
         if message.content.lower() == 'ping':
@@ -30,17 +60,17 @@ class EventCog(commands.Cog):
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
-        update_counter(self, message)
+        update_counter(message)
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-        """In caso di rimozione dei messaggi va decrementato il contatore della persona che
-        lo aveva scritto per evitare che messaggi non adatti vengano conteggiati nell'assegnamento del ruolo.
-        Vanno considerate le cancellazioni solo dai canali conteggiati.
+        """Invocata alla cancellazione di un messaggio. Se tale messaggio proveniva da un canale conteggiato
+        occorre decrementare il contatore dell'utente corrispondente di uno. Per cancellazioni in bulk vedi
+        on_bulk_message_delete.
         """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
-        if not does_it_count(self, message):
+        if not does_it_count(message):
             return
         try:
             with open('aflers.json','r') as file:
@@ -64,9 +94,10 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_bulk_message_delete(self, messages):
-        """Aggiorna i contatori di tutti i membri i cui messaggi sono coinvolti nella bulk delete. Si comporta come la 
-        on_message_delete per tutti i messaggi rimossi."""
-        if not does_it_count(self, messages[0]):
+        """Invocata quando si effettua una bulk delete dei messaggi. Aggiorna i contatori di tutti i membri i cui messaggi 
+        sono coinvolti nella bulk delete. Il comportamento per ogni singolo messaggio è lo stesso della on_message_delete.
+        """
+        if not does_it_count(messages[0]):
             return
         try:
             with open('aflers.json','r') as file:
@@ -93,7 +124,13 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
-        """Controlla se chi reagisce ai messaggi ha i requisiti per farlo"""
+        """Controlla se chi reagisce ai messaggi postati nel canale proposte abbia i requisiti per farlo.
+        La reazione è mantenuta solo se l'utente:
+        - è un moderatore
+        - è in possesso del ruolo attivo
+        Entrambi questi ruoli vanno definiti nella config (vedi template).
+        In caso l'utente non abbia i requisiti la reazione viene rimossa.
+        """
         if payload.channel_id == Config.config['poll_channel_id'] and payload.event_type == 'REACTION_ADD':
             if self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['active_role_id']) not in payload.member.roles:
                 for role in payload.member.roles:
@@ -108,14 +145,17 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
-        """"Controlla che i messaggi non vengano editati per inserire parole della lista banned_words"""
+        """Controlla che i messaggi non vengano editati per inserire parole della lista banned_words.
+        Se viene trovata una parola bannata dopo l'edit il messaggio viene cancellato.
+        """
         if (BannedWords.contains_banned_words(after.content)):
             await after.delete()
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        """Invia il messaggio di benvenuto al membro che si è appena unito al server e controlla che l'username
-        sia adeguato
+        """Invia il messaggio di benvenuto all'utente entrato nel server e controlla che l'username
+        sia adeguato. Se l'username contiene parole offensive l'utente viene kickato dal server con un messaggio
+        che lo invita a modificare il proprio nome prima di unirsi nuovamente.
         """
         if member.bot:
             return
@@ -128,7 +168,7 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
-        """rimuove l'utente da aflers.json se questo esce dal server"""
+        """Rimuove, se presente, l'utente da aflers.json nel momento in cui lascia il server."""
         if member.bot:
             return
         with open('aflers.json','r') as file:
@@ -142,7 +182,10 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        """controlla che chi è entrato e ha modificato il nickname ne abbia messo uno adeguato"""
+        """Impedisce ai membri del server di modificare il proprio username includendo parole offensive.
+        Se possibile ripristina il nickname precedente, altrimenti il membro viene kickato dal server con
+        un messaggio che lo invita a modificare il proprio nome prima di unirsi nuovamente.
+        """
         guild = self.bot.get_guild(Config.config['guild_id'])
         if BannedWords.contains_banned_words(after.display_name):
             if before.nick is not None:
@@ -155,7 +198,18 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_user_update(self, before, after):
-        """controlla che gli utenti non cambino nome mostrato qualora cambiassero username"""
+        """Controlla che gli utenti non cambino nome mostrato qualora cambiassero username.
+        In pratica, se un membro non ha impostato un nickname personalizzato per il server
+        il nome mostrato cambia in base all'username anche se il membro non ha i permessi per cambiare
+        nickname. Quando l'username viene modificato e il nome mostrato (display_name) cambia
+        questo viene ripristinato al valore precedente.
+
+        Problemi noti: display_name per un User ritorna sempre e comunque l'username quindi
+        è possibile bypassare questo meccanismo di ripristino del nome cambiandolo due volti di fila,
+        come descritto nella issue #10. In tal caso occorre intervenire manualmente.
+
+        Per informazioni complete vedere documenti di discord.py per la differenza tra usename, nickname e display_name
+        """
         guild = self.bot.get_guild(Config.config['guild_id'])
         if after.display_name != before.display_name:
             print('cambio nickname')
@@ -163,7 +217,9 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
-        """generica gestione errori per evitare crash banali, da espandare in futuro"""
+        """Generica gestione errori per evitare crash del bot in caso di eccezioni nei comandi.
+        Per ora si limita a avvisare che le menzioni possono dare problemi con certi prefissi e a
+        loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro"""
         if isinstance(error, commands.CommandNotFound):
             print('comando non trovato (se hai prefisso < ogni menzione a inizio messaggio da questo errore)')
         elif isinstance(error, commands.CheckFailure):
@@ -173,6 +229,9 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        """Chiamata all'avvio del bot, invia un messaggio di avviso sul canale impostato come
+        MAIN_CHANNEL. Si occupa anche di avviare la task periodica per il controllo dei contatori e
+        impostare lo stato del bot con le informazioni di versione."""
         timestamp = datetime.time(datetime.now())
         botstat = discord.Game(name='AFL ' + self.__version__)
         await self.bot.change_presence(activity=botstat)
@@ -189,11 +248,13 @@ class EventCog(commands.Cog):
     @tasks.loop(hours=24)
     async def periodic_checks(self):
         """Task periodica per la gestione di:
-            - assegnamento ruolo attivo (i mod sono esclusi)
-            - rimozione ruolo attivo
+            - consolidamento dei messaggi temporanei in counter se necessario
+            - azzeramento dei messaggi conteggiati scaduti
+            - assegnamento/rimozione ruolo attivo (i mod sono esclusi)
             - rimozione strike/violazioni
 
-            L'avvio è programmato ogni giorno allo scatto della mezzanotte.
+        Viene avviata tramite la on_ready quando il bot ha completato la fase di setup ed è
+        programmata per essere eseguita ogni 24 ore da quel momento.
         """
         print('controllo conteggio messaggi')
         try:
@@ -239,11 +300,12 @@ class EventCog(commands.Cog):
                     item["expiration"] = None
         sharedFunctions.update_json_file(prev_dict, 'aflers.json')
 
-def update_counter(cog, message):
-    """aggiorna il contatore dell'utente che ha mandato il messaggio. Se l'utente non era presente lo aggiunge
-    al json inizializzando tutti i contatori a 0. Si occupa anche di aggiornare il campo "last_message_date".
+def update_counter(message: discord.Message) -> None:
+    """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
+    nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
+    Si occupa anche di aggiornare il campo "last_message_date".
     """
-    if not does_it_count(cog, message):
+    if not does_it_count(message):
         return
     prev_dict = {}
     try:
@@ -292,8 +354,15 @@ def update_counter(cog, message):
             prev_dict[message.author.id] = afler
         sharedFunctions.update_json_file(prev_dict, 'aflers.json')
 
-def does_it_count(cog, message):
-    """controlla se il messaggio ricevuto rispetta le condizioni per essere conteggiato ai fini del ruolo attivo"""
+def does_it_count(message: discord.Message) -> bool:
+    """Controlla se il canale in cui è stato mandato il messaggio passato rientra nei canali conteggiati
+    stabiliti nel file di configurazione. Ritorna un booleano con la risposta
+    
+    :param message: il messaggio di cui controllare il canale
+    
+    :returns: True se il messaggio conta, False altrimenti
+    :rtype: bool
+    """
     if message.guild is not None:
         if message.guild.id == Config.config['guild_id']:
             if message.channel.id in Config.config['active_channels_id']:

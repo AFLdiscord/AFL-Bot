@@ -168,7 +168,7 @@ def update_json_file(data, json_file: str) -> None:
     """Scrive su file json i dati passati.
 
     :param data: i dati da scrivere sul json
-    :json_file: il nome del file da aprire (es. config.json)
+    :param json_file: il nome del file da aprire (es. config.json)
     """
     with open(json_file, 'w') as file:
         json.dump(data, file, indent=4)
@@ -178,7 +178,9 @@ def get_extensions() -> List[str]:
     i nomi delle estensioni da aggiungere al bot. Se non trova il file o ci sono errori ritorna
     una lista vuota.
     
-    :returns: la lista coi nomi delle estensioni"""
+    :returns: la lista coi nomi delle estensioni
+    :rtype: List[str]
+    """
     try:
         with open('extensions.json', 'r') as file:
             extensions = json.load(file)
