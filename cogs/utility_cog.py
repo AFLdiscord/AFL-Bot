@@ -15,7 +15,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(brief="ritorna statistiche sul membro menzionato")
+    @commands.command(brief='ritorna statistiche sul membro menzionato')
     async def status(self, ctx, member: discord.Member = None):
         """Mostra il proprio status oppure quello del membro fornito come parametro tramite embed.
         Lo status comprende:
@@ -23,10 +23,10 @@ class UtilityCog(commands.Cog, name='Utility'):
         - data ultimo messaggio conteggiato (inviato nei canali da contare)
         - possesso del ruolo attivo e relativa scadenza (assente per i mod)
         - numero di violaizoni e relativa scadenza
-        
+
         Sintassi:
         <status             ritorna lo status del chiamante
-        <status @someone    ritorna lo status di someone se presente nel file
+        <status @someone    ritorna lo status di 'someone' se presente nel file
         """
         if member is None:
             member = ctx.author
@@ -61,7 +61,7 @@ class UtilityCog(commands.Cog, name='Utility'):
                 status.add_field(name='Ruolo:', value=role.name, inline=False)
                 break
         if not is_a_mod:
-            if item["active"] == False:
+            if not item["active"]:
                 status.add_field(name='Attivo:', value='no', inline=False)
             else:
                 status.add_field(name='Attivo:', value='sì (scade il ' + item["expiration"] + ')', inline=False)
@@ -76,12 +76,12 @@ class UtilityCog(commands.Cog, name='Utility'):
 
     @commands.command(brief='invia la propic dell\'utente')
     async def avatar(self, ctx, user: discord.User = None):
-        """Invia la propria propic o quella dell'utente menzionato. Non è necessario che l'utente faccia
-        parte del server basta che la menzione sia valida.
+        """Invia la propria propic o quella dell'utente menzionato. Non è necessario che l'utente
+        faccia parte del server basta che la menzione sia valida.
 
         Sintassi:
-        <avatar             invia la propria propic
-        <avatar @someone    invia la propic di someone
+        <avatar             #invia la propria propic
+        <avatar @someone    #invia la propic di 'someone'
         """
         if user is None:
             user = ctx.author
