@@ -1,16 +1,17 @@
+""":class: UtilityCog contiene comandi di uso generale."""
 import json
+from datetime import datetime, timedelta
+
 import discord
 from discord.ext import commands
-from datetime import datetime, timedelta
 from cogs import sharedFunctions
-from cogs.sharedFunctions import BannedWords, Config
-
-"""Contiene i comandi destinati ad essere usati da tutti con funzionalità varie:
-- status ritorna lo status del membro citato
-- avatar ritorna la foto profilo dell'utente citato
-"""
+from cogs.sharedFunctions import Config
 
 class UtilityCog(commands.Cog, name='Utility'):
+    """Contiene i comandi destinati ad essere usati da tutti con funzionalità varie:
+    - status ritorna lo status del membro citato
+    - avatar ritorna la foto profilo dell'utente citato
+    """
     def __init__(self, bot):
         self.bot = bot
 
@@ -50,7 +51,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         status.set_thumbnail(url=member.avatar_url)
         if item["last_message_date"] is None:
             status.add_field(name='Messaggi ultimi 7 giorni:', value='0', inline=False)
-        else: 
+        else:
             status.add_field(name='Messaggi ultimi 7 giorni:', value=str(sharedFunctions.count_messages(item)) +
                 ' (ultimo il ' + item["last_message_date"] + ')', inline=False)  
         is_a_mod = False
@@ -95,4 +96,5 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send(embed=avatar)
 
 def setup(bot):
+    """Entry point per il caricamento della cog"""
     bot.add_cog(UtilityCog(bot))

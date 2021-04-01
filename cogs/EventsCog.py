@@ -1,37 +1,41 @@
-import json
-import discord
-from discord.ext import commands, tasks
-from datetime import datetime, timedelta
-from cogs import sharedFunctions
-from cogs.sharedFunctions import BannedWords, Config
-
-"""Questo modulo contiene tutti i listener per i diversi eventi rilevanti per il bot. Gli eventi
-gestiti sono elencati qua sotto, raggruppati per categoria (nomi eventi autoesplicativi).
-Messaggi:
-- on_message
-- on_message_delete
-- on_bulk_message_delete
-- on_message_edit
-
-Reazioni:
-- on_raw_reaction_add
-
-Membri:
-- on_member_join
-- on_member_remove
-- on_member_update
-- on_user_update
-
-Gestione bot:
-- on_command_error
-- on_ready
+"""Questo modulo contiene tutti i listener per i diversi eventi rilevanti per il bot raccolti
+nella classe EventCog
 
 Sono inoltre presenti due funzioni usiliarie alle funzioni del bot:
 - update_counter   aggiorna il contatore dell'utente passato e aggiunge al file
 - does_it_count    determina se il canale in cui è stato mandato il messaggio è conteggiato o meno
 """
 
+import json
+from datetime import datetime, timedelta
+
+import discord
+from discord.ext import commands, tasks
+from cogs import sharedFunctions
+from cogs.sharedFunctions import BannedWords, Config
+
 class EventCog(commands.Cog):
+    """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria
+    (nomi eventi autoesplicativi).
+    Messaggi:
+    - on_message
+    - on_message_delete
+    - on_bulk_message_delete
+    - on_message_edit
+
+    Reazioni:
+    - on_raw_reaction_add
+
+    Membri:
+    - on_member_join
+    - on_member_remove
+    - on_member_update
+    - on_user_update
+
+    Gestione bot:
+    - on_command_error
+    - on_ready
+    """
 
     def __init__(self, bot):
         self.bot = bot
@@ -43,7 +47,7 @@ class EventCog(commands.Cog):
         - il bot stesso
         - altri bot
         - canali di chat privata
-        Risponde al messaggio 'ping' ritornando l'intervallo di tempo tra un HEARTBEAT e il suo ack in ms.'
+        Il messaggio 'ping' ritorna l'intervallo di tempo tra un HEARTBEAT e il suo ack in ms.'
         Invoca la funzione update_counter per aggiornare il conteggio.
         """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
@@ -64,9 +68,9 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-        """Invocata alla cancellazione di un messaggio. Se tale messaggio proveniva da un canale conteggiato
-        occorre decrementare il contatore dell'utente corrispondente di uno. Per cancellazioni in bulk vedi
-        on_bulk_message_delete.
+        """Invocata alla cancellazione di un messaggio. Se tale messaggio proveniva da un canale
+        conteggiato occorre decrementare il contatore dell'utente corrispondente di uno.
+        Per cancellazioni in bulk vedi on_bulk_message_delete.
         """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
@@ -83,9 +87,8 @@ class EventCog(commands.Cog):
         except KeyError:
             print('utente non presente')
             return
-        finally:
-            if item is None:
-                return
+        if item is None:
+            return
         #il contatore non può ovviamente andare sotto 0
         if item["counter"] != 0:
             item["counter"] -= 1
@@ -94,8 +97,9 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_bulk_message_delete(self, messages):
-        """Invocata quando si effettua una bulk delete dei messaggi. Aggiorna i contatori di tutti i membri i cui messaggi 
-        sono coinvolti nella bulk delete. Il comportamento per ogni singolo messaggio è lo stesso della on_message_delete.
+        """Invocata quando si effettua una bulk delete dei messaggi. Aggiorna i contatori di tutti
+        i membri i cui messaggi sono coinvolti nella bulk delete. Il comportamento per ogni singolo
+        messaggio è lo stesso della on_message_delete.
         """
         if not does_it_count(messages[0]):
             return
@@ -148,14 +152,14 @@ class EventCog(commands.Cog):
         """Controlla che i messaggi non vengano editati per inserire parole della lista banned_words.
         Se viene trovata una parola bannata dopo l'edit il messaggio viene cancellato.
         """
-        if (BannedWords.contains_banned_words(after.content)):
+        if BannedWords.contains_banned_words(after.content):
             await after.delete()
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
         """Invia il messaggio di benvenuto all'utente entrato nel server e controlla che l'username
-        sia adeguato. Se l'username contiene parole offensive l'utente viene kickato dal server con un messaggio
-        che lo invita a modificare il proprio nome prima di unirsi nuovamente.
+        sia adeguato. Se l'username contiene parole offensive l'utente viene kickato dal server con
+        un messaggio che lo invita a modificare il proprio nome prima di unirsi nuovamente.
         """
         if member.bot:
             return
@@ -164,7 +168,7 @@ class EventCog(commands.Cog):
         await channel.send(Config.config['greetings'])
         if BannedWords.contains_banned_words(member.display_name):
             await member.kick(reason="ForbiddenUsername")
-            await channel.send(f'Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
+            await channel.send('Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
@@ -187,14 +191,15 @@ class EventCog(commands.Cog):
         un messaggio che lo invita a modificare il proprio nome prima di unirsi nuovamente.
         """
         guild = self.bot.get_guild(Config.config['guild_id'])
+        member = await guild.get_member(after.id)
         if BannedWords.contains_banned_words(after.display_name):
             if before.nick is not None:
                 print('ripristino nickname a ' + str(after.id))
-                await guild.get_member(after.id).edit(nick=before.display_name)
+                await member.edit(nick=before.display_name)
             else:
                 channel = await member.create_dm()
                 await member.kick(reason="ForbiddenNickname")
-                await channel.send(f'Il tuo nickname non è consentito, quando rientri impostane uno valido')
+                await channel.send('Il tuo nickname non è consentito, quando rientri impostane uno valido')
 
     @commands.Cog.listener()
     async def on_user_update(self, before, after):
@@ -208,7 +213,7 @@ class EventCog(commands.Cog):
         è possibile bypassare questo meccanismo di ripristino del nome cambiandolo due volti di fila,
         come descritto nella issue #10. In tal caso occorre intervenire manualmente.
 
-        Per informazioni complete vedere documenti di discord.py per la differenza tra usename, nickname e display_name
+        Per informazioni complete vedere documenti di discord.py
         """
         guild = self.bot.get_guild(Config.config['guild_id'])
         if after.display_name != before.display_name:
@@ -331,7 +336,7 @@ def update_counter(message: discord.Message) -> None:
                 #è finito il giorno, salva i messaggi di "counter" nel giorno corrispondente e aggiorna data ultimo messaggio
                 if item["counter"] != 0:
                     day = sharedFunctions.weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
-                    item[day] = item["counter"]   #ah ah D-day
+                    item[day] = item["counter"]
                 item["counter"] = 1
                 item["last_message_date"] = datetime.date(datetime.now()).__str__()
         else:
@@ -355,11 +360,11 @@ def update_counter(message: discord.Message) -> None:
         sharedFunctions.update_json_file(prev_dict, 'aflers.json')
 
 def does_it_count(message: discord.Message) -> bool:
-    """Controlla se il canale in cui è stato mandato il messaggio passato rientra nei canali conteggiati
-    stabiliti nel file di configurazione. Ritorna un booleano con la risposta
-    
+    """Controlla se il canale in cui è stato mandato il messaggio passato rientra nei canali
+    conteggiati stabiliti nel file di configurazione. Ritorna un booleano con la risposta.
+
     :param message: il messaggio di cui controllare il canale
-    
+
     :returns: True se il messaggio conta, False altrimenti
     :rtype: bool
     """
@@ -370,4 +375,5 @@ def does_it_count(message: discord.Message) -> bool:
     return False
 
 def setup(bot):
+    """Entry point per il caricamento della cog"""
     bot.add_cog(EventCog(bot))

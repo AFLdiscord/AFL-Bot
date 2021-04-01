@@ -1,13 +1,9 @@
-# bot.py
+"""bot.py"""
 import os
-import json
-import asyncio
-import re
 import logging
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
 from cogs import sharedFunctions
 from cogs.sharedFunctions import BannedWords, Config
 

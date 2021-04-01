@@ -1,21 +1,19 @@
-import json
-import discord
+""":class: ConfigCog contiene i comandi di configurazione del bot."""
 from discord.ext import commands
 from cogs import sharedFunctions
 from cogs.sharedFunctions import BannedWords, Config
 
-"""contiene i comandi di configurazione del bot, in particolare:
-- setprefix
-- blackadd
-- blackremove
-- blacklist
-"""
-
 class ConfigCog(commands.Cog):
+    """contiene i comandi di configurazione del bot, in particolare:
+    - setprefix
+    - blackadd
+    - blackremove
+    - blacklist
+    """
     def __init__(self, bot):
         self.bot = bot
 
-    async def cog_check(self, ctx):
+    def cog_check(self, ctx):
         """check sui comandi per bloccare l'utilizzo dei comandi di moderazione"""
         return ctx.author.top_role.id in Config.config['moderation_roles_id']
 
@@ -25,11 +23,11 @@ class ConfigCog(commands.Cog):
         Se la parola è composta da più parole separate da uno spazio, va messa tra ""
         """
         if ban_word in BannedWords.banned_words:
-            await ctx.send(f'la parola è già contenuta nell\'elenco')
+            await ctx.send('la parola è già contenuta nell\'elenco')
             return
         BannedWords.add(ban_word)
         sharedFunctions.update_json_file(BannedWords.banned_words, 'banned_words.json')
-        await ctx.send(f'parola aggiunta correttamente', delete_after=5)
+        await ctx.send('parola aggiunta correttamente', delete_after=5)
 
     @commands.command()
     async def blackremove(self, ctx, *, ban_word):
@@ -37,9 +35,9 @@ class ConfigCog(commands.Cog):
         if ban_word in BannedWords.banned_words:
             BannedWords.remove(ban_word)
             sharedFunctions.update_json_file(BannedWords.banned_words, 'banned_words.json')
-            await ctx.send(f'la parola è stata rimossa', delete_after=5)
+            await ctx.send('la parola è stata rimossa', delete_after=5)
         else:
-            await ctx.send(f'la parola non è presente nell\'elenco', delete_after=5)
+            await ctx.send('la parola non è presente nell\'elenco', delete_after=5)
 
     @commands.command(aliases=['black', 'bl'])
     async def blacklist(self, ctx):
@@ -65,11 +63,11 @@ class ConfigCog(commands.Cog):
             await ctx.send('Configurazione ricaricata correttamente')
         else:
             await ctx.send('Errore nel caricamento della configurazione, mantengo impostazioni precedenti')
-        pass
 
     @commands.command()
     async def reload(self, ctx, *args):
-        """Ricarica le cogs specificate aggiornando le funzionalità. Se nessuna cog è specificata ricarica tutte.
+        """Ricarica le cogs specificate aggiornando le funzionalità. Se nessuna cog è specificata
+        le ricarica tutte.
         Sintassi:
         <reload                              #ricarica tutte le estensioni
         <reload ModerationCog                #ricarica solo ModerationCog
@@ -85,8 +83,8 @@ class ConfigCog(commands.Cog):
         for ext in cogs:
             try:
                 self.bot.reload_extension(ext)
-                reloaded += ext + ' ' 
-            except Exception as e:
+                reloaded += ext + ' '
+            except commands.ExtensionError as e:
                 print(e)
                 await ctx.send('Errore nella ricarica di ' + ext + ' , vedi log del bot.', delete_after=5)
                 await ctx.message.delete(delay=5)
@@ -94,4 +92,5 @@ class ConfigCog(commands.Cog):
             await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
 
 def setup(bot):
+    """Entry point per il caricamento della cog"""
     bot.add_cog(ConfigCog(bot))

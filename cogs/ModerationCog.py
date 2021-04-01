@@ -1,24 +1,24 @@
-import re
+""":class: ModerationCog contiene tutti i comandi per la moderazione."""
 import json
+from datetime import datetime
+
 import discord
 from discord.ext import commands
-from datetime import datetime, timedelta
 from cogs import sharedFunctions
 from cogs.sharedFunctions import BannedWords, Config
 
-"""contiene i comandi relativi alla moderazione, in particolare:
-- warn
-- unwarn
-- ban
-- warncount
-Inoltre effettua il controllo sul contenuto dei messaggi e elimina quelli dal contenuto inadatto
-"""
-
 class ModerationCog(commands.Cog):
+    """contiene i comandi relativi alla moderazione, in particolare:
+    - warn
+    - unwarn
+    - ban
+    - warncount
+    Inoltre effettua il controllo sul contenuto dei messaggi e elimina quelli dal contenuto inadatto
+    """
     def __init__(self, bot):
         self.bot = bot
 
-    async def cog_check(self, ctx):
+    def cog_check(self, ctx):
         """check sui comandi per bloccare l'utilizzo dei comandi di moderazione"""
         return ctx.author.top_role.id in Config.config['moderation_roles_id']
 
@@ -26,9 +26,9 @@ class ModerationCog(commands.Cog):
     async def on_message(self, message):
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
-        if sharedFunctions.BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
+        if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             await message.delete()
-            await ModerationCog._add_warn(message.author, 'linguaggio inappropriato', 1, self.bot)
+            await self._add_warn(message.author, 'linguaggio inappropriato', 1, self.bot)
 
     @commands.command()
     async def warn(self, ctx, attempted_member=None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
@@ -68,7 +68,7 @@ class ModerationCog(commands.Cog):
                         reason = attempted_member + ' ' + reason  #devo inserire uno spazio altrimenti scrive tutto appicciato
         if member.bot:   # or member == ctx.author:
             return
-        await ModerationCog._add_warn(member, reason, 1, self.bot)
+        await self._add_warn(member, reason, 1, self.bot)
         user = '<@!' + str(member.id) + '>'
         await ctx.send(user + ' warnato. Motivo: ' + reason)
         await ctx.message.delete(delay=5)   
@@ -79,7 +79,7 @@ class ModerationCog(commands.Cog):
         if member.bot:
             return
         reason = 'buona condotta'
-        await ModerationCog._add_warn(member, reason, -1, self.bot)
+        await self._add_warn(member, reason, -1, self.bot)
         user = '<@!' + str(member.id) + '>'
         await ctx.send(user + ' rimosso un warn.')
         await ctx.message.delete(delay=5)
@@ -118,8 +118,10 @@ class ModerationCog(commands.Cog):
         await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
         await member.ban(delete_message_days = 0, reason = reason)
 
-    async def _add_warn(member, reason, number, bot):
-        """incrementa o decremente il numero di violazioni di numero e tiene traccia dell'ultima violazione commessa"""
+    async def _add_warn(self, member, reason, number, bot):
+        """incrementa o decremente il numero di violazioni di numero e tiene traccia
+        dell'ultima violazione commessa
+        """
         prev_dict = {}
         penalty = 'warnato.'
         try:
@@ -182,4 +184,5 @@ class ModerationCog(commands.Cog):
                 sharedFunctions.update_json_file(prev_dict, 'aflers.json')
 
 def setup(bot):
+    """Entry point per il caricamento della cog"""
     bot.add_cog(ModerationCog(bot))

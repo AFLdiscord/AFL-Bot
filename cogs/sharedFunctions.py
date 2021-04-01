@@ -1,8 +1,3 @@
-import json
-import re
-from datetime import datetime, timedelta
-from typing import List
-
 """Funzionalità condivise tra le diverse cog per facilitare la manutenzione. In particolare:
 Classi:
 - BannedWords per gestione delle parole bannate
@@ -14,6 +9,11 @@ Funzioni:
 - count_consolidated_messages conta solo i messaggi già salvati nel giorno
 - clean aggiorna i contatori dei vari giorni controllando la data
 """
+
+import json
+import re
+from datetime import datetime, timedelta
+from typing import List
 
 #utile per passare dal giorno della settimana restituito da weekday() direttamente
 #al campo corrispondente nel dizionario del json
@@ -29,14 +29,14 @@ weekdays = {
 
 class BannedWords():
     """Gestione delle parole bannate. In particolare si occupa di caricare la lista dal rispettivo file
-    banned_words.json che si aspetta di trovare nella stessa cartella del bot. L'elenco è salvato in un attributo di 
-    classe e tutti i metodi sono statici. Non è fornito un metodo __init__ poichè non ci si aspetta che questa classe 
-    debba essere istanziata, occorre sfruttare metodi e attributi di classe.
+    banned_words.json che si aspetta di trovare nella stessa cartella del bot. L'elenco è salvato in un
+    attributo di classe e tutti i metodi sono statici. Non è fornito un metodo __init__ poichè non ci si
+    aspetta che questa classe debba essere istanziata, occorre sfruttare metodi e attributi di classe.
 
     Attributes
     -------------
     banned_words: List[str] attributo di classe contenente l'elenco delle parole bannate
-    
+
     Methods
     -------------
     load()  carica dal file banned_words.json l'elenco della parole bannate
@@ -80,7 +80,7 @@ class BannedWords():
         """Controlla se sono presenti parole bannate tramite regex.
 
         :param text: il testo da controllare
-        
+
         :returns: se il testo contiene o meno una parola bannata
         :rtype: bool
         """
@@ -104,45 +104,45 @@ class BannedWords():
 class Config():
     """Gestione dei parametri di configurazione del bot. Salva tutti i parametri in un dizionario
     che può essere usato dal resto del bot per svolgere la sua funzione. I parametri possono essere
-    aggiornati in ogni momento ricaricando i valori dal file config.json che si aspetta di trovare nella cartella
-    del bot. Non è fornito un metodo __init__ poichè questa classe è pensata solo per utilizzare metodi e 
-    attributi statici.
-    
+    aggiornati in ogni momento ricaricando i valori dal file config.json che si aspetta di trovare
+    nella cartella del bot. Non è fornito un metodo __init__ poichè questa classe è pensata solo per
+    utilizzare metodi e attributi statici.
+
     Attributes
     -------------
-    config: dict attributo di classe che conserva tutti i parametri di configurazione in un dizionario
-    
+    config: dict attributo di classe che conserva i parametri di configurazione in un dizionario
+
     Methods
     -------------
     load()  carica i valori dal file config.json
     """
 
     config = {}
-    
+
     @staticmethod
     def load() -> bool:
         """Carica i parametri dal file config.json nell'attributo di classe config. Il formato del file
         deve essere quello specificato nel template (vedi config.template). Deve essere chiamato all'avvio del bot.
         Ritorna un booleano con l'esito. In caso di fallimento mantiene inalterato il config attuale.
-    
+
         :returns: vero o falso a seconda dell'esito
         :rtype: bool
         """
         try:
             with open('config.json', 'r') as file:
                 data = json.load(file)
-                Config._loadConfig(data)
+                Config._load_config(data)
                 print('configurazione ricaricata correttamente')
                 return True
-        except Exception as e:
+        except (FileNotFoundError, json.decoder.JSONDecodeError) as e:
             print(e)
             print('errore nella ricarica della configurazione, mantengo configurazione precedente')
             return False
 
     @staticmethod
-    def _loadConfig(data) -> None:
-        """Converte i valori letti dal dizionario nei tipi corretti. Chiamato dalla load, non utilizzare
-        direttamente questo metodo.
+    def _load_config(data) -> None:
+        """Converte i valori letti dal dizionario nei tipi corretti. Chiamato dalla load, non
+        utilizzare direttamente questo metodo.
         """
         Config.config['guild_id'] = int(data['guild_id'])
         Config.config['main_channel_id'] = int(data['main_channel_id'])
@@ -177,25 +177,25 @@ def get_extensions() -> List[str]:
     """Carica le estensioni dal file extensions.json. Si aspetta di trovare una lista con
     i nomi delle estensioni da aggiungere al bot. Se non trova il file o ci sono errori ritorna
     una lista vuota.
-    
+
     :returns: la lista coi nomi delle estensioni
     :rtype: List[str]
     """
     try:
         with open('extensions.json', 'r') as file:
             extensions = json.load(file)
-    except Exception:
+    except (FileNotFoundError, json.JSONDecodeError):
         print('nessuna estensione trovata, controlla file extensions.json')
         extensions = []
     finally:
         return extensions
-        
+
 def count_messages(item: dict) -> int:
-    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo counter + tutti gli altri giorni
-    salvati escluso il giorno corrente.
-    
+    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo 
+    counter + tutti gli altri giorni salvati escluso il giorno corrente.
+
     :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
-    
+
     :returns: il conteggio dei messaggi
     :rtype: int
     """
@@ -222,11 +222,12 @@ def count_consolidated_messages(item: dict) -> int:
     return count
 
 def clean(item: dict) -> None:
-    """Si occupa di controllare il campo last_message_date e sistemare di conseguenza il conteggio dei singoli giorni.
-            
+    """Si occupa di controllare il campo last_message_date e sistemare di conseguenza il
+    conteggio dei singoli giorni.
+
     :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
     """
-    if (item["last_message_date"] is None) or (item["last_message_date"] == datetime.date(datetime.now()).__str__()):      
+    if (item["last_message_date"] is None) or (item["last_message_date"] == datetime.date(datetime.now()).__str__()):
         #(None) tecnicamente previsto da add_warn se uno viene warnato senza aver mai scritto
         #(Oggi) vuol dire che il bot è stato riavviato a metà giornata non devo toccare i contatori
         return
@@ -238,16 +239,17 @@ def clean(item: dict) -> None:
             item["counter"] = 0
     else:
         #devo azzerare tutti i giorni della settimana tra la data segnata (esclusa) e oggi (incluso)
-        #in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga eseguito tutti i giorni
-        #ma preferisco azzerare tutti in caso di downtime di qualche giorno
+        #in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga
+        #eseguito tutti i giorni ma preferisco azzerare tutti in caso di downtime di qualche giorno
         if item["counter"] != 0:
             day = weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
             item[day] = item["counter"]
             item["counter"] = 0
         last_day = datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()
         today = datetime.today().weekday()
-        while(last_day != today):
+        while last_day != today:
             last_day += 1
             if last_day > 6:
                 last_day = 0
             item[weekdays[last_day]] = 0
+ 
