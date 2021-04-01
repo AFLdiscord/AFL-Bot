@@ -90,7 +90,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await self._add_warn(member, reason, 1, self.bot)
         user = '<@!' + str(member.id) + '>'
         await ctx.send(user + ' warnato. Motivo: ' + reason)
-        await ctx.message.delete(delay=5)   
+        await ctx.message.delete(delay=5)
 
     @commands.command(brief='rimuove un warn all\'utente citato')
     async def unwarn(self, ctx, member: discord.Member):
@@ -148,7 +148,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         user = '<@!' + str(member.id) + '>'
         await ctx.send(user + ' bannato. Motivo: ' + reason)
         await ctx.message.delete(delay=5)
-        penalty = 'bannato dal server.' 
+        penalty = 'bannato dal server.'
         channel = await member.create_dm()
         await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
         await member.ban(delete_message_days = 0, reason = reason)
@@ -187,11 +187,11 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 shared_functions.update_json_file(prev_dict, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
             elif d["violations_count"] >= 4:
-                penalty = 'bannato dal server.' 
+                penalty = 'bannato dal server.'
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
                 shared_functions.update_json_file(prev_dict, 'aflers.json')
-                await member.ban(delete_message_days = 0, reason = reason)   
+                await member.ban(delete_message_days = 0, reason = reason)
             else:
                 channel = await member.create_dm()
                 shared_functions.update_json_file(prev_dict, 'aflers.json')

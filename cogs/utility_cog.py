@@ -53,7 +53,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             status.add_field(name='Messaggi ultimi 7 giorni:', value='0', inline=False)
         else:
             status.add_field(name='Messaggi ultimi 7 giorni:', value=str(shared_functions.count_messages(item)) +
-                ' (ultimo il ' + item["last_message_date"] + ')', inline=False)  
+                ' (ultimo il ' + item["last_message_date"] + ')', inline=False)
         is_a_mod = False
         for role in member.roles:
             if role.id in Config.config['moderation_roles_id']:

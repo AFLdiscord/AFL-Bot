@@ -244,7 +244,7 @@ class EventCog(commands.Cog):
         await self.bot.change_presence(activity=botstat)
         print(f'{self.bot.user} has connected to Discord! 'f'{timestamp}')
         if not self.periodic_checks.is_running():    #per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
-            if(Config.config['main_channel_id'] is not None):
+            if Config.config['main_channel_id'] is not None:
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 await channel.send('AFL Bot `' + self.__version__ + '` avviato alle `'f'{timestamp}`. Il prefisso è: `{self.bot.command_prefix}`')
             print('avvio task')
@@ -326,7 +326,7 @@ def update_counter(message: discord.Message) -> None:
         key = str(message.author.id)
         if key in prev_dict:
             item = prev_dict[key]
-            if item["last_message_date"] == datetime.date(datetime.now()).__str__():   
+            if item["last_message_date"] == datetime.date(datetime.now()).__str__():
                 #messaggi dello stesso giorno, continuo a contare
                 item["counter"] += 1
             elif item["last_message_date"] is None:

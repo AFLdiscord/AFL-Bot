@@ -77,7 +77,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         """Imposta prefix come nuovo prefisso del bot. Se si vuole
         cambiare il prefisso permanentemente aggiornare il file di configurazione
         config.json e ricaricare i parametri col comando apposito
-        
+
         Sintassi:
         <setprefix ?     #imposta '?' come nuovo prefisso
         """
@@ -87,7 +87,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     @commands.command(brief='aggiorna la configurazione del bot')
     async def updateconfig(self, ctx):
         """Ricarica la configurazione del bot dal file config.json
-        
+
         Sintassi:
         <updateconfig     #ricarica tutti i parametri dal file
         """
