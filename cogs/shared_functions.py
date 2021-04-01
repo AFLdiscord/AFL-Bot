@@ -191,7 +191,7 @@ def get_extensions() -> List[str]:
         return extensions
 
 def count_messages(item: dict) -> int:
-    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo 
+    """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo
     counter + tutti gli altri giorni salvati escluso il giorno corrente.
 
     :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
@@ -210,9 +210,9 @@ def count_consolidated_messages(item: dict) -> int:
     """Ritorna il conteggio dei messaggi salvati nei campi mon, tue, wed, ... non include counter
     Lo scopo è contare i messaggi che sono stati consolidati nello storico ai fini di stabilire se
     si è raggiunta la soglia dell'attivo.
-    
+
     :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
-    
+
     :returns: il conteggio dei messaggi
     :rtype: int
     """

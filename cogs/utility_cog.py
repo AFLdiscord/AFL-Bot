@@ -77,7 +77,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     @commands.command(brief='invia la propic dell\'utente')
     async def avatar(self, ctx, user: discord.User = None):
         """Invia la propria propic o quella dell'utente menzionato. Non è necessario che l'utente
-        faccia parte del server basta che la menzione sia valida.
+        faccia parte del server, basta che la menzione sia valida.
 
         Sintassi:
         <avatar             #invia la propria propic
