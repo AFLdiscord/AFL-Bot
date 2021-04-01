@@ -4,8 +4,8 @@ from datetime import datetime
 
 import discord
 from discord.ext import commands
-from cogs import sharedFunctions
-from cogs.sharedFunctions import BannedWords, Config
+from cogs import shared_functions
+from cogs.shared_functions import BannedWords, Config
 
 class ModerationCog(commands.Cog):
     """contiene i comandi relativi alla moderazione, in particolare:
@@ -137,11 +137,11 @@ class ModerationCog(commands.Cog):
                 d = prev_dict[key]
                 d["violations_count"] += number
                 d["last_violation_count"] = datetime.date(datetime.now()).__str__()
-                sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+                shared_functions.update_json_file(prev_dict, 'aflers.json')
                 if d["violations_count"] <= 0:
                     d["violations_count"] = 0
                     d["last_violation_count"] = None
-                    sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+                    shared_functions.update_json_file(prev_dict, 'aflers.json')
                     return
                 if number < 0:  #non deve controllare se è un unwarn
                     return
@@ -149,17 +149,17 @@ class ModerationCog(commands.Cog):
                     await member.add_roles(bot.get_guild(Config.config['guild_id']).get_role(Config.config['under_surveillance_id']))
                     penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                     channel = await member.create_dm()
-                    sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+                    shared_functions.update_json_file(prev_dict, 'aflers.json')
                     await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
                 elif d["violations_count"] >= 4:
                     penalty = 'bannato dal server.' 
                     channel = await member.create_dm()
                     await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-                    sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+                    shared_functions.update_json_file(prev_dict, 'aflers.json')
                     await member.ban(delete_message_days = 0, reason = reason)   
                 else:
                     channel = await member.create_dm()
-                    sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+                    shared_functions.update_json_file(prev_dict, 'aflers.json')
                     await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
             else:
                 #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
@@ -181,7 +181,7 @@ class ModerationCog(commands.Cog):
                     "expiration": None
                 }
                 prev_dict[key] = afler
-                sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+                shared_functions.update_json_file(prev_dict, 'aflers.json')
 
 def setup(bot):
     """Entry point per il caricamento della cog"""

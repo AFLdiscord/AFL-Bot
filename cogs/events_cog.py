@@ -11,8 +11,8 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands, tasks
-from cogs import sharedFunctions
-from cogs.sharedFunctions import BannedWords, Config
+from cogs import shared_functions
+from cogs.shared_functions import BannedWords, Config
 
 class EventCog(commands.Cog):
     """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria
@@ -92,7 +92,7 @@ class EventCog(commands.Cog):
         #il contatore non può ovviamente andare sotto 0
         if item["counter"] != 0:
             item["counter"] -= 1
-            sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+            shared_functions.update_json_file(prev_dict, 'aflers.json')
             print('rimosso un messaggio')
 
     @commands.Cog.listener()
@@ -123,7 +123,7 @@ class EventCog(commands.Cog):
             if item["counter"] != 0:
                 item["counter"] -= 1
                 counter += 1
-        sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+        shared_functions.update_json_file(prev_dict, 'aflers.json')
         print('rimossi ' + str(counter) + ' messaggi')
 
     @commands.Cog.listener()
@@ -182,7 +182,7 @@ class EventCog(commands.Cog):
             except KeyError:
                 print('utente non trovato')
                 return
-        sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+        shared_functions.update_json_file(prev_dict, 'aflers.json')
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
@@ -269,8 +269,8 @@ class EventCog(commands.Cog):
             return
         for key in prev_dict:
             item = prev_dict[key]
-            sharedFunctions.clean(item)
-            count = sharedFunctions.count_consolidated_messages(item)
+            shared_functions.clean(item)
+            count = shared_functions.count_consolidated_messages(item)
             if count >= Config.config['active_threshold'] and self.bot.get_guild(Config.config['guild_id']).get_member(int(key)).top_role.id not in Config.config['moderation_roles_id']:
                 item["active"] = True
                 item["expiration"] = datetime.date(datetime.now() + timedelta(days=Config.config['active_duration'])).__str__()
@@ -280,8 +280,8 @@ class EventCog(commands.Cog):
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 await channel.send('membro <@!' + key + '> è diventato attivo')
                 #azzero tutti i contatori
-                for i in sharedFunctions.weekdays:
-                    item[sharedFunctions.weekdays.get(i)] = 0
+                for i in shared_functions.weekdays:
+                    item[shared_functions.weekdays.get(i)] = 0
 
             #controllo sulla data dell'ultima violazione, ed eventuale reset
             if item["last_violation_count"] is not None:
@@ -292,7 +292,7 @@ class EventCog(commands.Cog):
                     item["last_violation_count"] = None
 
             #rimuovo i messaggi contati 7 giorni fa
-            item[sharedFunctions.weekdays.get(datetime.today().weekday())] = 0
+            item[shared_functions.weekdays.get(datetime.today().weekday())] = 0
 
             if item["active"] is True:
                 expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%d'))
@@ -303,7 +303,7 @@ class EventCog(commands.Cog):
                     await channel.send('membro ' + key + ' non più attivo :(')
                     item["active"] = False
                     item["expiration"] = None
-        sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+        shared_functions.update_json_file(prev_dict, 'aflers.json')
 
 def update_counter(message: discord.Message) -> None:
     """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
@@ -335,7 +335,7 @@ def update_counter(message: discord.Message) -> None:
             else:
                 #è finito il giorno, salva i messaggi di "counter" nel giorno corrispondente e aggiorna data ultimo messaggio
                 if item["counter"] != 0:
-                    day = sharedFunctions.weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
+                    day = shared_functions.weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
                     item[day] = item["counter"]
                 item["counter"] = 1
                 item["last_message_date"] = datetime.date(datetime.now()).__str__()
@@ -357,7 +357,7 @@ def update_counter(message: discord.Message) -> None:
                 "expiration": None
             }
             prev_dict[message.author.id] = afler
-        sharedFunctions.update_json_file(prev_dict, 'aflers.json')
+        shared_functions.update_json_file(prev_dict, 'aflers.json')
 
 def does_it_count(message: discord.Message) -> bool:
     """Controlla se il canale in cui è stato mandato il messaggio passato rientra nei canali

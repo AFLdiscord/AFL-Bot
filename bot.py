@@ -4,8 +4,8 @@ import logging
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from cogs import sharedFunctions
-from cogs.sharedFunctions import BannedWords, Config
+from cogs import shared_functions
+from cogs.shared_functions import BannedWords, Config
 
 #logging di base sul terminale
 logging.basicConfig(level=logging.INFO)
@@ -30,7 +30,7 @@ intents.bans = True
 bot = commands.Bot(command_prefix = Config.config['current_prefix'], intents=intents)
 
 #carico i moduli dei comandi
-extensions = sharedFunctions.get_extensions()
+extensions = shared_functions.get_extensions()
 for ext in extensions:
     bot.load_extension(ext)
 

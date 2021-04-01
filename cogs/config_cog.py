@@ -1,7 +1,7 @@
 """:class: ConfigCog contiene i comandi di configurazione del bot."""
 from discord.ext import commands
-from cogs import sharedFunctions
-from cogs.sharedFunctions import BannedWords, Config
+from cogs import shared_functions
+from cogs.shared_functions import BannedWords, Config
 
 class ConfigCog(commands.Cog):
     """contiene i comandi di configurazione del bot, in particolare:
@@ -26,7 +26,7 @@ class ConfigCog(commands.Cog):
             await ctx.send('la parola è già contenuta nell\'elenco')
             return
         BannedWords.add(ban_word)
-        sharedFunctions.update_json_file(BannedWords.banned_words, 'banned_words.json')
+        shared_functions.update_json_file(BannedWords.banned_words, 'banned_words.json')
         await ctx.send('parola aggiunta correttamente', delete_after=5)
 
     @commands.command()
@@ -34,7 +34,7 @@ class ConfigCog(commands.Cog):
         """elimina una banned_word dall'elenco"""
         if ban_word in BannedWords.banned_words:
             BannedWords.remove(ban_word)
-            sharedFunctions.update_json_file(BannedWords.banned_words, 'banned_words.json')
+            shared_functions.update_json_file(BannedWords.banned_words, 'banned_words.json')
             await ctx.send('la parola è stata rimossa', delete_after=5)
         else:
             await ctx.send('la parola non è presente nell\'elenco', delete_after=5)
@@ -74,7 +74,7 @@ class ConfigCog(commands.Cog):
         <reload ModerationCog UtilityCog     #più cogs separate da spazi
         """
         if not args:
-            cogs = sharedFunctions.get_extensions()
+            cogs = shared_functions.get_extensions()
         else:
             cogs = []
             for e in args:

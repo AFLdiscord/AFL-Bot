@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
-from cogs import sharedFunctions
-from cogs.sharedFunctions import Config
+from cogs import shared_functions
+from cogs.shared_functions import Config
 
 class UtilityCog(commands.Cog, name='Utility'):
     """Contiene i comandi destinati ad essere usati da tutti con funzionalità varie:
@@ -52,7 +52,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if item["last_message_date"] is None:
             status.add_field(name='Messaggi ultimi 7 giorni:', value='0', inline=False)
         else:
-            status.add_field(name='Messaggi ultimi 7 giorni:', value=str(sharedFunctions.count_messages(item)) +
+            status.add_field(name='Messaggi ultimi 7 giorni:', value=str(shared_functions.count_messages(item)) +
                 ' (ultimo il ' + item["last_message_date"] + ')', inline=False)  
         is_a_mod = False
         for role in member.roles:
