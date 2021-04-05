@@ -191,7 +191,7 @@ class EventCog(commands.Cog):
         un messaggio che lo invita a modificare il proprio nome prima di unirsi nuovamente.
         """
         guild = self.bot.get_guild(Config.config['guild_id'])
-        member = await guild.get_member(after.id)
+        member = guild.get_member(after.id)
         if BannedWords.contains_banned_words(after.display_name):
             if before.nick is not None:
                 print('ripristino nickname a ' + str(after.id))
@@ -302,7 +302,7 @@ class EventCog(commands.Cog):
                 if expiration.__eq__((datetime.date(datetime.now()))):
                     guild = self.bot.get_guild(Config.config['guild_id'])
                     await guild.get_member(int(key)).remove_roles(guild.get_role(Config.config['active_role_id']))
-                    await channel.send('membro ' + key + ' non più attivo :(')
+                    await channel.send('membro <@!' + key + '> non più attivo :(')
                     item["active"] = False
                     item["expiration"] = None
         shared_functions.update_json_file(prev_dict, 'aflers.json')
