@@ -1,1 +1,6 @@
-["cogs.moderation_cog", "cogs.config_cog", "cogs.utility_cog", "cogs.events_cog"]
+[
+    "cogs.config_cog",
+    "cogs.utility_cog",
+    "cogs.events_cog",
+    "cogs.moderation_cog"
+]

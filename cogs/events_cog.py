@@ -231,7 +231,7 @@ class EventCog(commands.Cog):
             await ctx.send('non hai i permessi per usare questo comando', delete_after=5)
             await ctx.message.delete(delay=5)
         else:
-            ctx.send('Sintassi errata, controlla come usare il comando con "<help *nome_comando*"')
+            await ctx.send('Sintassi errata, controlla come usare il comando con "<help *nome_comando*"')
         print(error)
 
     @commands.Cog.listener()

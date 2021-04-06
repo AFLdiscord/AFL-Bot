@@ -28,10 +28,11 @@ weekdays = {
 }
 
 class BannedWords():
-    """Gestione delle parole bannate. In particolare si occupa di caricare la lista dal rispettivo file
-    banned_words.json che si aspetta di trovare nella stessa cartella del bot. L'elenco è salvato in un
-    attributo di classe e tutti i metodi sono statici. Non è fornito un metodo __init__ poichè non ci si
-    aspetta che questa classe debba essere istanziata, occorre sfruttare metodi e attributi di classe.
+    """Gestione delle parole bannate. In particolare si occupa di caricare la lista dal rispettivo
+    file banned_words.json che si aspetta di trovare nella stessa cartella del bot. L'elenco è
+    salvato in un attributo di classe e tutti i metodi sono statici. Non è fornito un metodo
+    __init__ poichè non ci si aspetta che questa classe debba essere istanziata, occorre
+    sfruttare metodi e attributi di classe.
 
     Attributes
     -------------
@@ -121,9 +122,10 @@ class Config():
 
     @staticmethod
     def load() -> bool:
-        """Carica i parametri dal file config.json nell'attributo di classe config. Il formato del file
-        deve essere quello specificato nel template (vedi config.template). Deve essere chiamato all'avvio del bot.
-        Ritorna un booleano con l'esito. In caso di fallimento mantiene inalterato il config attuale.
+        """Carica i parametri dal file config.json nell'attributo di classe config. Il formato del
+        file deve essere quello specificato nel template (vedi config.template). Deve essere
+        chiamato all'avvio del bot. Ritorna un booleano con l'esito.
+        In caso di fallimento mantiene inalterato il config attuale.
 
         :returns: vero o falso a seconda dell'esito
         :rtype: bool

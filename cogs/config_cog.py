@@ -1,4 +1,5 @@
 """:class: ConfigCog contiene i comandi di configurazione del bot."""
+import json
 from discord.ext import commands
 from cogs import shared_functions
 from cogs.shared_functions import BannedWords, Config
@@ -11,6 +12,9 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     - blacklist     mostra l'elenco delle parole bannate
     - updateconfig  aggiorna la configurazione del bot
     - reload        ricarica una o più cogs
+    - addcog        aggiunge una o più cog dal bot e dal file extensions.json
+    - removecog     rimuove una o più cog dal bot e dal file extensions.json
+    - coglist       lista delle estensioni caricate all'avvio
     """
     def __init__(self, bot):
         self.bot = bot
@@ -116,13 +120,94 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         for ext in cogs:
             try:
                 self.bot.reload_extension(ext)
-                reloaded += ext + ' '
+                reloaded += '`' + ext + '` '
             except commands.ExtensionError as e:
                 print(e)
                 await ctx.send('Errore nella ricarica di ' + ext + ' , vedi log del bot.', delete_after=5)
                 await ctx.message.delete(delay=5)
-        if reloaded.__len__ != 0:
+        if reloaded != '':
             await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
+
+    @commands.command(brief='aggiunge una o più cog dal bot e dal file extensions.json')
+    async def addcog(self, ctx, *args):
+        """Aggiunge una o più cog al bot e al file extensions.json se non presente in modo
+        da caricarla in automatico a ogni futuro riavvio. Occorre passare il nome esatto della
+        cog da aggiungere, che deve trovarsi nella cartella cogs del bot.
+
+        Sintassi:
+        <addcog nome_cog                #aggiunge nome_cog al bot e al file extensions.json
+        <addcog nome_cog altra_cog      #più cogs separate da spazio
+        """
+        if not args:
+            await ctx.send('Devi specificare il nome della cog da caricare.', delete_after=5)
+            await ctx.message.delete(delay=5)
+        else:
+            with open('extensions.json', 'r') as file:
+                extensions = json.load(file)
+            added = ''
+            for ext in args:
+                ext = 'cogs.' + ext
+                if ext not in extensions:
+                    try:
+                        self.bot.load_extension(ext)
+                    except commands.ExtensionError as e:
+                        await ctx.send('Impossibile caricare ' + ext)
+                        print(e)
+                    else:
+                        extensions.append(ext)
+                        added += '`' + ext + '` '
+                else:
+                    await ctx.send(ext + ' già presente.')
+            if added != '':
+                await ctx.send('Estensioni ' + added + 'aggiunte correttamente.')
+            shared_functions.update_json_file(extensions, 'extensions.json')
+
+    @commands.command(brief='rimuove una o più cog dal bot e dal file extensions.json')
+    async def removecog(self, ctx, *args):
+        """Rimuove una o più cog dal bot e dal file extensions.json se presente così da
+        non caricarla più a ogni futuro riavvio del bot. Occorre passare il nome esatto della cog da
+        aggiungere, che deve trovarsi nella cartella cogs del bot.
+
+        Sintassi:
+        <removecog nome_cog              #rimuove nome_cog dal bot e dal file extensions.json
+        <removecog nome_cog altra_cog    #più cogs separate da spazio
+        """
+        if not args:
+            await ctx.send('Devi specificare il nome della cog da rimuovere.', delete_after=5)
+            await ctx.message.delete(delay=5)
+        else:
+            with open('extensions.json', 'r') as file:
+                extensions = json.load(file)
+            removed = ''
+            for ext in args:
+                ext = 'cogs.' + ext
+                if ext in extensions:
+                    extensions.remove(ext)
+                try:
+                    self.bot.unload_extension(ext)
+                except commands.ExtensionError as e:
+                    await ctx.send('Impossibile rimuovere ' + ext)
+                    print(e)
+                else:
+                    removed += '`' + ext + '` '
+            if removed != '':
+                await ctx.send('Estensioni ' + removed + 'rimosse correttamente.')
+            shared_functions.update_json_file(extensions, 'extensions.json')
+
+    @commands.command(brief='lista delle estensioni caricate all\'avvio')
+    async def coglist(self, ctx):
+        """Stampa l'elenco delle estensioni caricate all'avvio del bot prendendole dal file
+        extensions.json.
+
+        Sintassi:
+        <coglist          #stampa elenco cog
+        """
+        with open('extensions.json', 'r') as file:
+            extensions = json.load(file)
+        cogs = ''
+        for ext in extensions:
+            cogs += '`' + ext + '` '
+        await ctx.send('Le estensioni caricate all\'avvio sono:\n' + cogs)
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
