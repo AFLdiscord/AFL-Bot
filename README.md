@@ -21,7 +21,7 @@ Per utilizzare il bot:
 - a questo punto si può avviare bot.py
 
 ## Contribuzione
-Per contribuire a questo progetto occorre essere membri del server ed aver ottenuto il ruolo "dev". Per maggiori informazioni contattare gli admin su discord o direttamente qua:
+Per contribuire a questo progetto occorre essere membri del server ed aver ottenuto il ruolo ["dev"](https://github.com/AFLdiscord/AFL-Rules/wiki/Progetti-del-forum). Per maggiori informazioni contattare gli admin su discord o direttamente qua:
 - [Skylake](https://github.com/Skylake-dev)
 - [cathartyc](https://github.com/cathartyc)
 
