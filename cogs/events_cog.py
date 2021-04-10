@@ -64,6 +64,8 @@ class EventCog(commands.Cog):
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
+        if message.channel.id == Config.config['poll_channel_id']:
+            add_proposal(message)
         update_counter(message)
 
     @commands.Cog.listener()
@@ -306,6 +308,12 @@ class EventCog(commands.Cog):
                     item["active"] = False
                     item["expiration"] = None
         shared_functions.update_json_file(prev_dict, 'aflers.json')
+
+def add_proposal(message: discord.Message) -> None:
+    """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
+    in quel momento.
+    """
+    pass
 
 def update_counter(message: discord.Message) -> None:
     """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
