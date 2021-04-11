@@ -65,7 +65,8 @@ class EventCog(commands.Cog):
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
         if message.channel.id == Config.config['poll_channel_id']:
-            add_proposal(message)
+            guild = await self.bot.fetch_guild(Config.config['guild_id'])
+            add_proposal(message, guild)
         update_counter(message)
 
     @commands.Cog.listener()
@@ -309,16 +310,43 @@ class EventCog(commands.Cog):
                     item["expiration"] = None
         shared_functions.update_json_file(prev_dict, 'aflers.json')
 
-def add_proposal(message: discord.Message) -> None:
+def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
     in quel momento.
+
+    :param message: messaggio mandato nel canale proposte da aggiungere
+    :param guild: il server discord
     """
-    pass
+    proposals = {}
+    try:
+        with open('proposals.json','r') as file:
+            proposals = json.load(file)
+    except FileNotFoundError:
+        print('file non trovato, lo creo ora')
+        with open('proposals.json','w+') as file:
+            proposals = {}
+    active_count = 2 #moderatori non hanno ruolo attivo
+    members = guild.members
+    active_role = guild.get_role(Config.config['active_role_id'])
+    for member in members:
+        if not member.bot:
+            if active_role not in member.roles:
+                active_count += 1
+    proposal = {
+        'timestamp': message.created_at.__str__(),
+        'total_voters': active_count,
+        'yes': 0,
+        'no': 0
+    }
+    proposals[message.id] = proposal
+    shared_functions.update_json_file(proposals, 'proposals.json')
 
 def update_counter(message: discord.Message) -> None:
     """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
     nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
     Si occupa anche di aggiornare il campo "last_message_date".
+
+    :param message: messaggio ricevuto
     """
     if not does_it_count(message):
         return
