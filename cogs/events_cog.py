@@ -132,23 +132,58 @@ class EventCog(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """Controlla se chi reagisce ai messaggi postati nel canale proposte abbia i requisiti per farlo.
-        La reazione è mantenuta solo se l'utente:
+        Se il riscontro è positivO viene anche aggiornato il file delle proposte.
+        In caso l'utente non abbia i requisiti la reazione viene rimossa.
+        """
+        if not payload.channel_id == Config.config['poll_channel_id']:
+            return
+        #aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
+        #un voto dal conteggio quando il bot la rimuove
+        adjust_vote_count(payload, 1)
+        is_good = self._check_reaction_permissions(payload)
+        if not is_good:
+            #devo rimuovere la reaction perchè il membro non ha i requisiti
+            try:
+                message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+                await message.remove_reaction(payload.emoji, payload.member)
+            except discord.NotFound:
+                print('impossibile trovare il messaggio o la reaction cercate')
+                return
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        """Se la reaction è nel canale proposte, aggiorna il contatore della proposta di conseguenza
+        rimuovendo il voto corrispondente.
+        """
+        if not payload.channel_id == Config.config['poll_channel_id']:
+            return
+        is_good = self._check_reaction_permissions(payload)
+        if is_good:
+            adjust_vote_count(payload, -1)
+
+    def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
+        """Controlla se la reazione è stata messa nel canale proposte da un membro che
+        ne ha diritto, ovvero se:
         - è un moderatore
         - è in possesso del ruolo attivo
         Entrambi questi ruoli vanno definiti nella config (vedi template).
-        In caso l'utente non abbia i requisiti la reazione viene rimossa.
+
+        :param payload: evento riguardo la reazione
+
+        :returns: se ci interessa gestire questa reaction
+        :rtype: bool
         """
-        if payload.channel_id == Config.config['poll_channel_id'] and payload.event_type == 'REACTION_ADD':
-            if self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['active_role_id']) not in payload.member.roles:
-                for role in payload.member.roles:
-                    if role.id in Config.config['moderation_roles_id']:
-                        return
-                try:
-                    message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-                    await message.remove_reaction(payload.emoji, payload.member)
-                except discord.NotFound:
-                    print('impossibile trovare il messaggio o la reaction cercate')
-                    return
+        is_good = False
+        active = self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['active_role_id'])
+        if payload.event_type == 'REACTION_ADD' and active not in payload.member.roles:
+            #se non è attivo, l'altra condizione è essere moderatore
+            for role in payload.member.roles:
+                if role.id in Config.config['moderation_roles_id']:
+                    is_good = True
+        else:
+            #è attivo o è una remove
+            is_good = True
+        return is_good
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
@@ -411,6 +446,30 @@ def does_it_count(message: discord.Message) -> bool:
             if message.channel.id in Config.config['active_channels_id']:
                 return True
     return False
+
+def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> None:
+    """Aggiusta il contatore dei voti in base al parametro passato. Stabilisce in autonomia
+    se il voto è a favore o contrario guardando il tipo di emoji cambiata.
+
+    :param payload: l'evento di rimozione dell'emoji
+    :param change: variazione del voto (+1 o -1)
+    """
+    try:
+        with open('proposals.json','r') as file:
+            proposals = json.load(file)
+    except FileNotFoundError:
+        print('errore nel file delle proposte')
+        return
+    try:
+        proposal = proposals[str(payload.message_id)]
+    except KeyError:
+        print('impossibile trovare la proposta')
+        return
+    if str(payload.emoji.name).__eq__('\U0001F7E2'):  #sarebbe :green_circle:
+        proposal['yes'] += change
+    else:
+        proposal['no'] += change
+    shared_functions.update_json_file(proposals, 'proposals.json')
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
