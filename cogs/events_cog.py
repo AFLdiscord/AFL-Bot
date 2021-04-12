@@ -64,15 +64,23 @@ class EventCog(commands.Cog):
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
+        if message.channel.id == Config.config['poll_channel_id']:
+            guild = self.bot.get_guild(Config.config['guild_id'])
+            add_proposal(message, guild)
         update_counter(message)
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-        """Invocata alla cancellazione di un messaggio. Se tale messaggio proveniva da un canale
-        conteggiato occorre decrementare il contatore dell'utente corrispondente di uno.
+        """Invocata alla cancellazione di un messaggio. Se era una proposta, questa viene rimossa.
+        Se tale messaggio proveniva da un canale conteggiato occorre decrementare
+        il contatore dell'utente corrispondente di uno.
         Per cancellazioni in bulk vedi on_bulk_message_delete.
         """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
+            return
+        if message.channel.id == Config.config['poll_channel_id']:
+            print('rimuovo proposta')
+            remove_proposal(message)
             return
         if not does_it_count(message):
             return
@@ -101,6 +109,11 @@ class EventCog(commands.Cog):
         i membri i cui messaggi sono coinvolti nella bulk delete. Il comportamento per ogni singolo
         messaggio è lo stesso della on_message_delete.
         """
+        if messages[0].channel.id == Config.config['poll_channel_id']:
+            #è qua solo in caso di spam sul canale proposte, improbabile visto la slowmode
+            for message in messages:
+                remove_proposal(message)
+            return
         if not does_it_count(messages[0]):
             return
         try:
@@ -129,23 +142,67 @@ class EventCog(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         """Controlla se chi reagisce ai messaggi postati nel canale proposte abbia i requisiti per farlo.
-        La reazione è mantenuta solo se l'utente:
+        Se il riscontro è positivO viene anche aggiornato il file delle proposte.
+        In caso l'utente non abbia i requisiti la reazione viene rimossa. Ignora le reaction ai messaggi postati
+        dal bot stesso nel canale proposte.
+        """
+        if not payload.channel_id == Config.config['poll_channel_id']:
+            return
+        #ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
+        message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
+        if message.author == self.bot.user:
+            await message.remove_reaction(payload.emoji, payload.member)
+            return
+        #aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
+        #un voto dal conteggio quando il bot la rimuove
+        adjust_vote_count(payload, 1)
+        is_good = self._check_reaction_permissions(payload)
+        if not is_good:
+            #devo rimuovere la reaction perchè il membro non ha i requisiti
+            try:
+                message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+                await message.remove_reaction(payload.emoji, payload.member)
+            except discord.NotFound:
+                print('impossibile trovare il messaggio o la reaction cercate')
+                return
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        """Se la reaction è nel canale proposte, aggiorna il contatore della proposta di conseguenza
+        rimuovendo il voto corrispondente. Ignora la rimozione di reaction a un messaggio in
+        proposte solo se tale messaggio è stato postato dal bot stesso.
+        """
+        if not payload.channel_id == Config.config['poll_channel_id']:
+            return
+        #ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
+        message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
+        if message.author == self.bot.user:
+            return
+        adjust_vote_count(payload, -1)
+
+    def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
+        """Controlla se la reazione è stata messa nel canale proposte da un membro che
+        ne ha diritto, ovvero se:
         - è un moderatore
         - è in possesso del ruolo attivo
         Entrambi questi ruoli vanno definiti nella config (vedi template).
-        In caso l'utente non abbia i requisiti la reazione viene rimossa.
+
+        :param payload: evento riguardo la reazione
+
+        :returns: se ci interessa gestire questa reaction
+        :rtype: bool
         """
-        if payload.channel_id == Config.config['poll_channel_id'] and payload.event_type == 'REACTION_ADD':
-            if self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['active_role_id']) not in payload.member.roles:
-                for role in payload.member.roles:
-                    if role.id in Config.config['moderation_roles_id']:
-                        return
-                try:
-                    message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
-                    await message.remove_reaction(payload.emoji, payload.member)
-                except discord.NotFound:
-                    print('impossibile trovare il messaggio o la reaction cercate')
-                    return
+        is_good = False
+        active = self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['active_role_id'])
+        if payload.event_type == 'REACTION_ADD' and active not in payload.member.roles:
+            #se non è attivo, l'altra condizione è essere moderatore
+            for role in payload.member.roles:
+                if role.id in Config.config['moderation_roles_id']:
+                    is_good = True
+        else:
+            #è attivo
+            is_good = True
+        return is_good
 
     @commands.Cog.listener()
     async def on_message_edit(self, before, after):
@@ -255,6 +312,8 @@ class EventCog(commands.Cog):
     @tasks.loop(hours=24)
     async def periodic_checks(self):
         """Task periodica per la gestione di:
+            - rimozione delle proposte scadute
+            - controllo sulle proposte passate con relativo avviso
             - consolidamento dei messaggi temporanei in counter se necessario
             - azzeramento dei messaggi conteggiati scaduti
             - assegnamento/rimozione ruolo attivo (i mod sono esclusi)
@@ -263,11 +322,36 @@ class EventCog(commands.Cog):
         Viene avviata tramite la on_ready quando il bot ha completato la fase di setup ed è
         programmata per essere eseguita ogni 24 ore da quel momento.
         """
+        print('controllo proposte')
+        try:
+            with open('proposals.json','r') as file:
+                proposals = json.load(file)
+        except FileNotFoundError:
+            print('nessun file di proposte trovato')
+        else:
+            to_delete = []
+            for key in proposals:
+                proposal = proposals[key]
+                if proposal['passed']:
+                    to_delete.append(key)
+                    channel = self.bot.get_channel(Config.config['poll_channel_id'])
+                    await channel.send(
+                        'Raggiunta soglia per la proposta, in attesa di approvazione dai mod.\n' +
+                        '`' + proposal['content'] + '`'
+                    )
+                elif datetime.date(datetime.now() - timedelta(days=3)).__str__() == proposal['timestamp']:
+                    to_delete.append(key)
+            for key in to_delete:
+                message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
+                await message.delete()
+                del proposals[key]
+            shared_functions.update_json_file(proposals, 'proposals.json')
         print('controllo conteggio messaggi')
         try:
             with open('aflers.json','r') as file:
                 prev_dict = json.load(file)
         except FileNotFoundError:
+            print('nessun file di messaggi trovato')
             return
         for key in prev_dict:
             item = prev_dict[key]
@@ -307,10 +391,61 @@ class EventCog(commands.Cog):
                     item["expiration"] = None
         shared_functions.update_json_file(prev_dict, 'aflers.json')
 
+def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
+    """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
+    in quel momento.
+
+    :param message: messaggio mandato nel canale proposte da aggiungere
+    :param guild: il server discord
+    """
+    proposals = {}
+    try:
+        with open('proposals.json','r') as file:
+            proposals = json.load(file)
+    except FileNotFoundError:
+        print('file non trovato, lo creo ora')
+        with open('proposals.json','w+') as file:
+            proposals = {}
+    active_count = 2 #moderatori non hanno ruolo attivo
+    members = guild.members
+    active_role = guild.get_role(Config.config['active_role_id'])
+    for member in members:
+        if not member.bot:
+            if active_role not in member.roles:
+                active_count += 1
+    proposal = {
+        'timestamp': datetime.date(message.created_at).__str__(),
+        'total_voters': active_count,
+        'threshold': calculate_threshold(active_count),
+        'passed': False,
+        'yes': 0,
+        'no': 0,
+        'content': message.content
+    }
+    proposals[message.id] = proposal
+    shared_functions.update_json_file(proposals, 'proposals.json')
+
+def remove_proposal(message: discord.Message) -> None:
+    """Rimuove la proposta con id uguale al messaggio passato dal file. Se non trovata
+    non fa nulla.
+
+    :param message: messaggio della proposta
+    """
+    with open('proposals.json', 'r') as file:
+        proposals = json.load(file)
+    try:
+        del proposals[str(message.id)]
+    except KeyError:
+        print('proposta non trovata')
+    else:
+        shared_functions.update_json_file(proposals, 'proposals.json')
+
 def update_counter(message: discord.Message) -> None:
     """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
     nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
     Si occupa anche di aggiornare il campo "last_message_date".
+
+    :param message: messaggio ricevuto
     """
     if not does_it_count(message):
         return
@@ -375,6 +510,46 @@ def does_it_count(message: discord.Message) -> bool:
             if message.channel.id in Config.config['active_channels_id']:
                 return True
     return False
+
+def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> None:
+    """Aggiusta il contatore dei voti in base al parametro passato. Stabilisce in autonomia
+    se il voto è a favore o contrario guardando il tipo di emoji cambiata.
+
+    :param payload: l'evento di rimozione dell'emoji
+    :param change: variazione del voto (+1 o -1)
+    """
+    try:
+        with open('proposals.json','r') as file:
+            proposals = json.load(file)
+    except FileNotFoundError:
+        print('errore nel file delle proposte')
+        return
+    try:
+        proposal = proposals[str(payload.message_id)]
+    except KeyError:
+        print('impossibile trovare la proposta')
+        return
+    if str(payload.emoji.name).__eq__('\U0001F7E2'):  #sarebbe :green_circle:
+        proposal['yes'] += change
+        if proposal['yes'] < 0:
+            proposal['yes'] = 0
+        if proposal['yes'] >= proposal['threshold']:
+            proposal['passed'] = True
+        else:
+            proposal['passed'] = False   #è possibile cambiare idea, il controllo lo fa la task
+    else:
+        proposal['no'] += change
+        if proposal['no'] < 0:
+            proposal['no'] = 0
+    shared_functions.update_json_file(proposals, 'proposals.json')
+
+def calculate_threshold(active_count: int) -> int:
+    """Calcola la soglia di voti a favore necessari al passaggio di una proposta.
+    Per ora il criterio è maggioranza assoluta.
+
+    :param active_count: totale aventi diritto al voto
+    """
+    return int(active_count / 2) + 1
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
