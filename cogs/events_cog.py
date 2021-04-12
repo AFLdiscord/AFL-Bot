@@ -65,7 +65,7 @@ class EventCog(commands.Cog):
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
         if message.channel.id == Config.config['poll_channel_id']:
-            guild = await self.bot.fetch_guild(Config.config['guild_id'])
+            guild = self.bot.get_guild(Config.config['guild_id'])
             add_proposal(message, guild)
         update_counter(message)
 
@@ -328,23 +328,24 @@ class EventCog(commands.Cog):
                 proposals = json.load(file)
         except FileNotFoundError:
             print('nessun file di proposte trovato')
-        to_delete = []
-        for key in proposals:
-            proposal = proposals[key]
-            if proposal['passed']:
-                to_delete.append(key)
-                channel = self.bot.get_channel(Config.config['poll_channel_id'])
-                await channel.send(
-                    'Raggiunta soglia per la proposta, in attesa di approvazione dai mod.\n' +
-                    '`' + proposal['content'] + '`'
-                )
-            elif datetime.date(datetime.now() - timedelta(days=3)).__str__() == proposal['timestamp']:
-                to_delete.append(key)
-        for key in to_delete:
-            message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
-            await message.delete()
-            del proposals[key]
-        shared_functions.update_json_file(proposals, 'proposals.json')
+        else:
+            to_delete = []
+            for key in proposals:
+                proposal = proposals[key]
+                if proposal['passed']:
+                    to_delete.append(key)
+                    channel = self.bot.get_channel(Config.config['poll_channel_id'])
+                    await channel.send(
+                        'Raggiunta soglia per la proposta, in attesa di approvazione dai mod.\n' +
+                        '`' + proposal['content'] + '`'
+                    )
+                elif datetime.date(datetime.now() - timedelta(days=3)).__str__() == proposal['timestamp']:
+                    to_delete.append(key)
+            for key in to_delete:
+                message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
+                await message.delete()
+                del proposals[key]
+            shared_functions.update_json_file(proposals, 'proposals.json')
         print('controllo conteggio messaggi')
         try:
             with open('aflers.json','r') as file:
@@ -405,7 +406,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
         print('file non trovato, lo creo ora')
         with open('proposals.json','w+') as file:
             proposals = {}
-    active_count = 2 #moderatori non hanno ruolo attivo
+    active_count = 0 #moderatori non hanno ruolo attivo
     members = guild.members
     active_role = guild.get_role(Config.config['active_role_id'])
     for member in members:
