@@ -71,11 +71,16 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
-        """Invocata alla cancellazione di un messaggio. Se tale messaggio proveniva da un canale
-        conteggiato occorre decrementare il contatore dell'utente corrispondente di uno.
+        """Invocata alla cancellazione di un messaggio. Se era una proposta, questa viene rimossa.
+        Se tale messaggio proveniva da un canale conteggiato occorre decrementare
+        il contatore dell'utente corrispondente di uno.
         Per cancellazioni in bulk vedi on_bulk_message_delete.
         """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
+            return
+        if message.channel.id == Config.config['poll_channel_id']:
+            print('rimuovo proposta')
+            remove_proposal(message)
             return
         if not does_it_count(message):
             return
@@ -104,6 +109,11 @@ class EventCog(commands.Cog):
         i membri i cui messaggi sono coinvolti nella bulk delete. Il comportamento per ogni singolo
         messaggio è lo stesso della on_message_delete.
         """
+        if messages[0].channel.id == Config.config['poll_channel_id']:
+            #è qua solo in caso di spam sul canale proposte, improbabile visto la slowmode
+            for message in messages:
+                remove_proposal(message)
+            return
         if not does_it_count(messages[0]):
             return
         try:
@@ -375,6 +385,17 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     }
     proposals[message.id] = proposal
     shared_functions.update_json_file(proposals, 'proposals.json')
+
+def remove_proposal(message: discord.Message) -> None:
+    """Rimuove la proposta con id uguale al messaggio passato dal file"""
+    with open('proposals.json', 'r') as file:
+        proposals = json.load(file)
+    try:
+        del proposals[str(message.id)]
+    except KeyError:
+        print('proposta non trovata')
+    else:
+        shared_functions.update_json_file(proposals, 'proposals.json')
 
 def update_counter(message: discord.Message) -> None:
     """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
