@@ -406,7 +406,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
         print('file non trovato, lo creo ora')
         with open('proposals.json','w+') as file:
             proposals = {}
-    active_count = 0 #moderatori non hanno ruolo attivo
+    active_count = 2 #moderatori non hanno ruolo attivo
     members = guild.members
     active_role = guild.get_role(Config.config['active_role_id'])
     for member in members:
