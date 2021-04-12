@@ -342,8 +342,12 @@ class EventCog(commands.Cog):
                 elif datetime.date(datetime.now() - timedelta(days=3)).__str__() == proposal['timestamp']:
                     to_delete.append(key)
             for key in to_delete:
-                message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
-                await message.delete()
+                try:
+                    message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
+                except discord.NotFound:
+                    print('proposta già cancellata, ignoro')  #capita se viene cancellata dopo un riavvio o mentre è offline
+                else:
+                    await message.delete()
                 del proposals[key]
             shared_functions.update_json_file(proposals, 'proposals.json')
         print('controllo conteggio messaggi')
