@@ -147,6 +147,11 @@ class EventCog(commands.Cog):
         """
         if not payload.channel_id == Config.config['poll_channel_id']:
             return
+        #ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
+        message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
+        if message.author == self.bot.user:
+            await message.remove_reaction(payload.emoji, payload.member)
+            return
         #aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
         #un voto dal conteggio quando il bot la rimuove
         adjust_vote_count(payload, 1)
@@ -167,9 +172,11 @@ class EventCog(commands.Cog):
         """
         if not payload.channel_id == Config.config['poll_channel_id']:
             return
-        is_good = self._check_reaction_permissions(payload)
-        if is_good:
-            adjust_vote_count(payload, -1)
+        #ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
+        message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
+        if message.author == self.bot.user:
+            return
+        adjust_vote_count(payload, -1)
 
     def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
         """Controlla se la reazione è stata messa nel canale proposte da un membro che
@@ -191,7 +198,7 @@ class EventCog(commands.Cog):
                 if role.id in Config.config['moderation_roles_id']:
                     is_good = True
         else:
-            #è attivo o è una remove
+            #è attivo
             is_good = True
         return is_good
 
@@ -311,11 +318,35 @@ class EventCog(commands.Cog):
         Viene avviata tramite la on_ready quando il bot ha completato la fase di setup ed è
         programmata per essere eseguita ogni 24 ore da quel momento.
         """
+        print('controllo proposte')
+        try:
+            with open('proposals.json','r') as file:
+                proposals = json.load(file)
+        except FileNotFoundError:
+            print('nessun file di proposte trovato')
+        to_delete = []
+        for key in proposals:
+            proposal = proposals[key]
+            if proposal['passed']:
+                to_delete.append(key)
+                channel = self.bot.get_channel(Config.config['poll_channel_id'])
+                await channel.send(
+                    'Raggiunta soglia per la proposta, in attesa di approvazione dai mod.\n' +
+                    '`' + proposal['content'] + '`'
+                )
+            elif datetime.date(datetime.now() - timedelta(days=3)).__str__() == proposal['timestamp']:
+                to_delete.append(key)
+        for key in to_delete:
+            message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
+            await message.delete()
+            del proposals[key]
+        shared_functions.update_json_file(proposals, 'proposals.json')
         print('controllo conteggio messaggi')
         try:
             with open('aflers.json','r') as file:
                 prev_dict = json.load(file)
         except FileNotFoundError:
+            print('nessun file di messaggi trovato')
             return
         for key in prev_dict:
             item = prev_dict[key]
@@ -378,10 +409,13 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
             if active_role not in member.roles:
                 active_count += 1
     proposal = {
-        'timestamp': message.created_at.__str__(),
+        'timestamp': datetime.date(message.created_at).__str__(),
         'total_voters': active_count,
+        'threshold': calculate_threshold(active_count),
+        'passed': False,
         'yes': 0,
-        'no': 0
+        'no': 0,
+        'content': message.content
     }
     proposals[message.id] = proposal
     shared_functions.update_json_file(proposals, 'proposals.json')
@@ -488,9 +522,25 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
         return
     if str(payload.emoji.name).__eq__('\U0001F7E2'):  #sarebbe :green_circle:
         proposal['yes'] += change
+        if proposal['yes'] < 0:
+            proposal['yes'] = 0
+        if proposal['yes'] >= proposal['threshold']:
+            proposal['passed'] = True
+        else:
+            proposal['passed'] = False   #è possibile cambiare idea, il controllo lo fa la task
     else:
         proposal['no'] += change
+        if proposal['no'] < 0:
+            proposal['no'] = 0
     shared_functions.update_json_file(proposals, 'proposals.json')
+
+def calculate_threshold(active_count: int) -> int:
+    """Calcola la soglia di voti a favore necessari al passaggio di una proposta.
+    Per ora il criterio è maggioranza assoluta.
+
+    :param active_count: totale aventi diritto al voto
+    """
+    return int(active_count / 2) + 1
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
