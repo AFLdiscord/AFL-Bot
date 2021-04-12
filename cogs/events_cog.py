@@ -143,7 +143,8 @@ class EventCog(commands.Cog):
     async def on_raw_reaction_add(self, payload):
         """Controlla se chi reagisce ai messaggi postati nel canale proposte abbia i requisiti per farlo.
         Se il riscontro è positivO viene anche aggiornato il file delle proposte.
-        In caso l'utente non abbia i requisiti la reazione viene rimossa.
+        In caso l'utente non abbia i requisiti la reazione viene rimossa. Ignora le reaction ai messaggi postati
+        dal bot stesso nel canale proposte.
         """
         if not payload.channel_id == Config.config['poll_channel_id']:
             return
@@ -168,7 +169,8 @@ class EventCog(commands.Cog):
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
         """Se la reaction è nel canale proposte, aggiorna il contatore della proposta di conseguenza
-        rimuovendo il voto corrispondente.
+        rimuovendo il voto corrispondente. Ignora la rimozione di reaction a un messaggio in
+        proposte solo se tale messaggio è stato postato dal bot stesso.
         """
         if not payload.channel_id == Config.config['poll_channel_id']:
             return
@@ -310,6 +312,8 @@ class EventCog(commands.Cog):
     @tasks.loop(hours=24)
     async def periodic_checks(self):
         """Task periodica per la gestione di:
+            - rimozione delle proposte scadute
+            - controllo sulle proposte passate con relativo avviso
             - consolidamento dei messaggi temporanei in counter se necessario
             - azzeramento dei messaggi conteggiati scaduti
             - assegnamento/rimozione ruolo attivo (i mod sono esclusi)
@@ -421,7 +425,11 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     shared_functions.update_json_file(proposals, 'proposals.json')
 
 def remove_proposal(message: discord.Message) -> None:
-    """Rimuove la proposta con id uguale al messaggio passato dal file"""
+    """Rimuove la proposta con id uguale al messaggio passato dal file. Se non trovata
+    non fa nulla.
+
+    :param message: messaggio della proposta
+    """
     with open('proposals.json', 'r') as file:
         proposals = json.load(file)
     try:
