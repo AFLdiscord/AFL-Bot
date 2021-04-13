@@ -415,7 +415,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     active_role = guild.get_role(Config.config['active_role_id'])
     for member in members:
         if not member.bot:
-            if active_role not in member.roles:
+            if active_role in member.roles:
                 active_count += 1
     proposal = {
         'timestamp': datetime.date(message.created_at).__str__(),
@@ -552,6 +552,9 @@ def calculate_threshold(active_count: int) -> int:
     Per ora il criterio è maggioranza assoluta.
 
     :param active_count: totale aventi diritto al voto
+
+    :returns: soglia affinchè la proposta passi
+    :rtype: int
     """
     return int(active_count / 2) + 1
 
