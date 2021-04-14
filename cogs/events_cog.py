@@ -39,7 +39,7 @@ class EventCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.__version__ = 'v0.4.2'
+        self.__version__ = 'v0.5'
 
     @commands.Cog.listener()
     async def on_message(self, message):
