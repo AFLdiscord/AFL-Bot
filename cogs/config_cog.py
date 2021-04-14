@@ -68,13 +68,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         <blacklist         #stampa la lista
         alias: black, bl
         """
-        string = ''
-        for w in BannedWords.banned_words:
-            string += w + '\n'
-        if string == '':
-            await ctx.send('Nessuna parola attualmente in elenco')
-        else:
-            await ctx.send(string)
+        await ctx.send(BannedWords.to_string())
 
     @commands.command(brief='cambia il prefisso del bot')
     async def setprefix(self, ctx, prefix):
@@ -127,6 +121,15 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 await ctx.message.delete(delay=5)
         if reloaded != '':
             await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
+
+    @commands.command(brief='stampa la configurazione corrente')
+    async def printconfig(self, ctx):
+        """Stampa la configurazione attualmente in uso dal bot.
+
+        Sintassi:
+        <printconfig       #stampa la configurazione
+        """
+        await ctx.send(Config.to_string())
 
     @commands.command(brief='aggiunge una o più cog dal bot e dal file extensions.json')
     async def addcog(self, ctx, *args):

@@ -49,6 +49,21 @@ class BannedWords():
     banned_words = []
 
     @staticmethod
+    def to_string() -> str:
+        """Rappresentazione dell'attributo banned_words come stringa. Fatto così invece
+        che con __repr__ o __str__ perchè la classe non viene istanziata.
+
+        :returns: la stringa con tutte le parole bannate
+        :rtype: str
+        """
+        string = ''
+        for word in BannedWords.banned_words:
+            string += word + '\n'
+        if string == '':
+            string = 'Nessuna parola attualmente in elenco.'
+        return string
+
+    @staticmethod
     def load() -> None:
         """Carica l'elenco delle parole bannate dal file banned_words.json
         Se il file non è presente o incorre in un errore nella procedura l'elenco rimane vuoto.
@@ -97,8 +112,8 @@ class BannedWords():
         text_to_check = re.sub("9", "g", text_to_check)
         for word in BannedWords.banned_words:
             regex_word = '+ *\W*'.join(word)
-            x = re.search(regex_word, text_to_check)
-            if x is not None:
+            match = re.search(regex_word, text_to_check)
+            if match is not None:
                 return True
         return False
 
@@ -119,6 +134,19 @@ class Config():
     """
 
     config = {}
+
+    @staticmethod
+    def to_string() -> str:
+        """Rappresentazione della configurazione del bot come stringa. Fatto così invece
+        che con __repr__ o __str__ perchè la classe non viene istanziata.
+
+        :returns: la configurazione corrente del bot
+        :rtype: str
+        """
+        string = ''
+        for key in Config.config:
+            string += key + ' : ' + str(Config.config[key]) + '\n'
+        return string
 
     @staticmethod
     def load() -> bool:
@@ -189,8 +217,7 @@ def get_extensions() -> List[str]:
     except (FileNotFoundError, json.JSONDecodeError):
         print('nessuna estensione trovata, controlla file extensions.json')
         extensions = []
-    finally:
-        return extensions
+    return extensions
 
 def count_messages(item: dict) -> int:
     """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo
