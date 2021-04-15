@@ -2,8 +2,14 @@
 nella classe EventCog
 
 Sono inoltre presenti due funzioni usiliarie alle funzioni del bot:
-- update_counter   aggiorna il contatore dell'utente passato e aggiunge al file
-- does_it_count    determina se il canale in cui è stato mandato il messaggio è conteggiato o meno
+Ruolo attivo
+- update_counter      aggiorna il contatore dell'utente passato e aggiunge al file
+- does_it_count       determina se il canale in cui è stato mandato il messaggio è conteggiato o meno
+Proposte
+- add_proposal        aggiunge una nuova proposta al file che le traccia
+- remove_proposal     rimuove la proposta dal file
+- adjust_vote_count   aggiorna i contatori relativi a una proposta
+- calculate_threshold logica per stabilire la sogli affinchè una proposta passi
 """
 
 import json
@@ -25,6 +31,7 @@ class EventCog(commands.Cog):
 
     Reazioni:
     - on_raw_reaction_add
+    - on_raw_reactoin_remove
 
     Membri:
     - on_member_join
@@ -34,7 +41,7 @@ class EventCog(commands.Cog):
 
     Gestione bot:
     - on_command_error
-    - on_ready
+    - on_ready (avvia periodic_checks)
     """
 
     def __init__(self, bot):

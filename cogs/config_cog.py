@@ -11,6 +11,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     - blackremove   rimuove una parola bannata dall'elenco
     - blacklist     mostra l'elenco delle parole bannate
     - updateconfig  aggiorna la configurazione del bot
+    - printconfig   stampa la configurazione corrente
     - reload        ricarica una o più cogs
     - addcog        aggiunge una o più cog dal bot e dal file extensions.json
     - removecog     rimuove una o più cog dal bot e dal file extensions.json
