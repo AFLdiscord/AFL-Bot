@@ -180,6 +180,7 @@ class Config():
         Config.config['moderation_roles_id'] = []
         for mod in data['moderation_roles_id']:
             Config.config['moderation_roles_id'].append(int(mod))
+        Config.config['afl_role_id'] = int(data['afl_role_id'])
         Config.config['active_role_id'] = int(data['active']['role_id'])
         Config.config['active_channels_id'] = []
         for channel in data['active']['channels_id']:
@@ -281,4 +282,3 @@ def clean(item: dict) -> None:
             if last_day > 6:
                 last_day = 0
             item[weekdays[last_day]] = 0
- 

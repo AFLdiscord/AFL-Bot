@@ -4,6 +4,7 @@
     "main_channel_id": canale dei messaggi di sistema del bot,
     "current_prefix": "<",
     "moderation_roles_id": [id dei ruoli di moderazione separati da virgola se più di uno],
+    "afl_role_id": id del ruolo AFL,
     "active": {
         "role_id": id del ruolo attivo,
         "channels_id": [id dei canali rilevanti al conteggio, separati da virgola se più di uno],

@@ -250,39 +250,78 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        """Impedisce ai membri del server di modificare il proprio username includendo parole offensive.
-        Se possibile ripristina il nickname precedente, altrimenti il membro viene kickato dal server con
-        un messaggio che lo invita a modificare il proprio nome prima di unirsi nuovamente.
+        """Impedisce ai membri del server di modificare il proprio username includendo parole
+        offensive. Quando un membro riceve il ruolo AFL si occupa di creare la entry nel file
+        di archivio salvando il nickname e la data. Quest'ultima serve per gestire il cambio
+        di nickname periodico concesso agli AFL.
         """
         guild = self.bot.get_guild(Config.config['guild_id'])
-        member = guild.get_member(after.id)
-        if BannedWords.contains_banned_words(after.display_name):
-            if before.nick is not None:
-                print('ripristino nickname a ' + str(after.id))
-                await member.edit(nick=before.display_name)
+        afl_role = guild.get_role(Config.config['afl_role_id'])
+        if afl_role not in before.roles:
+            if afl_role in after.roles:
+                #appena diventato AFL, crea entry e salva nickname
+                prev_dict = {}
+                try:
+                    with open('aflers.json','r') as file:
+                        prev_dict = json.load(file)
+                except FileNotFoundError:
+                    print('file non trovato, lo creo ora')
+                    with open('aflers.json','w+') as file:
+                        prev_dict = {}
+                if not str(after.id) in prev_dict:
+                    afler = {
+                        "nick": after.display_name,
+                        "last_nick_change": datetime.date(datetime.now()).__str__(),
+                        "mon": 0,
+                        "tue": 0,
+                        "wed": 0,
+                        "thu": 0,
+                        "fri": 0,
+                        "sat": 0,
+                        "sun": 0,
+                        "counter": 0,
+                        "last_message_date": None,
+                        "violations_count": 0,
+                        "last_violation_count": None,
+                        "active": False,
+                        "expiration": None
+                    }
+                    prev_dict[before.id] = afler
+                    shared_functions.update_json_file(prev_dict, 'aflers.json')
             else:
-                channel = await member.create_dm()
-                await member.kick(reason="ForbiddenNickname")
-                await channel.send('Il tuo nickname non è consentito, quando rientri impostane uno valido')
+                #non è ancora AFL, libero di cambiare nick a patto che non contenga parole vietate
+                if BannedWords.contains_banned_words(after.display_name):
+                    print('nickname con parole vietate, ripristino a ' + str(after.id))
+                    await after.edit(nick=before.display_name)
+        else:
+            #era già AFL, ripristino il nickname dal file
+            if before.display_name != after.display_name:
+                with open('aflers.json','r') as file:
+                    prev_dict = json.load(file)
+                try:
+                    old_nick = prev_dict[str(after.id)]['nick']
+                except KeyError:
+                    old_nick = before.display_name
+                await after.edit(nick=old_nick)
+
 
     @commands.Cog.listener()
     async def on_user_update(self, before, after):
-        """Controlla che gli utenti non cambino nome mostrato qualora cambiassero username.
-        In pratica, se un membro non ha impostato un nickname personalizzato per il server
-        il nome mostrato cambia in base all'username anche se il membro non ha i permessi per cambiare
-        nickname. Quando l'username viene modificato e il nome mostrato (display_name) cambia
-        questo viene ripristinato al valore precedente.
-
-        Problemi noti: display_name per un User ritorna sempre e comunque l'username quindi
-        è possibile bypassare questo meccanismo di ripristino del nome cambiandolo due volti di fila,
-        come descritto nella issue #10. In tal caso occorre intervenire manualmente.
-
-        Per informazioni complete vedere documenti di discord.py
-        """
-        guild = self.bot.get_guild(Config.config['guild_id'])
-        if after.display_name != before.display_name:
-            print('cambio nickname')
-            await guild.get_member(after.id).edit(nick=before.display_name)
+        """In caso di cambio di username, resetta il nickname a quello presente nel file"""
+        try:
+            with open('aflers.json', 'r') as file:
+                prev_dict = json.load(file)
+        except FileNotFoundError:
+            return
+        try:
+            data = prev_dict[str(before.id)]
+        except KeyError:
+            return
+        old_nick = data['nick']
+        if old_nick != after.display_name:
+            print('reset nickname a ' + old_nick)
+            guild = self.bot.get_guild(Config.config['guild_id'])
+            await guild.get_member(after.id).edit(nick=old_nick)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -373,7 +412,7 @@ class EventCog(commands.Cog):
                 item["expiration"] = datetime.date(datetime.now() + timedelta(days=Config.config['active_duration'])).__str__()
                 guild = self.bot.get_guild(Config.config['guild_id'])
                 await guild.get_member(int(key)).add_roles(guild.get_role(Config.config['active_role_id']))
-                print('member ' + key + ' is active')
+                print('member ' + item["nick"] + ' is active')
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 await channel.send('membro <@!' + key + '> è diventato attivo')
                 #azzero tutti i contatori
@@ -384,7 +423,7 @@ class EventCog(commands.Cog):
             if item["last_violation_count"] is not None:
                 expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d'))
                 if (expiration + timedelta(days=Config.config["violations_reset_days"])).__eq__(datetime.date(datetime.now())):
-                    print('reset violazioni di ' + key)
+                    print('reset violazioni di ' + item["nick"])
                     item["violations_count"] = 0
                     item["last_violation_count"] = None
 
@@ -476,8 +515,7 @@ def update_counter(message: discord.Message) -> None:
                 #messaggi dello stesso giorno, continuo a contare
                 item["counter"] += 1
             elif item["last_message_date"] is None:
-                #può succedere in teoria se uno riceve un warn senza aver mai scritto un messaggio (tecnicamente add_warn lo prevede)
-                #oppure se resetto il file a mano per qualche motivo
+                #primo messaggio della persona
                 item["counter"] = 1
                 item["last_message_date"] = datetime.date(datetime.now()).__str__()
             else:
@@ -488,8 +526,11 @@ def update_counter(message: discord.Message) -> None:
                 item["counter"] = 1
                 item["last_message_date"] = datetime.date(datetime.now()).__str__()
         else:
-            #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
+            #succede se il file viene cancellato
+            print('membro non presente nel file, aggiungo ora')
             afler = {
+                "nick": message.author.display_name,
+                "last_nick_change": datetime.date(datetime.now()).__str__(),
                 "mon": 0,
                 "tue": 0,
                 "wed": 0,
@@ -506,6 +547,7 @@ def update_counter(message: discord.Message) -> None:
             }
             prev_dict[message.author.id] = afler
         shared_functions.update_json_file(prev_dict, 'aflers.json')
+
 
 def does_it_count(message: discord.Message) -> bool:
     """Controlla se il canale in cui è stato mandato il messaggio passato rientra nei canali

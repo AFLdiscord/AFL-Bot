@@ -36,7 +36,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             await message.delete()
-            await self._add_warn(message.author, 'linguaggio inappropriato', 1, self.bot)
+            await self._add_warn(message.author, 'linguaggio inappropriato', 1)
 
     @commands.command(brief='aggiunge un warn all\'utente citato')
     async def warn(self, ctx, attempted_member=None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
@@ -87,7 +87,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                     reason = attempted_member + ' ' + reason  #devo inserire uno spazio altrimenti scrive tutto appicciato
         if member.bot:   # or member == ctx.author:
             return
-        await self._add_warn(member, reason, 1, self.bot)
+        await self._add_warn(member, reason, 1)
         user = '<@!' + str(member.id) + '>'
         await ctx.send(user + ' warnato. Motivo: ' + reason)
         await ctx.message.delete(delay=5)
@@ -102,7 +102,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         if member.bot:
             return
         reason = 'buona condotta'
-        await self._add_warn(member, reason, -1, self.bot)
+        await self._add_warn(member, reason, -1)
         user = '<@!' + str(member.id) + '>'
         await ctx.send(user + ' rimosso un warn.')
         await ctx.message.delete(delay=5)
@@ -153,7 +153,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
         await member.ban(delete_message_days = 0, reason = reason)
 
-    async def _add_warn(self, member, reason, number, bot):
+    async def _add_warn(self, member: discord.Member, reason: str, number: int):
         """Incrementa o decremente il numero di violazioni di numero e tiene traccia
         dell'ultima violazione commessa. Si occupa anche di inviare in dm la notifica
         dell'avvenuta violazione con la ragione che è stata specificata.
@@ -169,24 +169,24 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 prev_dict = {}
         key = str(member.id)
         if key in prev_dict:
-            d = prev_dict[key]
-            d["violations_count"] += number
-            d["last_violation_count"] = datetime.date(datetime.now()).__str__()
+            data = prev_dict[key]
+            data["violations_count"] += number
+            data["last_violation_count"] = datetime.date(datetime.now()).__str__()
             shared_functions.update_json_file(prev_dict, 'aflers.json')
-            if d["violations_count"] <= 0:
-                d["violations_count"] = 0
-                d["last_violation_count"] = None
+            if data["violations_count"] <= 0:
+                data["violations_count"] = 0
+                data["last_violation_count"] = None
                 shared_functions.update_json_file(prev_dict, 'aflers.json')
                 return
             if number < 0:  #non deve controllare se è un unwarn
                 return
-            if d["violations_count"] == 3:
-                await member.add_roles(bot.get_guild(Config.config['guild_id']).get_role(Config.config['under_surveillance_id']))
+            if data["violations_count"] == 3:
+                await member.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['under_surveillance_id']))
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
                 shared_functions.update_json_file(prev_dict, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-            elif d["violations_count"] >= 4:
+            elif data["violations_count"] >= 4:
                 penalty = 'bannato dal server.'
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
@@ -201,6 +201,8 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             if number < 0:
                 return
             afler = {
+                "nick": member.display_name,
+                "last_nick_change": datetime.date(datetime.now()).__str__(),
                 "mon": 0,
                 "tue": 0,
                 "wed": 0,
