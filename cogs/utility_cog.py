@@ -5,15 +5,23 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
 from cogs import shared_functions
-from cogs.shared_functions import Config
+from cogs.shared_functions import Config, BannedWords
 
 class UtilityCog(commands.Cog, name='Utility'):
-    """Contiene i comandi destinati ad essere usati da tutti con funzionalità varie:
+    """Contiene i comandi destinati ad essere usati dagli AFL con funzionalità varie:
     - status ritorna lo status del membro citato
     - avatar ritorna la foto profilo dell'utente citato
+    - setnick permette di cambiare nickname periodicamente
     """
     def __init__(self, bot):
         self.bot = bot
+
+    def cog_check(self, ctx):
+        """Check sui comandi per autorizzarne l'uso solo agli AFL"""
+        for role in ctx.author.roles:
+            if Config.config['afl_role_id'] == role.id:
+                return True
+        return False
 
     @commands.command(brief='ritorna statistiche sul membro menzionato')
     async def status(self, ctx, member: discord.Member = None):
@@ -94,6 +102,38 @@ class UtilityCog(commands.Cog, name='Utility'):
         )
         avatar.set_image(url=user.avatar_url)
         await ctx.send(embed=avatar)
+
+    @commands.command(brief='permette di cambiare nickname periodicamente')
+    async def setnick(self, ctx, *, new_nick: str):
+        """Permette di cambiare il proprio nickname periodicamente. La frequenza con
+        cui è possibile farlo è definita nel config.
+
+        Sintassi:
+        <setnick afler       #cambia il nickname in afler
+        <setnick due aflers  #può contenere anche più parole
+        """
+        if BannedWords.contains_banned_words(new_nick):
+            await ctx.send('Il nickname non può contenere parole offensive')
+            return
+        with open('aflers.json', 'r') as file:
+            prev_dict = json.load(file)
+        try:
+            data = prev_dict[str(ctx.author.id)]
+        except KeyError:
+            await ctx.send('Non tovato nel file :(', delete_after=5)
+            return
+        last_change = datetime.date(datetime.strptime(data['last_nick_change'], '%Y-%m-%d'))
+        difference = datetime.date(datetime.now()) - last_change
+        if difference.days >=  Config.config['nick_change_days']:
+            data['nick'] = new_nick
+            data['last_nick_change'] = datetime.date(datetime.now()).__str__()
+            shared_functions.update_json_file(prev_dict, 'aflers.json')
+            await ctx.author.edit(nick=new_nick)
+            await ctx.send('Nickname cambiato in ' + new_nick)
+        else:
+            renewal = last_change + timedelta(days=Config.config['nick_change_days'])
+            days_until_renewal = renewal - datetime.date(datetime.now())
+            await ctx.send('Prossimo cambio tra ' + str(days_until_renewal.days) + ' giorni')
 
 def setup(bot):
     """Entry point per il caricamento della cog"""

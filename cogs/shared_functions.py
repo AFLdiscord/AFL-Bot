@@ -192,7 +192,8 @@ class Config():
             Config.config['exceptional_channels_id'].append(int(channel))
         Config.config['poll_channel_id'] = int(data['poll_channel_id'])
         Config.config['under_surveillance_id'] = int(data['under_surveillance_id'])
-        Config.config['violations_reset_days'] = data["violations_reset_days"]
+        Config.config['violations_reset_days'] = data['violations_reset_days']
+        Config.config['nick_change_days'] = data['nick_change_days']
         Config.config['greetings'] = data['greetings']
 
 def update_json_file(data, json_file: str) -> None:

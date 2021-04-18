@@ -15,5 +15,6 @@
     "poll_channel_id": canale in cui controllare le reaction alle proposte,
     "under_surveillance_id": id del ruolo sotto sorveglianza (vedi regole),
     "violations_reset_days": tempo dopo cui si resettano le violazioni in giorni,
+    "nick_change_days": giorni concessi tra un cambio di nickname e l'altro (0 nessun limite),
     "greetings": "Benvenuto/a sul server discord AFL!\nPrima di iniziare a partecipare nel server presentati nel canale richiesta di afl indicando almeno\n- sesso\n- eta'\nTi invitiamo a leggere attentamente il regolamento del server, reperibile sul canale regole.\nPer chiarimenti rivolgiti pure ai moderatori.\nBuona permanenza!"
 }
