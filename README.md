@@ -9,12 +9,14 @@ Gli obiettivi principali di sviluppo attualmente sono:
 Scritto in [python (3.7+)](https://www.python.org/downloads/) sfruttando le librerie [discord.py](https://github.com/Rapptz/discord.py) e dotenv.
 Per installarle:
 ```
-python3 -m pip install -U discord.py
-
-python3 -m pip install -U dotenv
+pip install -r requirements.txt
 ```
 Per utilizzare il bot:
-- clonare il repo 
+- clonare il repo
+- installare le dipendenze
+```
+pip install -r requirements.txt
+```
 - creare il file config.json seguendo le indicazioni del [template](https://github.com/AFLdiscord/AFL-Bot/blob/master/config.template)
 - crare il file .env contenente il token di accesso del bot (è importante non condividerlo)
 - il contenuto del .env deve essere `DISCORD_TOKEN=your_token`

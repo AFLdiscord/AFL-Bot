@@ -21,16 +21,10 @@ on:
     - '**.png'
     - '**.json'
     - '**.template'
+    - '**.txt'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ master ]
-    paths-ignore:
-    - '.github/**'
-    - 'LICENSE'
-    - '**.md'
-    - '**.png'
-    - '**.json'
-    - '**.template'
   schedule:
     - cron: '27 8 * * 3'
 
