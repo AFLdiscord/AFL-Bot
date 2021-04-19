@@ -7,10 +7,7 @@ Gli obiettivi principali di sviluppo attualmente sono:
 
 ## Requisiti e installazione
 Scritto in [python (3.7+)](https://www.python.org/downloads/) sfruttando le librerie [discord.py](https://github.com/Rapptz/discord.py) e dotenv.
-Per installarle:
-```
-pip install -r requirements.txt
-```
+
 Per utilizzare il bot:
 - clonare il repo
 - installare le dipendenze
