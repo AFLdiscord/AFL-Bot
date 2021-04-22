@@ -318,10 +318,10 @@ class EventCog(commands.Cog):
         except KeyError:
             return
         old_nick = data['nick']
-        if old_nick != after.display_name:
+        member = self.bot.get_guild(Config.config['guild_id']).get_member(after.id)
+        if old_nick != member.nick:
             print('reset nickname a ' + old_nick)
-            guild = self.bot.get_guild(Config.config['guild_id'])
-            await guild.get_member(after.id).edit(nick=old_nick)
+            await member.edit(nick=old_nick)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
