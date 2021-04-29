@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
-from cogs import shared_functions
-from cogs.shared_functions import Config, BannedWords
+from utils import shared_functions
+from utils.shared_functions import Config, BannedWords
 
 class UtilityCog(commands.Cog, name='Utility'):
     """Contiene i comandi destinati ad essere usati dagli AFL con funzionalità varie:

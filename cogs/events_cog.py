@@ -17,8 +17,8 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands, tasks
-from cogs import shared_functions
-from cogs.shared_functions import BannedWords, Config
+from utils import shared_functions
+from utils.shared_functions import BannedWords, Config
 
 class EventCog(commands.Cog):
     """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria

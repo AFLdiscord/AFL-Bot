@@ -4,8 +4,8 @@ import logging
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from cogs import shared_functions
-from cogs.shared_functions import BannedWords, Config
+from utils import shared_functions
+from utils.shared_functions import BannedWords, Config
 
 #logging di base sul terminale
 logging.basicConfig(level=logging.INFO)

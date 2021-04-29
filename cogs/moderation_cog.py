@@ -4,8 +4,8 @@ from datetime import datetime
 
 import discord
 from discord.ext import commands
-from cogs import shared_functions
-from cogs.shared_functions import BannedWords, Config
+from utils import shared_functions
+from utils.shared_functions import BannedWords, Config
 
 class ModerationCog(commands.Cog, name='Moderazione'):
     """Contiene i comandi relativi alla moderazione:
