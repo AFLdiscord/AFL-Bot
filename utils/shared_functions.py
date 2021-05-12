@@ -283,3 +283,31 @@ def clean(item: dict) -> None:
             if last_day > 6:
                 last_day = 0
             item[weekdays[last_day]] = 0
+
+def link_to_clean(message: str) -> str:
+    """Controlla se il messaggio è un link da accorciare. In tal caso ritorna il link accorciato
+    altrimenti None.
+
+    Supporto per ora:
+    - link prodotti amazon
+
+    :param message: da controllare
+    :returns: None o il link stesso accorciato
+    :rtype: str
+    """
+    cleaned_link = None
+    words = message.strip()
+    words = message.split(' ')
+    if len(words) == 1:   #il messaggio non ha spazi, potrebbe essere un link
+        word = words[0]
+        #si potrebbe fare una regex visto che sembra che i prodotti abbiano tutti la stessa struttura
+        #     amazon.com/nome_lungo_descrittivo/dp/10CARATTER
+        if word.__contains__("www.amazon.it") or word.__contains__("www.amazon.com"):
+            #logica: tutto quello dopo l'ultimo '/' non serve
+            url = word.split('/')
+            if len(url[-1]) != 10:  #codice prodotto ha 10 char
+                del url[-1]
+                del url[0]  #rimuove https:, lo riaggiungo a mano
+                cleaned_link = '/'.join(url)
+                cleaned_link = 'https:/' + cleaned_link
+    return cleaned_link

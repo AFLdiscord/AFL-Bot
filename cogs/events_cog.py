@@ -71,6 +71,11 @@ class EventCog(commands.Cog):
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
+        link = shared_functions.link_to_clean(message.content)
+        if link is not None:
+            await message.delete()
+            await message.channel.send('Link da ' + message.author.display_name + ':\n' + link)
+            return
         if message.channel.id == Config.config['poll_channel_id']:
             guild = self.bot.get_guild(Config.config['guild_id'])
             add_proposal(message, guild)

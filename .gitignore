@@ -5,3 +5,4 @@ banned_words.json
 config.json
 proposals.json
 cogs/__pycache__
+utils/__pycache__
