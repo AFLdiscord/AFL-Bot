@@ -55,6 +55,8 @@ class EventCog(commands.Cog):
         - altri bot
         - canali di chat privata
         Il messaggio 'ping' ritorna l'intervallo di tempo tra un HEARTBEAT e il suo ack in ms.'
+        Se il messaggio è nel canale di presentazione, ammette il membro automaticamente assegnandogli
+        il ruolo AFL.
         Invoca la funzione update_counter per aggiornare il conteggio.
         """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
@@ -71,6 +73,10 @@ class EventCog(commands.Cog):
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
+        if message.channel.id == Config.config['presentation_channel_id']:
+            #il controllo della validità è ancora manuale
+            await message.author.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['afl_role_id']))
+            await message.channel.send('Formidabile')
         link = shared_functions.link_to_clean(message.content)
         if link is not None:
             await message.delete()

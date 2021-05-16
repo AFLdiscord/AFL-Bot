@@ -2,6 +2,7 @@
     #attenzione cancella questo commento: compila i campi coi dati richiesti
     "guild_id": id del server in cui contare i messaggi,
     "main_channel_id": canale dei messaggi di sistema del bot,
+    "presentation_channel_id": canale in cui i nuovi membri si presentano prima dell'ammissione,
     "current_prefix": "<",
     "moderation_roles_id": [id dei ruoli di moderazione separati da virgola se più di uno],
     "afl_role_id": id del ruolo AFL,
