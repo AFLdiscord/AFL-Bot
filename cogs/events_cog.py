@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands, tasks
+from discord.flags import MessageFlags
 from utils import shared_functions
 from utils.shared_functions import BannedWords, Config
 
@@ -74,9 +75,16 @@ class EventCog(commands.Cog):
             #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
         if message.channel.id == Config.config['presentation_channel_id']:
+            #non deve rispondere a eventuali messaggi di moderatori nel canale, solo a nuovi membri
+            for role in message.author.roles:
+                if role.id in Config.config['moderation_roles_id']:
+                    return
             #il controllo della validità è ancora manuale
             await message.author.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['afl_role_id']))
             await message.channel.send('Formidabile')
+            channel = self.bot.get_channel(Config.config['welcome_channel_id'])
+            await channel.send('Diamo il benvenuto a <@!' + str(message.author.id) + '>!\nPresentazione:\n' + message.content)
+            return
         link = shared_functions.link_to_clean(message.content)
         if link is not None:
             await message.delete()

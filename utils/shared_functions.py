@@ -177,6 +177,7 @@ class Config():
         Config.config['guild_id'] = int(data['guild_id'])
         Config.config['main_channel_id'] = int(data['main_channel_id'])
         Config.config['presentation_channel_id'] = int(data['presentation_channel_id'])
+        Config.config['welcome_channel_id'] = int(data['welcome_channel_id'])
         Config.config['current_prefix'] = data['current_prefix']
         Config.config['moderation_roles_id'] = []
         for mod in data['moderation_roles_id']:
