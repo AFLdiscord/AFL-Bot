@@ -18,13 +18,13 @@ from typing import List
 #utile per passare dal giorno della settimana restituito da weekday() direttamente
 #al campo corrispondente nel dizionario del json
 weekdays = {
-    0: "mon",
-    1: "tue",
-    2: "wed",
-    3: "thu",
-    4: "fri",
-    5: "sat",
-    6: "sun"
+    0: 'mon',
+    1: 'tue',
+    2: 'wed',
+    3: 'thu',
+    4: 'fri',
+    5: 'sat',
+    6: 'sun'
 }
 
 class BannedWords():
@@ -101,15 +101,15 @@ class BannedWords():
         :rtype: bool
         """
         text_to_check = text.lower()
-        text_to_check = re.sub("0", "o", text_to_check)
-        text_to_check = re.sub("1", "i", text_to_check)
-        text_to_check = re.sub("5", "s", text_to_check)
-        text_to_check = re.sub("2", "z", text_to_check)
-        text_to_check = re.sub("8", "b", text_to_check)
-        text_to_check = re.sub("4", "a", text_to_check)
-        text_to_check = re.sub("3", "e", text_to_check)
-        text_to_check = re.sub("7", "t", text_to_check)
-        text_to_check = re.sub("9", "g", text_to_check)
+        text_to_check = re.sub('0', 'o', text_to_check)
+        text_to_check = re.sub('1', 'i', text_to_check)
+        text_to_check = re.sub('5', 's', text_to_check)
+        text_to_check = re.sub('2', 'z', text_to_check)
+        text_to_check = re.sub('8', 'b', text_to_check)
+        text_to_check = re.sub('4', 'a', text_to_check)
+        text_to_check = re.sub('3', 'e', text_to_check)
+        text_to_check = re.sub('7', 't', text_to_check)
+        text_to_check = re.sub('9', 'g', text_to_check)
         for word in BannedWords.banned_words:
             regex_word = '+ *\W*'.join(word)
             match = re.search(regex_word, text_to_check)
@@ -236,7 +236,7 @@ def count_messages(item: dict) -> int:
     for i in weekdays:
         if i != datetime.today().weekday():
             count += item[weekdays.get(i)]
-    count += item["counter"]
+    count += item['counter']
     return count
 
 def count_consolidated_messages(item: dict) -> int:
@@ -260,25 +260,25 @@ def clean(item: dict) -> None:
 
     :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
     """
-    if (item["last_message_date"] is None) or (item["last_message_date"] == datetime.date(datetime.now()).__str__()):
+    if (item['last_message_date'] is None) or (item['last_message_date'] == datetime.date(datetime.now()).__str__()):
         #(None) tecnicamente previsto da add_warn se uno viene warnato senza aver mai scritto
         #(Oggi) vuol dire che il bot è stato riavviato a metà giornata non devo toccare i contatori
         return
-    elif item["last_message_date"] == datetime.date(datetime.today() - timedelta(days=1)).__str__():
+    elif item['last_message_date'] == datetime.date(datetime.today() - timedelta(days=1)).__str__():
         #messaggio di ieri, devo salvare il counter nel giorno corrispondente
-        if item["counter"] != 0:
+        if item['counter'] != 0:
             day = weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
-            item[day] = item["counter"]
-            item["counter"] = 0
+            item[day] = item['counter']
+            item['counter'] = 0
     else:
         #devo azzerare tutti i giorni della settimana tra la data segnata (esclusa) e oggi (incluso)
         #in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga
         #eseguito tutti i giorni ma preferisco azzerare tutti in caso di downtime di qualche giorno
-        if item["counter"] != 0:
-            day = weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
-            item[day] = item["counter"]
-            item["counter"] = 0
-        last_day = datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()
+        if item['counter'] != 0:
+            day = weekdays[datetime.date(datetime.strptime(item['last_message_date'], '%Y-%m-%d')).weekday()]
+            item[day] = item['counter']
+            item['counter'] = 0
+        last_day = datetime.date(datetime.strptime(item['last_message_date'], '%Y-%m-%d')).weekday()
         today = datetime.today().weekday()
         while last_day != today:
             last_day += 1
@@ -304,7 +304,7 @@ def link_to_clean(message: str) -> str:
         word = words[0]
         #si potrebbe fare una regex visto che sembra che i prodotti abbiano tutti la stessa struttura
         #     amazon.com/nome_lungo_descrittivo/dp/10CARATTER
-        if word.__contains__("www.amazon.it") or word.__contains__("www.amazon.com"):
+        if word.__contains__('www.amazon.it') or word.__contains__('www.amazon.com'):
             #logica: tutto quello dopo l'ultimo '/' non serve
             url = word.split('/')
             if len(url[-1]) != 10:  #codice prodotto ha 10 char

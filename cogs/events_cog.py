@@ -124,8 +124,8 @@ class EventCog(commands.Cog):
         if item is None:
             return
         #il contatore non può ovviamente andare sotto 0
-        if item["counter"] != 0:
-            item["counter"] -= 1
+        if item['counter'] != 0:
+            item['counter'] -= 1
             shared_functions.update_json_file(prev_dict, 'aflers.json')
             print('rimosso un messaggio')
 
@@ -159,8 +159,8 @@ class EventCog(commands.Cog):
                 if item is None:
                     continue
             #il contatore non può ovviamente andare sotto 0
-            if item["counter"] != 0:
-                item["counter"] -= 1
+            if item['counter'] != 0:
+                item['counter'] -= 1
                 counter += 1
         shared_functions.update_json_file(prev_dict, 'aflers.json')
         print('rimossi ' + str(counter) + ' messaggi')
@@ -289,21 +289,21 @@ class EventCog(commands.Cog):
                         prev_dict = {}
                 if not str(after.id) in prev_dict:
                     afler = {
-                        "nick": after.display_name,
-                        "last_nick_change": datetime.date(datetime.now()).__str__(),
-                        "mon": 0,
-                        "tue": 0,
-                        "wed": 0,
-                        "thu": 0,
-                        "fri": 0,
-                        "sat": 0,
-                        "sun": 0,
-                        "counter": 0,
-                        "last_message_date": None,
-                        "violations_count": 0,
-                        "last_violation_count": None,
-                        "active": False,
-                        "expiration": None
+                        'nick': after.display_name,
+                        'last_nick_change': datetime.date(datetime.now()).__str__(),
+                        'mon': 0,
+                        'tue': 0,
+                        'wed': 0,
+                        'thu': 0,
+                        'fri': 0,
+                        'sat': 0,
+                        'sun': 0,
+                        'counter': 0,
+                        'last_message_date': None,
+                        'violations_count': 0,
+                        'last_violation_count': None,
+                        'active': False,
+                        'expiration': None
                     }
                     prev_dict[before.id] = afler
                     shared_functions.update_json_file(prev_dict, 'aflers.json')
@@ -427,11 +427,11 @@ class EventCog(commands.Cog):
             shared_functions.clean(item)
             count = shared_functions.count_consolidated_messages(item)
             if count >= Config.config['active_threshold'] and self.bot.get_guild(Config.config['guild_id']).get_member(int(key)).top_role.id not in Config.config['moderation_roles_id']:
-                item["active"] = True
-                item["expiration"] = datetime.date(datetime.now() + timedelta(days=Config.config['active_duration'])).__str__()
+                item['active'] = True
+                item['expiration'] = datetime.date(datetime.now() + timedelta(days=Config.config['active_duration'])).__str__()
                 guild = self.bot.get_guild(Config.config['guild_id'])
                 await guild.get_member(int(key)).add_roles(guild.get_role(Config.config['active_role_id']))
-                print('member ' + item["nick"] + ' is active')
+                print('member ' + item['nick'] + ' is active')
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 await channel.send('membro <@!' + key + '> è diventato attivo')
                 #azzero tutti i contatori
@@ -439,25 +439,25 @@ class EventCog(commands.Cog):
                     item[shared_functions.weekdays.get(i)] = 0
 
             #controllo sulla data dell'ultima violazione, ed eventuale reset
-            if item["last_violation_count"] is not None:
-                expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d'))
+            if item['last_violation_count'] is not None:
+                expiration = datetime.date(datetime.strptime(item['last_violation_count'], '%Y-%m-%d'))
                 if (expiration + timedelta(days=Config.config["violations_reset_days"])).__eq__(datetime.date(datetime.now())):
-                    print('reset violazioni di ' + item["nick"])
-                    item["violations_count"] = 0
-                    item["last_violation_count"] = None
+                    print('reset violazioni di ' + item['nick'])
+                    item['violations_count'] = 0
+                    item['last_violation_count'] = None
 
             #rimuovo i messaggi contati 7 giorni fa
             item[shared_functions.weekdays.get(datetime.today().weekday())] = 0
 
-            if item["active"] is True:
-                expiration = datetime.date(datetime.strptime(item["expiration"], '%Y-%m-%d'))
+            if item['active'] is True:
+                expiration = datetime.date(datetime.strptime(item['expiration'], '%Y-%m-%d'))
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 if expiration.__eq__((datetime.date(datetime.now()))):
                     guild = self.bot.get_guild(Config.config['guild_id'])
                     await guild.get_member(int(key)).remove_roles(guild.get_role(Config.config['active_role_id']))
                     await channel.send('membro <@!' + key + '> non più attivo :(')
-                    item["active"] = False
-                    item["expiration"] = None
+                    item['active'] = False
+                    item['expiration'] = None
         shared_functions.update_json_file(prev_dict, 'aflers.json')
 
 def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
@@ -512,7 +512,7 @@ def remove_proposal(message: discord.Message) -> None:
 def update_counter(message: discord.Message) -> None:
     """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
     nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
-    Si occupa anche di aggiornare il campo "last_message_date".
+    Si occupa anche di aggiornare il campo 'last_message_date'.
 
     :param message: messaggio ricevuto
     """
@@ -530,39 +530,39 @@ def update_counter(message: discord.Message) -> None:
         key = str(message.author.id)
         if key in prev_dict:
             item = prev_dict[key]
-            if item["last_message_date"] == datetime.date(datetime.now()).__str__():
+            if item['last_message_date'] == datetime.date(datetime.now()).__str__():
                 #messaggi dello stesso giorno, continuo a contare
-                item["counter"] += 1
-            elif item["last_message_date"] is None:
+                item['counter'] += 1
+            elif item['last_message_date'] is None:
                 #primo messaggio della persona
-                item["counter"] = 1
-                item["last_message_date"] = datetime.date(datetime.now()).__str__()
+                item['counter'] = 1
+                item['last_message_date'] = datetime.date(datetime.now()).__str__()
             else:
-                #è finito il giorno, salva i messaggi di "counter" nel giorno corrispondente e aggiorna data ultimo messaggio
-                if item["counter"] != 0:
-                    day = shared_functions.weekdays[datetime.date(datetime.strptime(item["last_message_date"], '%Y-%m-%d')).weekday()]
-                    item[day] = item["counter"]
-                item["counter"] = 1
-                item["last_message_date"] = datetime.date(datetime.now()).__str__()
+                #è finito il giorno, salva i messaggi di 'counter' nel giorno corrispondente e aggiorna data ultimo messaggio
+                if item['counter'] != 0:
+                    day = shared_functions.weekdays[datetime.date(datetime.strptime(item['last_message_date'], '%Y-%m-%d')).weekday()]
+                    item[day] = item['counter']
+                item['counter'] = 1
+                item['last_message_date'] = datetime.date(datetime.now()).__str__()
         else:
             #succede se il file viene cancellato
             print('membro non presente nel file, aggiungo ora')
             afler = {
-                "nick": message.author.display_name,
-                "last_nick_change": datetime.date(datetime.now()).__str__(),
-                "mon": 0,
-                "tue": 0,
-                "wed": 0,
-                "thu": 0,
-                "fri": 0,
-                "sat": 0,
-                "sun": 0,
-                "counter": 1,
-                "last_message_date": datetime.date(datetime.now()).__str__(),
-                "violations_count": 0,
-                "last_violation_count": None,
-                "active": False,
-                "expiration": None
+                'nick': message.author.display_name,
+                'last_nick_change': datetime.date(datetime.now()).__str__(),
+                'mon': 0,
+                'tue': 0,
+                'wed': 0,
+                'thu': 0,
+                'fri': 0,
+                'sat': 0,
+                'sun': 0,
+                'counter': 1,
+                'last_message_date': datetime.date(datetime.now()).__str__(),
+                'violations_count': 0,
+                'last_violation_count': None,
+                'active': False,
+                'expiration': None
             }
             prev_dict[message.author.id] = afler
         shared_functions.update_json_file(prev_dict, 'aflers.json')

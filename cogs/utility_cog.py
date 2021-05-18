@@ -57,11 +57,11 @@ class UtilityCog(commands.Cog, name='Utility'):
             color=member.top_role.color
         )
         status.set_thumbnail(url=member.avatar_url)
-        if item["last_message_date"] is None:
+        if item['last_message_date'] is None:
             status.add_field(name='Messaggi ultimi 7 giorni:', value='0', inline=False)
         else:
             status.add_field(name='Messaggi ultimi 7 giorni:', value=str(shared_functions.count_messages(item)) +
-                ' (ultimo il ' + item["last_message_date"] + ')', inline=False)
+                ' (ultimo il ' + item['last_message_date'] + ')', inline=False)
         is_a_mod = False
         for role in member.roles:
             if role.id in Config.config['moderation_roles_id']:
@@ -69,16 +69,16 @@ class UtilityCog(commands.Cog, name='Utility'):
                 status.add_field(name='Ruolo:', value=role.name, inline=False)
                 break
         if not is_a_mod:
-            if not item["active"]:
+            if not item['active']:
                 status.add_field(name='Attivo:', value='no', inline=False)
             else:
-                status.add_field(name='Attivo:', value='sì (scade il ' + item["expiration"] + ')', inline=False)
-        if item["violations_count"] == 0:
+                status.add_field(name='Attivo:', value='sì (scade il ' + item['expiration'] + ')', inline=False)
+        if item['violations_count'] == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
-            violations_expiration = datetime.date(datetime.strptime(item["last_violation_count"], '%Y-%m-%d') +
-                timedelta(days=Config.config["violations_reset_days"])).__str__()
-            status.add_field(name='Violazioni:', value=str(item["violations_count"]) +
+            violations_expiration = datetime.date(datetime.strptime(item['last_violation_count'], '%Y-%m-%d') +
+                timedelta(days=Config.config['violations_reset_days'])).__str__()
+            status.add_field(name='Violazioni:', value=str(item['violations_count']) +
                 ' (scade il ' + violations_expiration + ')', inline=False)
         await ctx.send(embed=status)
 

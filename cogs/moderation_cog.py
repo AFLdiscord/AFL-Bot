@@ -62,7 +62,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         if attempted_member is None:   #nessun argomento passato al warn
             if ctx.message.reference is None:
                 #sono in questo caso quando mando <warn da solo
-                await ctx.send("Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando", delete_after=5)
+                await ctx.send('Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando', delete_after=5)
                 return
             #in questo caso ho risposto a un messaggio con <warn
             msg = await ctx.fetch_message(ctx.message.reference.message_id)
@@ -70,7 +70,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             await msg.delete()
         else:   #con argomenti al warn
             if not ctx.message.mentions:   #nessuna menzione nel messaggio
-                await ctx.send("Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando", delete_after=5)
+                await ctx.send('Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando', delete_after=5)
                 return
             if ctx.message.reference is None:
                 #ho chiamato il warn a mano <warn @somebody ragione
@@ -129,7 +129,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         for user in prev_dict:
             name = self.bot.get_guild(Config.config['guild_id']).get_member(int(user)).display_name
             item = prev_dict[user]
-            count = str(item["violations_count"])
+            count = str(item['violations_count'])
             msg = name + ': ' + count + ' warn\n'
             warnc += msg
         await ctx.send(warnc)
@@ -170,23 +170,23 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         key = str(member.id)
         if key in prev_dict:
             data = prev_dict[key]
-            data["violations_count"] += number
-            data["last_violation_count"] = datetime.date(datetime.now()).__str__()
+            data['violations_count'] += number
+            data['last_violation_count'] = datetime.date(datetime.now()).__str__()
             shared_functions.update_json_file(prev_dict, 'aflers.json')
-            if data["violations_count"] <= 0:
-                data["violations_count"] = 0
-                data["last_violation_count"] = None
+            if data['violations_count'] <= 0:
+                data['violations_count'] = 0
+                data['last_violation_count'] = None
                 shared_functions.update_json_file(prev_dict, 'aflers.json')
                 return
             if number < 0:  #non deve controllare se è un unwarn
                 return
-            if data["violations_count"] == 3:
+            if data['violations_count'] == 3:
                 await member.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['under_surveillance_id']))
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
                 shared_functions.update_json_file(prev_dict, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-            elif data["violations_count"] >= 4:
+            elif data['violations_count'] >= 4:
                 penalty = 'bannato dal server.'
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
@@ -201,21 +201,21 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             if number < 0:
                 return
             afler = {
-                "nick": member.display_name,
-                "last_nick_change": datetime.date(datetime.now()).__str__(),
-                "mon": 0,
-                "tue": 0,
-                "wed": 0,
-                "thu": 0,
-                "fri": 0,
-                "sat": 0,
-                "sun": 0,
-                "counter": 0,
-                "last_message_date": None,
-                "violations_count": number,
-                "last_violation_count": datetime.date(datetime.now()).__str__(),
-                "active": False,
-                "expiration": None
+                'nick': member.display_name,
+                'last_nick_change': datetime.date(datetime.now()).__str__(),
+                'mon': 0,
+                'tue': 0,
+                'wed': 0,
+                'thu': 0,
+                'fri': 0,
+                'sat': 0,
+                'sun': 0,
+                'counter': 0,
+                'last_message_date': None,
+                'violations_count': number,
+                'last_violation_count': datetime.date(datetime.now()).__str__(),
+                'active': False,
+                'expiration': None
             }
             prev_dict[key] = afler
             shared_functions.update_json_file(prev_dict, 'aflers.json')

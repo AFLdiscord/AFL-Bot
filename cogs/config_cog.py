@@ -32,7 +32,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         Esempio:
         <blackadd seistupido   #aggiunge seistupido all'elenco
         il controllo delle parole è poi in grado di capire quali messaggi la contengono
-        es. "sei stupido"  "s3i stupid0" vengono tutte rilevate.
+        es. 'sei stupido'  's3i stupid0' vengono tutte rilevate.
 
         Sintassi:
         <blackadd word           #aggiunge 'word' all'elenco
