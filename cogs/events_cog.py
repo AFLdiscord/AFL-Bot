@@ -83,7 +83,13 @@ class EventCog(commands.Cog):
             await message.author.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['afl_role_id']))
             await message.channel.send('Formidabile')
             channel = self.bot.get_channel(Config.config['welcome_channel_id'])
-            await channel.send('Diamo il benvenuto a <@!' + str(message.author.id) + '>!\nPresentazione:\n' + message.content)
+            welcomeMessage = discord.Embed(
+                title=f'Diamo il benvenuto a {message.author.display_name}!',
+                colour=discord.Colour.dark_theme().value
+            )
+            welcomeMessage.set_thumbnail(url=message.author.avatar_url)
+            welcomeMessage.add_field(name='Presentazione:', value=message.content, inline=False)
+            await channel.send(embed=welcomeMessage)
             return
         link = shared_functions.link_to_clean(message.content)
         if link is not None:
