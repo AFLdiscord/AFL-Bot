@@ -1,12 +1,12 @@
 """Questo script non fa parte del bot ma serve per manipolare
-l'archivio aflers.json in caso servisse aggiungere dei campi a
-ogni entry e inizializzarli a un valore di default.
+l'archivio aflers.json in caso servisse aggiungere o rimuovere dei campi.
 Per il momento è pensato per essere un componente indipendente
 in futuro potrebbe essere integrato direttamente nel bot e usabile
-tramite comandi
+tramite comandi.
 """
 
 import json
+from copy import deepcopy
 from typing import Optional
 from shared_functions import update_json_file
 
@@ -21,16 +21,18 @@ class JsonManipulator():
     Methods
     -------------
     add_and_initialize_field(field_name, default_value) aggiunge nuovo campo e lo inizializza
+    delete_field(field_name)  rimuove un campo dall'archivio
     save() salva le modifiche nel file aflers
     discard() cancella tutte le modifiche fatte
     print_changes() stampa il nuovo archivio con le modifiche
     """
     def __init__(self) -> None:
         self.file_name = '../aflers.json'
+        self.backup_old = '../aflers.json.old'
         self.old_archive = {}
         self.new_archive = {}
         self._load()
-        self.new_archive = self.old_archive
+        self.new_archive = deepcopy(self.old_archive)
 
     def _load(self) -> None:
         try:
@@ -39,54 +41,89 @@ class JsonManipulator():
         except (FileNotFoundError, json.decoder.JSONDecodeError):
             raise Exception("Impossibile trovare il file")
 
-    def add_and_initialize_field(self, field_name: str, default_value: Optional[str]=None) -> None:
+    def add_and_initialize_field(self, field_name: str, default_value: Optional[str]=None) -> bool:
         """Aggiunge a ogni entry il nuovo campo `field_name` e lo inizializza
         al valore passato `default_value` che può essere anche None.
 
         :param field_name: nome del campo da aggiungere
         :param default_value: valore di inizializzazione
+        :returns: se il campo è stato aggiunto
+        :rtype: bool
         """
         for afler in self.new_archive.values():
             if field_name in afler:
-                print("Campo già presente")
-                break
+                return False
             afler[field_name] = default_value
+        return True
+
+    def delete_field(self, field_name: str) -> bool:
+        """Rimuove un campo da tutte le entry del file. Se non esiste
+        non fa nulla e ritorna falso.
+
+        :returns:  se il campo è stato rimosso
+        :rtype: bool
+        """
+        for afler in self.new_archive.values():
+            if field_name not in afler:
+                return False
+            del afler[field_name]
+        return True
 
     def save(self) -> None:
-        """Sovrascrive il vecchio file aflers.json con le modifiche fatte."""
-        with open('../aflers.json','w') as file:
+        """Sovrascrive il vecchio file aflers.json con le modifiche fatte.
+        Il vecchio archivio viene salvato in afler.json.old
+        """
+        with open(self.file_name,'w') as file:
             update_json_file(self.new_archive, self.file_name)
+        with open(self.backup_old, 'w') as file:
+            update_json_file(self.old_archive, self.backup_old)
 
     def discard(self) -> None:
         """Annulla le modifiche fatte finora sul nuovo archivio."""
-        self.new_archive = self.old_archive
+        self.new_archive = deepcopy(self.old_archive)
 
     def print_changes(self) -> None:
-        """Stampa l'archivio modificato"""
-        print(self.new_archive)
+        """Stampa una entry dell'archivio per osservare le modifiche."""
+        sample_entry = self.new_archive[list(self.new_archive)[0]]
+        for key in sample_entry:
+            print(str(key) + ' : ' + str(sample_entry[key]))
 
-def add(archive: JsonManipulator):
+def add(archive: JsonManipulator) -> None:
     """Chiede in input il nome del nuovo campo e il valore di default."""
     field_name = input("Nome campo: ")
     default_value = input("Valore di default: ")
     if default_value.lower() == 'none':
         default_value = None
-    archive.add_and_initialize_field(field_name, default_value)
-    print('Nuovo campo aggiunto')
+    if archive.add_and_initialize_field(field_name, default_value):
+        print('Nuovo campo aggiunto.')
+    else:
+        print('Campo già esistente.')
 
-def save(archive: JsonManipulator):
+def delete(archive: JsonManipulator) -> None:
+    """Chiede in input il nome del campo da cancellare"""
+    field_name = input("Nome campo: ")
+    if archive.delete_field(field_name):
+        print('Campo eliminato.')
+    else:
+        print('Il campo passato non esiste.')
+
+def save(archive: JsonManipulator) -> None:
     archive.save()
     print('Modifiche salvate correttamente.')
 
-def discard(archive: JsonManipulator):
+def discard(archive: JsonManipulator) -> None:
     archive.discard()
-    print('Scartate tutte le modifiche')
+    print('Scartate tutte le modifiche.')
 
-def print_changes(archive: JsonManipulator):
+def print_changes(archive: JsonManipulator) -> None:
     archive.print_changes()
 
-def end(archive: JsonManipulator):
+def save_and_exit(archive: JsonManipulator) -> None:
     archive.save()
+    exit(0)
+
+def discard_and_exit(archive: JsonManipulator) -> None:
+    archive.discard()
     exit(0)
 
 def main():
@@ -98,21 +135,32 @@ def main():
     print('Archivio caricato.')
     commands = {
         1 : add,
-        2 : save,
-        3 : discard,
-        4 : print_changes,
-        5 : end
+        2 : delete,
+        3 : save,
+        4 : discard,
+        5 : print_changes,
+        6 : save_and_exit,
+        7 : discard_and_exit
     }
     while(True):
-        selection = int(input('''Inserisci il numero corrispondente
+        selection = input('''Inserisci il numero corrispondente
             1 : add  aggiunge un campo all'archivio
-            2 : save  salva le modifiche
-            3 : discard  cancella le modifiche
-            4 : print  stampa il file con le modifiche fatte
-            5 : end  salva ed esce
-        '''))
+            2 : delete  cancella un campo dall'archivio
+            3 : save  salva le modifiche
+            4 : discard  cancella le modifiche
+            5 : print  stampa il file con le modifiche fatte
+            6 : save and exit  salva ed esce
+            7 : discard and exit
+        ''')
+        try:
+            selection = int(selection)
+        except ValueError as e:
+            print('Comando non valido.')
+            continue
         if selection in commands:
             commands[selection](archive)
+        else:
+            print('Comando non valido.')
 
 if __name__ == '__main__':
     main()

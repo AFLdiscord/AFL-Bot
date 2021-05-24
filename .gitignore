@@ -1,6 +1,7 @@
 .env
 .vscode
 aflers.json
+aflers.json.old
 banned_words.json
 config.json
 proposals.json
