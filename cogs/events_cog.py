@@ -354,9 +354,9 @@ class EventCog(commands.Cog):
         Per ora si limita a avvisare che le menzioni possono dare problemi con certi prefissi e a
         loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro"""
         if isinstance(error, commands.CommandNotFound):
-            print('comando non trovato (se hai prefisso < ogni menzione a inizio messaggio da questo errore)')
-            await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
-            await ctx.send_help()   #manda tutti i comandi, necessario se ci sono più pagine
+            if not ctx.message.content.startswith('<@!'):
+                await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
+                await ctx.send_help()   #manda tutti i comandi, necessario se ci sono più pagine
         elif isinstance(error, commands.CheckFailure):
             await ctx.send('Non hai i permessi per usare questo comando.', delete_after=5)
             await ctx.message.delete(delay=5)
