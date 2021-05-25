@@ -355,11 +355,14 @@ class EventCog(commands.Cog):
         loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro"""
         if isinstance(error, commands.CommandNotFound):
             print('comando non trovato (se hai prefisso < ogni menzione a inizio messaggio da questo errore)')
+            await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
+            await ctx.send_help()   #manda tutti i comandi, necessario se ci sono più pagine
         elif isinstance(error, commands.CheckFailure):
-            await ctx.send('non hai i permessi per usare questo comando', delete_after=5)
+            await ctx.send('Non hai i permessi per usare questo comando.', delete_after=5)
             await ctx.message.delete(delay=5)
         else:
-            await ctx.send('Sintassi errata, controlla come usare il comando con "<help *nome_comando*"')
+            await ctx.send('Sintassi errata, controlla come usare il comando.\n' + '```' + ctx.command.help + '```')
+            #potrei fare la stessa cosa mettendo ctx.send_help(ctx.command.help) ma volevo un messaggio solo
         print(error)
 
     @commands.Cog.listener()

@@ -165,7 +165,8 @@ class UtilityCog(commands.Cog, name='Utility'):
 
     @commands.command(brief='ritorna la bio dell\'utente citato')
     async def bio(self, ctx, user: discord.User = None):
-        """Ritorna la propria bio o quella dell'utente citato.
+        """Ritorna la propria bio o quella dell'utente citato. Usare
+        <setbio per impostare la propria bio
 
         Sintassi:
         <bio               #ritorna la propria bio
