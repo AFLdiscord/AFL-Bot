@@ -196,6 +196,7 @@ class Config():
         Config.config['under_surveillance_id'] = int(data['under_surveillance_id'])
         Config.config['violations_reset_days'] = data['violations_reset_days']
         Config.config['nick_change_days'] = data['nick_change_days']
+        Config.config['bio_length_limit'] = data['bio_length_limit']
         Config.config['greetings'] = data['greetings']
 
 def update_json_file(data, json_file: str) -> None:

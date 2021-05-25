@@ -18,5 +18,6 @@
     "under_surveillance_id": id del ruolo sotto sorveglianza (vedi regole),
     "violations_reset_days": tempo dopo cui si resettano le violazioni in giorni,
     "nick_change_days": giorni concessi tra un cambio di nickname e l'altro (0 nessun limite),
+    "bio_length_limit": massimo numero di caratteri per la bio,
     "greetings": "Benvenuto/a sul server discord AFL!\nPrima di iniziare a partecipare nel server presentati nel canale richiesta di afl indicando almeno\n- sesso\n- eta'\nTi invitiamo a leggere attentamente il regolamento del server, reperibile sul canale regole.\nPer chiarimenti rivolgiti pure ai moderatori.\nBuona permanenza!"
 }

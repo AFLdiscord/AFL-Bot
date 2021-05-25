@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
+from discord.ext.commands.core import command
 from utils import shared_functions
 from utils.shared_functions import Config, BannedWords
 
@@ -12,6 +13,8 @@ class UtilityCog(commands.Cog, name='Utility'):
     - status ritorna lo status del membro citato
     - avatar ritorna la foto profilo dell'utente citato
     - setnick permette di cambiare nickname periodicamente
+    - setbio imposta la propria bio
+    - bio ritorna la bio dell'utente citato
     """
     def __init__(self, bot):
         self.bot = bot
@@ -103,7 +106,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         avatar.set_image(url=user.avatar_url)
         await ctx.send(embed=avatar)
 
-    @commands.command(brief='permette di cambiare nickname periodicamente')
+    @commands.command(brief='permette di cambiare nickname periodicamente', hidden=True)
     async def setnick(self, ctx, *, new_nick: str):
         """Permette di cambiare il proprio nickname periodicamente. La frequenza con
         cui è possibile farlo è definita nel config.
@@ -134,6 +137,54 @@ class UtilityCog(commands.Cog, name='Utility'):
             renewal = last_change + timedelta(days=Config.config['nick_change_days'])
             days_until_renewal = renewal - datetime.date(datetime.now())
             await ctx.send('Prossimo cambio tra ' + str(days_until_renewal.days) + ' giorni')
+
+    @commands.command(brief='imposta la propria bio')
+    async def setbio(self, ctx, *, bio: str):
+        """Permette di impostare una biografia visibile agli altri membri.
+        Non sono ovviamente ammesse parole vietate e gli admin si riservano il
+        diritto di editare quelle ritenute offensive.
+
+        Sintassi:
+        <setbio mia bio    #imposta *mia bio* come bio
+        """
+        if len(bio) > Config.config['bio_length_limit']:
+            await ctx.send('Bio troppo lunga, il limite è ' + str(Config.config['bio_length_limit']) + ' caratteri.')
+            return
+        if BannedWords.contains_banned_words(bio):
+            return
+        with open('aflers.json', 'r') as file:
+            prev_dict = json.load(file)
+        try:
+            data = prev_dict[str(ctx.author.id)]
+        except KeyError:
+            await ctx.send('Non tovato nel file :(', delete_after=5)
+            return
+        data['bio'] = bio
+        shared_functions.update_json_file(prev_dict, 'aflers.json')
+        await ctx.send('Bio aggiunta correttamente.')
+
+    @commands.command(brief='ritorna la bio dell\'utente citato')
+    async def bio(self, ctx, user: discord.User = None):
+        """Ritorna la propria bio o quella dell'utente citato.
+
+        Sintassi:
+        <bio               #ritorna la propria bio
+        <bio @someone      #ritorna la bio di *someone*, se presente
+        """
+        if user is None:
+            user = ctx.author
+        with open('aflers.json', 'r') as file:
+            prev_dict = json.load(file)
+        try:
+            data = prev_dict[str(user.id)]
+        except KeyError:
+            await ctx.send('Non tovato nel file :(', delete_after=5)
+            return
+        if data['bio'] is None:
+            await ctx.send('L\'utente selezionato non ha una bio.')
+        else:
+            await ctx.send('Bio di ' + data['nick'] + '\n' + data['bio'])
+
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
