@@ -2,7 +2,7 @@
 import json
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import BannedWords, Config
+from utils.shared_functions import BannedWords, Config, update_json_file
 
 class ConfigCog(commands.Cog, name='Configurazione'):
     """Contiene i comandi di configurazione del bot:
@@ -73,15 +73,19 @@ class ConfigCog(commands.Cog, name='Configurazione'):
 
     @commands.command(brief='cambia il prefisso del bot')
     async def setprefix(self, ctx, prefix):
-        """Imposta prefix come nuovo prefisso del bot. Se si vuole
-        cambiare il prefisso permanentemente aggiornare il file di configurazione
-        config.json e ricaricare i parametri col comando apposito
+        """Imposta prefix come nuovo prefisso del bot. Viene memorizzato
+        anche nella configurazione del bot e mantenuto in caso di riavvio.
 
         Sintassi:
         <setprefix ?     #imposta '?' come nuovo prefisso
         """
         self.bot.command_prefix = prefix
         await ctx.send(f'Prefisso cambiato in ``{prefix}``')
+        Config.config['current_prefix'] = prefix
+        with open('config.json', 'r') as file:
+            data = json.load(file)
+        data['current_prefix'] = prefix
+        update_json_file(data, 'config.json')
 
     @commands.command(brief='aggiorna la configurazione del bot')
     async def updateconfig(self, ctx):
