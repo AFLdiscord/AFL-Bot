@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
-from discord.ext.commands.core import command
 from utils import shared_functions
 from utils.shared_functions import Config, BannedWords
 
@@ -164,7 +163,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send('Bio aggiunta correttamente.')
 
     @commands.command(brief='ritorna la bio dell\'utente citato')
-    async def bio(self, ctx, user: discord.User = None):
+    async def bio(self, ctx, member: discord.Member = None):
         """Ritorna la propria bio o quella dell'utente citato. Usare
         <setbio per impostare la propria bio
 
@@ -172,19 +171,24 @@ class UtilityCog(commands.Cog, name='Utility'):
         <bio               #ritorna la propria bio
         <bio @someone      #ritorna la bio di *someone*, se presente
         """
-        if user is None:
-            user = ctx.author
+        if member is None:
+            member = ctx.author
         with open('aflers.json', 'r') as file:
             prev_dict = json.load(file)
         try:
-            data = prev_dict[str(user.id)]
+            data = prev_dict[str(member.id)]
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
         if data['bio'] is None:
             await ctx.send('L\'utente selezionato non ha una bio.')
         else:
-            await ctx.send('Bio di ' + data['nick'] + '\n' + data['bio'])
+            bio = discord.Embed(
+                title='Bio di ' + member.display_name,
+                description=data['bio'],
+                color=member.top_role.color
+            )
+            await ctx.send(embed=bio)
 
 
 def setup(bot):
