@@ -354,7 +354,8 @@ class EventCog(commands.Cog):
         Per ora si limita a avvisare che le menzioni possono dare problemi con certi prefissi e a
         loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro"""
         if isinstance(error, commands.CommandNotFound):
-            if not ctx.message.content.startswith('<@'):
+            if not (ctx.message.content.startswith('<@') or ctx.message.content.startswith('<#') or  ctx.message.content.startswith('<:')):
+                #tutto ciò serve per non triggerare l'invio dell'help su menzioni, nomi di canali e emoji custom se il prefisso è '<'
                 await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
                 await ctx.send_help()   #manda tutti i comandi, necessario se ci sono più pagine
         elif isinstance(error, commands.CheckFailure):
