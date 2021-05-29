@@ -9,6 +9,7 @@ from utils.shared_functions import BannedWords, Config
 
 class ModerationCog(commands.Cog, name='Moderazione'):
     """Contiene i comandi relativi alla moderazione:
+    - resetnick  reimposta il nickname dell'utente citato
     - warn       aggiunge un warn all'utente citato
     - unwarn     rimuove un warn all'utente citato
     - ban        banna l'utente citato
@@ -37,6 +38,50 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             await message.delete()
             await self._add_warn(message.author, 'linguaggio inappropriato', 1)
+
+    @commands.command(brief='reimposta il nickname dell\'utente citato')
+    async def resetnick(self, ctx, attempted_member=None, *, name: str=None):
+        """Reimposta il nickname di un membro se questo non è opportuno per il server
+        e i controlli automatici non sono bastati a filtrarlo. Questo permette di mantenere
+        il reset automatico per i nickname in caso di cambiamento impedendo i reset manuali.
+
+        Sintassi:
+        <resetnick @someone nuovo_nome  #resetta il nick di someone a nuovo_nome
+          @someone messaggio citato
+        <resetnick nuovo_nome           #si può anche citare un messaggio dell'interessato
+        """
+        if attempted_member is None:
+            raise commands.CommandError   #il messaggio di errore adesso è centralizzato
+        else:
+            #recupero il membro e resetto il nick
+            if ctx.message.reference is None:
+                #tramite menzione nel messaggio, se presente
+                if ctx.message.mentions is None:
+                    raise commands.CommandError  #nessuna menzione
+                member = ctx.message.mentions[0]
+                if name is None:
+                    raise commands.CommandError
+            else:
+                #tramite messaggio citato
+                msg = await ctx.fetch_message(ctx.message.reference.message_id)
+                member = msg.author
+                if name is None:
+                    name = attempted_member
+                else:
+                    name = attempted_member + ' ' + name
+        if member.bot:
+            return
+        with open('aflers.json', 'r') as file:
+            prev_dict = json.load(file)
+        try:
+            data = prev_dict[str(ctx.author.id)]
+        except KeyError:
+            await ctx.send('Non tovato nel file :(', delete_after=5)
+            return
+        data['nick'] = name
+        shared_functions.update_json_file(prev_dict, 'aflers.json')
+        await member.edit(nick=name)
+        await ctx.send('Nickname di ' + member.mention + ' ripristinato')
 
     @commands.command(brief='aggiunge un warn all\'utente citato')
     async def warn(self, ctx, attempted_member=None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
