@@ -354,7 +354,7 @@ class EventCog(commands.Cog):
         Per ora si limita a avvisare che le menzioni possono dare problemi con certi prefissi e a
         loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro"""
         if isinstance(error, commands.CommandNotFound):
-            if not (ctx.message.content.startswith('<@') or ctx.message.content.startswith('<#') or  ctx.message.content.startswith('<:')):
+            if not emoji_or_mention(ctx.message.content):
                 #tutto ciò serve per non triggerare l'invio dell'help su menzioni, nomi di canali e emoji custom se il prefisso è '<'
                 await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
                 await ctx.send_help()   #manda tutti i comandi, necessario se ci sono più pagine
@@ -635,6 +635,28 @@ def calculate_threshold(active_count: int) -> int:
     :rtype: int
     """
     return int(active_count / 2) + 1
+
+def emoji_or_mention(content: str) -> bool:
+    """Controlla se la stringa riconosciuta come comando è in realtà un'emoji o
+    una menzione a canali/membri. Serve solo a gestire i conflitti in caso il
+    prefisso del bot sia settato a '<'.
+
+    Conflitti noti:
+    <@!id> -> menzione membri
+    <#id> -> menzione canali
+    <:id> -> emoji
+    <a:id> -> emoji animate
+
+    :param content: comando che ha dato errore
+
+    :returns: se rappresenta una menzione o emoji
+    :rtype: bool
+    """
+    if (content.startswith('<@') or content.startswith('<#') or
+        content.startswith('<:') or content.startswith('<a:')):
+        return True
+    else:
+        return False
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
