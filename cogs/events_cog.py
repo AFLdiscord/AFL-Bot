@@ -309,7 +309,8 @@ class EventCog(commands.Cog):
                         'violations_count': 0,
                         'last_violation_count': None,
                         'active': False,
-                        'expiration': None
+                        'expiration': None,
+                        'bio': None
                     }
                     prev_dict[before.id] = afler
                     shared_functions.update_json_file(prev_dict, 'aflers.json')
@@ -572,7 +573,8 @@ def update_counter(message: discord.Message) -> None:
                 'violations_count': 0,
                 'last_violation_count': None,
                 'active': False,
-                'expiration': None
+                'expiration': None,
+                'bio': None
             }
             prev_dict[message.author.id] = afler
         shared_functions.update_json_file(prev_dict, 'aflers.json')

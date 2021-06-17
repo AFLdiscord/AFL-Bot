@@ -260,7 +260,8 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 'violations_count': number,
                 'last_violation_count': datetime.date(datetime.now()).__str__(),
                 'active': False,
-                'expiration': None
+                'expiration': None,
+                'bio': None
             }
             prev_dict[key] = afler
             shared_functions.update_json_file(prev_dict, 'aflers.json')
