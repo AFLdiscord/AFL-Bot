@@ -117,6 +117,9 @@ class UtilityCog(commands.Cog, name='Utility'):
         if BannedWords.contains_banned_words(new_nick):
             await ctx.send('Il nickname non può contenere parole offensive')
             return
+        if len(new_nick) > 32:
+            await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
+            return
         with open('aflers.json', 'r') as file:
             prev_dict = json.load(file)
         try:
