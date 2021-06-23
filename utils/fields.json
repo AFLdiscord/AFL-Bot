@@ -1,0 +1,18 @@
+[
+    "nick",
+    "last_nick_change",
+    "mon",
+    "tue",
+    "wed",
+    "thu",
+    "fri",
+    "sat",
+    "sun",
+    "counter",
+    "last_message_date",
+    "violations_count",
+    "last_violation_count",
+    "active",
+    "expiration",
+    "bio"
+]

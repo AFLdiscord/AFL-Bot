@@ -6,6 +6,7 @@ tramite comandi.
 """
 
 import json
+import os
 from copy import deepcopy
 from typing import Optional
 from shared_functions import update_json_file
@@ -27,8 +28,10 @@ class JsonManipulator():
     print_changes() stampa il nuovo archivio con le modifiche
     """
     def __init__(self) -> None:
-        self.file_name = '../aflers.json'
-        self.backup_old = '../aflers.json.old'
+        self.file_name = 'aflers.json'
+        self.backup_old = 'aflers.json.old'
+        self.fields = 'utils/fields.json'
+        self.field_set = set()
         self.old_archive = {}
         self.new_archive = {}
         self._load()
@@ -38,6 +41,8 @@ class JsonManipulator():
         try:
             with open(self.file_name,'r') as file:
                 self.old_archive = json.load(file)
+            with open(os.path.join(os.getcwd(), self.fields), 'r') as file:
+                self.field_set = set(json.load(file))
         except (FileNotFoundError, json.decoder.JSONDecodeError):
             raise Exception("Impossibile trovare il file")
 
@@ -88,6 +93,32 @@ class JsonManipulator():
         for key in sample_entry:
             print(str(key) + ' : ' + str(sample_entry[key]))
 
+    def check_integrity(self) -> bool:
+        """Controlla che tutte le entry nel file abbiano tutti i campi. L'elenco dei campi è
+        contenuto nel file fields.json.
+        Utile per verificare di non fare casino in caso di modifiche veloci a mano del file.
+        L'esito viene stamapato a video, specificando i campi sbagliati in caso di errori e
+        ritorna un booleano per indicare se il file è coerente o meno.
+        """
+        correct = True
+        for key in self.old_archive:
+            entry = set(self.old_archive[key].keys())
+            missing_fields = self.field_set.difference(entry)
+            extra_fields = entry.difference(self.field_set)
+            print('Entry ' + str(key))
+            if len(missing_fields) != 0:
+                print('Campi mancanti ' + str(missing_fields))
+                correct = False
+            if len(extra_fields) != 0:
+                print('Campi extra: ' + str(extra_fields))
+                correct = False
+            if len(extra_fields) == 0 and len(missing_fields) == 0:
+                print('Nessun errore con l\'entry ' + str(key))
+            missing_fields = set()
+            extra_fields = set()
+        return correct
+
+
 def add(archive: JsonManipulator) -> None:
     """Chiede in input il nome del nuovo campo e il valore di default."""
     field_name = input("Nome campo: ")
@@ -118,6 +149,10 @@ def discard(archive: JsonManipulator) -> None:
 def print_changes(archive: JsonManipulator) -> None:
     archive.print_changes()
 
+def check_integrity(archive: JsonManipulator) -> None:
+    if(archive.check_integrity()):
+        print('Non sono stati rilevati errori nell\'archivio.')
+
 def save_and_exit(archive: JsonManipulator) -> None:
     archive.save()
     exit(0)
@@ -139,8 +174,9 @@ def main():
         3 : save,
         4 : discard,
         5 : print_changes,
-        6 : save_and_exit,
-        7 : discard_and_exit
+        6 : check_integrity,
+        7 : save_and_exit,
+        8 : discard_and_exit
     }
     while(True):
         selection = input('''Inserisci il numero corrispondente
@@ -149,8 +185,9 @@ def main():
             3 : save  salva le modifiche
             4 : discard  cancella le modifiche
             5 : print  stampa il file con le modifiche fatte
-            6 : save and exit  salva ed esce
-            7 : discard and exit
+            6 : check  stampa a video se ci sono incongruenze nel file
+            7 : save and exit  salva ed esce
+            8 : discard and exit
         ''')
         try:
             selection = int(selection)
