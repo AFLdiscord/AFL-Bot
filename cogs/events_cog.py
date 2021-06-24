@@ -333,7 +333,10 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_user_update(self, before, after):
-        """In caso di cambio di username, resetta il nickname a quello presente nel file"""
+        """In caso di cambio di username, resetta il nickname a quello presente nel file."""
+        if (before.name == after.name) and (before.discriminator == after.discriminator):
+            #non ci interessa, vuol dire che ha cambiato immagine
+            return
         try:
             with open('aflers.json', 'r') as file:
                 prev_dict = json.load(file)
@@ -353,7 +356,7 @@ class EventCog(commands.Cog):
     async def on_command_error(self, ctx, error):
         """Generica gestione errori per evitare crash del bot in caso di eccezioni nei comandi.
         Per ora si limita a avvisare che le menzioni possono dare problemi con certi prefissi e a
-        loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro"""
+        loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro."""
         if isinstance(error, commands.CommandNotFound):
             if not emoji_or_mention(ctx.message.content):
                 #tutto ciò serve per non triggerare l'invio dell'help su menzioni, nomi di canali e emoji custom se il prefisso è '<'
