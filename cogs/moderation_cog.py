@@ -74,7 +74,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         with open('aflers.json', 'r') as file:
             prev_dict = json.load(file)
         try:
-            data = prev_dict[str(ctx.author.id)]
+            data = prev_dict[str(member.id)]
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
