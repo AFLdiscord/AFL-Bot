@@ -27,6 +27,31 @@ weekdays = {
     6: 'sun'
 }
 
+#archivio con i dati
+class Archive():
+    """Gestione dell'archivio con i dati riguardo i messaggi inviati.
+    L'idea è di tenerlo in memoria invece di aprire il file a ogni modifica.
+
+    Attributes
+    -------------
+    archive: Dict[] attributo di classe, contiene l'archivio caricato
+
+    Methods
+    -------------
+    load_archive()   carica il contenuto del file nell'attributo di classe
+    """
+    archive = {}
+
+    @staticmethod
+    def load_archive():
+        """Carica l'archivio da file e lo salva in archive. Se non esiste lo crea vuoto."""
+        try:
+            with open('aflers.json', 'r') as file:
+                Archive.archive = json.load(file)
+        except FileNotFoundError:
+            with open('aflers.json','w+') as file:
+                Archive.archive = {}
+
 class BannedWords():
     """Gestione delle parole bannate. In particolare si occupa di caricare la lista dal rispettivo
     file banned_words.json che si aspetta di trovare nella stessa cartella del bot. L'elenco è

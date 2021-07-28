@@ -5,7 +5,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import BannedWords, Config
+from utils.shared_functions import Archive, BannedWords, Config
 
 class ModerationCog(commands.Cog, name='Moderazione'):
     """Contiene i comandi relativi alla moderazione:
@@ -19,6 +19,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
     """
     def __init__(self, bot):
         self.bot = bot
+        self.archive = Archive.archive
 
     def cog_check(self, ctx):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""
@@ -71,15 +72,13 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                     name = attempted_member + ' ' + name
         if member.bot:
             return
-        with open('aflers.json', 'r') as file:
-            prev_dict = json.load(file)
         try:
-            data = prev_dict[str(member.id)]
+            data = self.archive[str(member.id)]
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
         data['nick'] = name
-        shared_functions.update_json_file(prev_dict, 'aflers.json')
+        shared_functions.update_json_file(self.archive, 'aflers.json')
         await member.edit(nick=name)
         await ctx.send('Nickname di ' + member.mention + ' ripristinato')
 
@@ -163,20 +162,15 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         <warncount
         alias: warnc, wc
         """
-        try:
-            with open('aflers.json','r') as file:
-                prev_dict = json.load(file)
-        except FileNotFoundError:
-            await ctx.send('nessuna attività registrata', delete_after=5)
-            await ctx.message.delete(delay=5)
-            return
         warnc = ''
-        for user in prev_dict:
+        for user in self.archive:
             name = self.bot.get_guild(Config.config['guild_id']).get_member(int(user)).display_name
-            item = prev_dict[user]
+            item = self.archive[user]
             count = str(item['violations_count'])
             msg = name + ': ' + count + ' warn\n'
             warnc += msg
+        if len(warnc) == 0:
+            warnc = 'Nessuna attività registrata.'
         await ctx.send(warnc)
 
     @commands.command(brief='banna il membro citato')
@@ -203,25 +197,17 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         dell'ultima violazione commessa. Si occupa anche di inviare in dm la notifica
         dell'avvenuta violazione con la ragione che è stata specificata.
         """
-        prev_dict = {}
         penalty = 'warnato.'
-        try:
-            with open('aflers.json','r') as file:
-                prev_dict = json.load(file)
-        except FileNotFoundError:
-            print('file non trovato, lo creo ora')
-            with open('aflers.json','w+') as file:
-                prev_dict = {}
         key = str(member.id)
-        if key in prev_dict:
-            data = prev_dict[key]
+        if key in self.archive:
+            data = self.archive[key]
             data['violations_count'] += number
             data['last_violation_count'] = datetime.date(datetime.now()).__str__()
-            shared_functions.update_json_file(prev_dict, 'aflers.json')
+            shared_functions.update_json_file(self.archive, 'aflers.json')
             if data['violations_count'] <= 0:
                 data['violations_count'] = 0
                 data['last_violation_count'] = None
-                shared_functions.update_json_file(prev_dict, 'aflers.json')
+                shared_functions.update_json_file(self.archive, 'aflers.json')
                 return
             if number < 0:  #non deve controllare se è un unwarn
                 return
@@ -229,17 +215,17 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 await member.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['under_surveillance_id']))
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
-                shared_functions.update_json_file(prev_dict, 'aflers.json')
+                shared_functions.update_json_file(self.archive, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
             elif data['violations_count'] >= 4:
                 penalty = 'bannato dal server.'
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-                shared_functions.update_json_file(prev_dict, 'aflers.json')
+                shared_functions.update_json_file(self.archive, 'aflers.json')
                 await member.ban(delete_message_days = 0, reason = reason)
             else:
                 channel = await member.create_dm()
-                shared_functions.update_json_file(prev_dict, 'aflers.json')
+                shared_functions.update_json_file(self.archive, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
         else:
             #contatore per ogni giorno per ovviare i problemi discussi nella issue #2
@@ -263,8 +249,8 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 'expiration': None,
                 'bio': None
             }
-            prev_dict[key] = afler
-            shared_functions.update_json_file(prev_dict, 'aflers.json')
+            self.archive[key] = afler
+            shared_functions.update_json_file(self.archive, 'aflers.json')
 
 def setup(bot):
     """Entry point per il caricamento della cog"""

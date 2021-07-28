@@ -19,7 +19,7 @@ import discord
 from discord.ext import commands, tasks
 from discord.flags import MessageFlags
 from utils import shared_functions
-from utils.shared_functions import BannedWords, Config
+from utils.shared_functions import Archive, BannedWords, Config
 
 class EventCog(commands.Cog):
     """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria
@@ -48,6 +48,7 @@ class EventCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.__version__ = 'v0.6.1'
+        self.archive = Archive.archive
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -116,14 +117,9 @@ class EventCog(commands.Cog):
             return
         if not does_it_count(message):
             return
-        try:
-            with open('aflers.json','r') as file:
-                prev_dict = json.load(file)
-        except FileNotFoundError:
-            return
         item = None
         try:
-            item = prev_dict[str(message.author.id)]
+            item = self.archive[str(message.author.id)]
         except KeyError:
             print('utente non presente')
             return
@@ -132,7 +128,7 @@ class EventCog(commands.Cog):
         #il contatore non può ovviamente andare sotto 0
         if item['counter'] != 0:
             item['counter'] -= 1
-            shared_functions.update_json_file(prev_dict, 'aflers.json')
+            shared_functions.update_json_file(self.archive, 'aflers.json')
             print('rimosso un messaggio')
 
     @commands.Cog.listener()
@@ -148,16 +144,11 @@ class EventCog(commands.Cog):
             return
         if not does_it_count(messages[0]):
             return
-        try:
-            with open('aflers.json','r') as file:
-                prev_dict = json.load(file)
-        except FileNotFoundError:
-            return
         counter = 0
         for message in messages:
             item = None
             try:
-                item = prev_dict[str(message.author.id)]
+                item = self.archive[str(message.author.id)]
             except KeyError:
                 print('utente non presente')
                 continue
@@ -168,7 +159,7 @@ class EventCog(commands.Cog):
             if item['counter'] != 0:
                 item['counter'] -= 1
                 counter += 1
-        shared_functions.update_json_file(prev_dict, 'aflers.json')
+        shared_functions.update_json_file(self.archive, 'aflers.json')
         print('rimossi ' + str(counter) + ' messaggi')
 
     @commands.Cog.listener()
@@ -264,14 +255,12 @@ class EventCog(commands.Cog):
         """Rimuove, se presente, l'utente da aflers.json nel momento in cui lascia il server."""
         if member.bot:
             return
-        with open('aflers.json','r') as file:
-            prev_dict = json.load(file)
-            try:
-                del prev_dict[str(member.id)]
-            except KeyError:
-                print('utente non trovato')
-                return
-        shared_functions.update_json_file(prev_dict, 'aflers.json')
+        try:
+            del self.archive[str(member.id)]
+        except KeyError:
+            print('utente non trovato')
+            return
+        shared_functions.update_json_file(self.archive, 'aflers.json')
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
@@ -285,15 +274,7 @@ class EventCog(commands.Cog):
         if afl_role not in before.roles:
             if afl_role in after.roles:
                 #appena diventato AFL, crea entry e salva nickname
-                prev_dict = {}
-                try:
-                    with open('aflers.json','r') as file:
-                        prev_dict = json.load(file)
-                except FileNotFoundError:
-                    print('file non trovato, lo creo ora')
-                    with open('aflers.json','w+') as file:
-                        prev_dict = {}
-                if not str(after.id) in prev_dict:
+                if not str(after.id) in self.archive:
                     afler = {
                         'nick': after.display_name,
                         'last_nick_change': datetime.date(datetime.now()).__str__(),
@@ -312,8 +293,8 @@ class EventCog(commands.Cog):
                         'expiration': None,
                         'bio': None
                     }
-                    prev_dict[before.id] = afler
-                    shared_functions.update_json_file(prev_dict, 'aflers.json')
+                    self.archive[before.id] = afler
+                    shared_functions.update_json_file(self.archive, 'aflers.json')
             else:
                 #non è ancora AFL, libero di cambiare nick a patto che non contenga parole vietate
                 if BannedWords.contains_banned_words(after.display_name):
@@ -322,10 +303,8 @@ class EventCog(commands.Cog):
         else:
             #era già AFL, ripristino il nickname dal file
             if before.display_name != after.display_name:
-                with open('aflers.json','r') as file:
-                    prev_dict = json.load(file)
                 try:
-                    old_nick = prev_dict[str(after.id)]['nick']
+                    old_nick = self.archive[str(after.id)]['nick']
                 except KeyError:
                     old_nick = before.display_name
                 await after.edit(nick=old_nick)
@@ -339,11 +318,11 @@ class EventCog(commands.Cog):
             return
         try:
             with open('aflers.json', 'r') as file:
-                prev_dict = json.load(file)
+                self.archive = json.load(file)
         except FileNotFoundError:
             return
         try:
-            data = prev_dict[str(before.id)]
+            data = self.archive[str(before.id)]
         except KeyError:
             return
         old_nick = data['nick']
@@ -430,14 +409,8 @@ class EventCog(commands.Cog):
                 del proposals[key]
             shared_functions.update_json_file(proposals, 'proposals.json')
         print('controllo conteggio messaggi')
-        try:
-            with open('aflers.json','r') as file:
-                prev_dict = json.load(file)
-        except FileNotFoundError:
-            print('nessun file di messaggi trovato')
-            return
-        for key in prev_dict:
-            item = prev_dict[key]
+        for key in self.archive:
+            item = self.archive[key]
             shared_functions.clean(item)
             count = shared_functions.count_consolidated_messages(item)
             if count >= Config.config['active_threshold'] and self.bot.get_guild(Config.config['guild_id']).get_member(int(key)).top_role.id not in Config.config['moderation_roles_id']:
@@ -472,7 +445,7 @@ class EventCog(commands.Cog):
                     await channel.send('membro <@!' + key + '> non più attivo :(')
                     item['active'] = False
                     item['expiration'] = None
-        shared_functions.update_json_file(prev_dict, 'aflers.json')
+        shared_functions.update_json_file(self.archive, 'aflers.json')
 
 def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
@@ -532,55 +505,46 @@ def update_counter(message: discord.Message) -> None:
     """
     if not does_it_count(message):
         return
-    prev_dict = {}
-    try:
-        with open('aflers.json','r') as file:
-            prev_dict = json.load(file)
-    except FileNotFoundError:
-        print('file non trovato, lo creo ora')
-        with open('aflers.json','w+') as file:
-            prev_dict = {}   #dizionario per permettere di cercare dell'ID facilmente
-    finally:
-        key = str(message.author.id)
-        if key in prev_dict:
-            item = prev_dict[key]
-            if item['last_message_date'] == datetime.date(datetime.now()).__str__():
-                #messaggi dello stesso giorno, continuo a contare
-                item['counter'] += 1
-            elif item['last_message_date'] is None:
-                #primo messaggio della persona
-                item['counter'] = 1
-                item['last_message_date'] = datetime.date(datetime.now()).__str__()
-            else:
-                #è finito il giorno, salva i messaggi di 'counter' nel giorno corrispondente e aggiorna data ultimo messaggio
-                if item['counter'] != 0:
-                    day = shared_functions.weekdays[datetime.date(datetime.strptime(item['last_message_date'], '%Y-%m-%d')).weekday()]
-                    item[day] = item['counter']
-                item['counter'] = 1
-                item['last_message_date'] = datetime.date(datetime.now()).__str__()
+    key = str(message.author.id)
+    if key in Archive.archive:
+        item = Archive.archive[key]
+        if item['last_message_date'] == datetime.date(datetime.now()).__str__():
+            #messaggi dello stesso giorno, continuo a contare
+            item['counter'] += 1
+        elif item['last_message_date'] is None:
+            #primo messaggio della persona
+            item['counter'] = 1
+            item['last_message_date'] = datetime.date(datetime.now()).__str__()
         else:
-            #succede se il file viene cancellato
-            print('membro non presente nel file, aggiungo ora')
-            afler = {
-                'nick': message.author.display_name,
-                'last_nick_change': datetime.date(datetime.now()).__str__(),
-                'mon': 0,
-                'tue': 0,
-                'wed': 0,
-                'thu': 0,
-                'fri': 0,
-                'sat': 0,
-                'sun': 0,
-                'counter': 1,
-                'last_message_date': datetime.date(datetime.now()).__str__(),
-                'violations_count': 0,
-                'last_violation_count': None,
-                'active': False,
-                'expiration': None,
-                'bio': None
-            }
-            prev_dict[message.author.id] = afler
-        shared_functions.update_json_file(prev_dict, 'aflers.json')
+            #è finito il giorno, salva i messaggi di 'counter' nel giorno corrispondente e aggiorna data ultimo messaggio
+            if item['counter'] != 0:
+                day = shared_functions.weekdays[datetime.date(datetime.strptime(item['last_message_date'], '%Y-%m-%d')).weekday()]
+                item[day] = item['counter']
+            item['counter'] = 1
+            item['last_message_date'] = datetime.date(datetime.now()).__str__()
+    else:
+        #succede se il file viene cancellato
+        print('membro non presente nel file, aggiungo ora')
+        afler = {
+            'nick': message.author.display_name,
+            'last_nick_change': datetime.date(datetime.now()).__str__(),
+            'mon': 0,
+            'tue': 0,
+            'wed': 0,
+            'thu': 0,
+            'fri': 0,
+            'sat': 0,
+            'sun': 0,
+            'counter': 1,
+            'last_message_date': datetime.date(datetime.now()).__str__(),
+            'violations_count': 0,
+            'last_violation_count': None,
+            'active': False,
+            'expiration': None,
+            'bio': None
+        }
+        Archive.archive[message.author.id] = afler
+    shared_functions.update_json_file(Archive.archive, 'aflers.json')
 
 
 def does_it_count(message: discord.Message) -> bool:

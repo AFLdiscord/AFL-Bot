@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 from utils import shared_functions
-from utils.shared_functions import BannedWords, Config
+from utils.shared_functions import Archive, BannedWords, Config
 
 #logging di base sul terminale
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +20,8 @@ if not Config.load():
     exit()
 #carica le parole bannate
 BannedWords.load()
+#carica l'archivio dati
+Archive.load_archive()
 
 #per poter ricevere le notifiche sull'unione di nuovi membri e i ban
 intents = discord.Intents.default()

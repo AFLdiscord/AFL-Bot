@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import Config, BannedWords
+from utils.shared_functions import Archive, BannedWords, Config
 
 class UtilityCog(commands.Cog, name='Utility'):
     """Contiene i comandi destinati ad essere usati dagli AFL con funzionalità varie:
@@ -17,6 +17,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     """
     def __init__(self, bot):
         self.bot = bot
+        self.archive = Archive.archive
 
     def cog_check(self, ctx):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
@@ -41,14 +42,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if member is None:
             member = ctx.author
         try:
-            with open('aflers.json','r') as file:
-                prev_dict = json.load(file)
-        except FileNotFoundError:
-            await ctx.send('nessun elenco', delete_after=5)
-            await ctx.message.delete(delay=5)
-            return
-        try:
-            item = prev_dict[str(member.id)]
+            item = self.archive[str(member.id)]
         except KeyError:
             print('non presente')
             await ctx.send('l\'utente indicato non è registrato', delete_after=5)
@@ -120,10 +114,8 @@ class UtilityCog(commands.Cog, name='Utility'):
         if len(new_nick) > 32:
             await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
             return
-        with open('aflers.json', 'r') as file:
-            prev_dict = json.load(file)
         try:
-            data = prev_dict[str(ctx.author.id)]
+            data = self.archive[str(ctx.author.id)]
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
@@ -132,7 +124,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if difference.days >=  Config.config['nick_change_days']:
             data['nick'] = new_nick
             data['last_nick_change'] = datetime.date(datetime.now()).__str__()
-            shared_functions.update_json_file(prev_dict, 'aflers.json')
+            shared_functions.update_json_file(self.archive, 'aflers.json')
             await ctx.author.edit(nick=new_nick)
             await ctx.send('Nickname cambiato in ' + new_nick)
         else:
@@ -154,15 +146,13 @@ class UtilityCog(commands.Cog, name='Utility'):
             return
         if BannedWords.contains_banned_words(bio):
             return
-        with open('aflers.json', 'r') as file:
-            prev_dict = json.load(file)
         try:
-            data = prev_dict[str(ctx.author.id)]
+            data = self.archive[str(ctx.author.id)]
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
         data['bio'] = bio
-        shared_functions.update_json_file(prev_dict, 'aflers.json')
+        shared_functions.update_json_file(self.archive, 'aflers.json')
         await ctx.send('Bio aggiunta correttamente.')
 
     @commands.command(brief='ritorna la bio dell\'utente citato')
@@ -176,10 +166,8 @@ class UtilityCog(commands.Cog, name='Utility'):
         """
         if member is None:
             member = ctx.author
-        with open('aflers.json', 'r') as file:
-            prev_dict = json.load(file)
         try:
-            data = prev_dict[str(member.id)]
+            data = self.archive[str(member.id)]
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
