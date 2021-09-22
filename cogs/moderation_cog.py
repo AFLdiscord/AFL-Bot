@@ -155,23 +155,39 @@ class ModerationCog(commands.Cog, name='Moderazione'):
     async def warncount(self, ctx):
         """Stampa nel canale in cui viene chiamato l'elenco di tutti i warn degli utenti.
         Esempio output:
-        membro1: 1 warn
-        membro2: 3 warn
+        1 warn
+         - membro1
+         - membro2
+         - ...
+        2 warn
+         Nessuno
+        3 warn
+         - membro3
 
         Sintassi:
         <warncount
         alias: warnc, wc
         """
-        warnc = ''
-        for user in self.archive:
-            name = self.bot.get_guild(Config.config['guild_id']).get_member(int(user)).display_name
-            item = self.archive[user]
-            count = str(item['violations_count'])
-            msg = name + ': ' + count + ' warn\n'
-            warnc += msg
-        if len(warnc) == 0:
-            warnc = 'Nessuna attività registrata.'
-        await ctx.send(warnc)
+        # aggiornare se si cambia il conteggio dei warn
+        warnc = {
+            0:[],
+            1:[],
+            2:[],
+            3:[]
+            }
+        for user in self.archive.values():
+            # ricalcolato a ogni richiesta, si potrebbe cacharlo se il numero di utenti cresce
+            warnc[user['violations_count']].append(user['nick'])
+        response = ''
+        for k in warnc.keys():
+            response += str(k) + ' warn:\n'
+            userlist = ''
+            for item in warnc[k]:
+                userlist += ' - ' + item + '\n'
+            if userlist == '':
+                userlist = 'Nessuno\n'
+            response += userlist
+        await ctx.send(response)
 
     @commands.command(brief='banna il membro citato')
     async def ban(self, ctx, member: discord.Member = None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
