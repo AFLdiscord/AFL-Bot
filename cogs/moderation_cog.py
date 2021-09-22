@@ -178,6 +178,8 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         for user in self.archive.values():
             # ricalcolato a ogni richiesta, si potrebbe cacharlo se il numero di utenti cresce
             warnc[user['violations_count']].append(user['nick'])
+        # rimuovo gli utenti con 0 warn per non intasare il messaggio
+        del warnc[0]
         response = ''
         for k in warnc.keys():
             response += str(k) + ' warn:\n'
