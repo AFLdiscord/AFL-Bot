@@ -428,7 +428,7 @@ class EventCog(commands.Cog):
             #controllo sulla data dell'ultima violazione, ed eventuale reset
             if item['last_violation_count'] is not None:
                 expiration = datetime.date(datetime.strptime(item['last_violation_count'], '%Y-%m-%d'))
-                if (expiration + timedelta(days=Config.config["violations_reset_days"])).__eq__(datetime.date(datetime.now())):
+                if (expiration + timedelta(days=Config.config["violations_reset_days"])) <= (datetime.date(datetime.now())):
                     print('reset violazioni di ' + item['nick'])
                     item['violations_count'] = 0
                     item['last_violation_count'] = None
@@ -439,7 +439,7 @@ class EventCog(commands.Cog):
             if item['active'] is True:
                 expiration = datetime.date(datetime.strptime(item['expiration'], '%Y-%m-%d'))
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
-                if expiration.__eq__((datetime.date(datetime.now()))):
+                if expiration <= ((datetime.date(datetime.now()))):
                     guild = self.bot.get_guild(Config.config['guild_id'])
                     await guild.get_member(int(key)).remove_roles(guild.get_role(Config.config['active_role_id']))
                     await channel.send('membro <@!' + key + '> non più attivo :(')
