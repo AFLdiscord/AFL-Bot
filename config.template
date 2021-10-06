@@ -7,12 +7,10 @@
     "current_prefix": "<",
     "moderation_roles_id": [id dei ruoli di moderazione separati da virgola se più di uno],
     "afl_role_id": id del ruolo AFL,
-    "active": {
-        "role_id": id del ruolo attivo,
-        "channels_id": [id dei canali rilevanti al conteggio, separati da virgola se più di uno],
-        "threshold": numero di messaggi da mandare prima di ricevere il ruolo attivo,
-        "duration": durata del ruolo attivo in giorni
-    },
+    "active_role_id": id del ruolo attivo,
+    "active_channels_id": [id dei canali rilevanti al conteggio, separati da virgola se più di uno],
+    "active_threshold": numero di messaggi da mandare prima di ricevere il ruolo attivo,
+    "active_duration": durata del ruolo attivo in giorni,
     "exceptional_channels_id": [elenco dei canali non controllati dal bot, separati da virgola se più di uno],
     "poll_channel_id": canale in cui controllare le reaction alle proposte,
     "under_surveillance_id": id del ruolo sotto sorveglianza (vedi regole),

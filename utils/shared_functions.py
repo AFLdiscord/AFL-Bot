@@ -208,12 +208,12 @@ class Config():
         for mod in data['moderation_roles_id']:
             Config.config['moderation_roles_id'].append(int(mod))
         Config.config['afl_role_id'] = int(data['afl_role_id'])
-        Config.config['active_role_id'] = int(data['active']['role_id'])
+        Config.config['active_role_id'] = int(data['active_role_id'])
         Config.config['active_channels_id'] = []
-        for channel in data['active']['channels_id']:
+        for channel in data['active_channels_id']:
             Config.config['active_channels_id'].append(int(channel))
-        Config.config['active_threshold'] = data['active']['threshold']
-        Config.config['active_duration'] = data['active']['duration']
+        Config.config['active_threshold'] = data['active_threshold']
+        Config.config['active_duration'] = data['active_duration']
         Config.config['exceptional_channels_id'] = []
         for channel in data['exceptional_channels_id']:
             Config.config['exceptional_channels_id'].append(int(channel))
