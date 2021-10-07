@@ -328,14 +328,9 @@ def link_to_clean(message: str) -> str:
     words = message.split(' ')
     if len(words) == 1:   #il messaggio non ha spazi, potrebbe essere un link
         word = words[0]
-        #si potrebbe fare una regex visto che sembra che i prodotti abbiano tutti la stessa struttura
-        #     amazon.com/nome_lungo_descrittivo/dp/10CARATTER
-        if word.__contains__('www.amazon.it') or word.__contains__('www.amazon.com'):
-            #logica: tutto quello dopo l'ultimo '/' non serve
-            url = word.split('/')
-            if len(url[-1]) != 10:  #codice prodotto ha 10 char
-                del url[-1]
-                del url[0]  #rimuove https:, lo riaggiungo a mano
-                cleaned_link = '/'.join(url)
-                cleaned_link = 'https:/' + cleaned_link
+        if word.__contains__('www.amazon'):
+            #si assume che i link ai prodotti amazon abbiano tutti la stessa struttura:
+            #     https://amazon.identificativo_nazione_o_com/nome_lungo_descrittivo/dp/10CARATTER
+            #la regex effettua l'estrazione di questa porzione di link
+            cleaned_link = re.findall('https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
     return cleaned_link
