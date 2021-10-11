@@ -102,7 +102,8 @@ class UtilityCog(commands.Cog, name='Utility'):
     @commands.command(brief='permette di cambiare nickname periodicamente', hidden=True)
     async def setnick(self, ctx, *, new_nick: str):
         """Permette di cambiare il proprio nickname periodicamente. La frequenza con
-        cui è possibile farlo è definita nel config.
+        cui è possibile farlo è definita nel config. Impedisce che due membri abbiano lo
+        lo stesso nickname.
 
         Sintassi:
         <setnick afler       #cambia il nickname in afler
@@ -114,6 +115,10 @@ class UtilityCog(commands.Cog, name='Utility'):
         if len(new_nick) > 32:
             await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
             return
+        for member in self.archive.values():
+            if member['nick'] == new_nick:
+                await ctx.send('Questo nickname è già in uso')
+                return
         try:
             data = self.archive[str(ctx.author.id)]
         except KeyError:
