@@ -2,7 +2,7 @@
 import json
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import BannedWords, Config, update_json_file
+from utils.shared_functions import BannedWords, Config
 
 class ConfigCog(commands.Cog, name='Configurazione'):
     """Contiene i comandi di configurazione del bot:
@@ -16,6 +16,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     - addcog        aggiunge una o più cog dal bot e dal file extensions.json
     - removecog     rimuove una o più cog dal bot e dal file extensions.json
     - coglist       lista delle estensioni caricate all'avvio
+    - addactive     aggiunge un canale all'elenco dei canali conteggiati per l'attivo
+    - removeactive  rimuove un canale all'elenco dei canali conteggiati per l'attivo
     """
     def __init__(self, bot):
         self.bot = bot
@@ -85,7 +87,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         with open('config.json', 'r') as file:
             data = json.load(file)
         data['current_prefix'] = prefix
-        update_json_file(data, 'config.json')
+        shared_functions.update_json_file(data, 'config.json')
 
     @commands.command(brief='aggiorna la configurazione del bot')
     async def updateconfig(self, ctx):
@@ -216,6 +218,50 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         for ext in extensions:
             cogs += '`' + ext + '` '
         await ctx.send('Le estensioni caricate all\'avvio sono:\n' + cogs)
+
+    @commands.command(brief='aggiunge un canale all\'elenco dei canali conteggiati per l\'attivo')
+    async def addactive(self, ctx, id: str):
+        """Aggiunge il canale all'elenco dei canali conteggiati per l'attivo.
+        Occorre attivare le opzioni sviluppatore dal client discord per poter
+        copiare gli id dei canali. Se il canale è già presente in lista
+        non fa nulla.
+
+        Sintassi:
+        <addactive  id_canale    #aggiunge il canale
+        """
+        # controlla che contenga solo numeri della lunghezza giusta
+        if len(id) == 18 and id.isdigit():
+            id = int(id)
+            if id not in Config.config['active_channels_id']:
+                Config.config['active_channels_id'].append(id)
+                await ctx.send('Canale <#' + str(id) + '> aggiunto all\'elenco')
+                shared_functions.update_json_file(Config.config, 'config.json')
+            else:
+                await ctx.send('Canale già presente')
+        else:
+            await ctx.send('Id canale non valido')
+
+    @commands.command(brief='rimuove un canale all\'elenco dei canali conteggiati per l\'attivo')
+    async def removeactive(self, ctx, id: str):
+        """Rimuove il canale dall'elenco dei canali conteggiati per l'attivo.
+        Occorre attivare le opzioni sviluppatore dal client discord per poter
+        copiare gli id dei canali. Se il canale non è presente in lista
+        non fa nulla.
+
+        Sintassi:
+        <removeactive  id_canale    #rimuove il canale
+        """
+        # controlla che contenga solo numeri della lunghezza giusta
+        if len(id) == 18 and id.isdigit():
+            id = int(id)
+            if id in Config.config['active_channels_id']:
+                Config.config['active_channels_id'].remove(id)
+                await ctx.send('Canale <#' + str(id) + '> rimosso dall\'elenco')
+                shared_functions.update_json_file(Config.config, 'config.json')
+            else:
+                await ctx.send('Canale non presente in lista')
+        else:
+            await ctx.send('Id canale non valido')
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
