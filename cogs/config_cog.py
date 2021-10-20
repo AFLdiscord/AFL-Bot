@@ -18,6 +18,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     - coglist       lista delle estensioni caricate all'avvio
     - addactive     aggiunge un canale all'elenco dei canali conteggiati per l'attivo
     - removeactive  rimuove un canale all'elenco dei canali conteggiati per l'attivo
+    - setthresholds permette di gestire le soglie per diversi parametri
     """
     def __init__(self, bot):
         self.bot = bot
@@ -262,6 +263,48 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 await ctx.send('Canale non presente in lista')
         else:
             await ctx.send('Id canale non valido')
+
+    @commands.command(brief='permette di gestire le soglie per diversi parametri', aliases=['setthreshold', 'sett', 'threshold'])
+    async def setthresholds(self, ctx, category: str, value: str):
+        """Permette di gestire le soglie per:
+        - messaggi per ruolo attivo
+        - durata ruolo attivo
+        - cooldown setnick
+        - giorni per reset violazioni
+
+        Sintassi:
+        <setthreshold attivo 100    # per i giorni dell'attivo
+        <setthreshold ruolo 7       # durata ruolo attivo
+        <setthreshold setnick 30    # cooldown setnick
+        <setthreshold violazioni 7  # reset violazioni
+
+        Ogni comando può essere abbreviato con la prima lettera di ogni soglia.
+        es.  '<setthreshold a 100' al posto di '<setthreshold attivo 100'
+
+        alias: setthreshold, sett, threshold
+        """
+        if not value.isdigit():
+            await ctx.send('La soglia deve essere un valore numerico')
+            return
+        if category.startswith('a'):
+            Config.config['active_threshold'] = int(value)
+            await ctx.send('Soglia messaggi per l\'attivo cambiata a ' + str(value))
+            shared_functions.update_json_file(Config.config, 'config.json')
+        elif category.startswith('r'):
+            Config.config['active_duration'] = int(value)
+            await ctx.send('Durata dell\'attivo cambiata a ' + str(value) + ' giorni')
+            shared_functions.update_json_file(Config.config, 'config.json')
+        elif category.startswith('s'):
+            Config.config['nick_change_days'] = int(value)
+            await ctx.send('Cooldown per il setnick cambiata a ' + str(value) + ' giorni')
+            shared_functions.update_json_file(Config.config, 'config.json')
+        elif category.startswith('v'):
+            Config.config['violations_reset_days'] = int(value)
+            await ctx.send('Giorni per il reset delle violazioni cambiati a ' + str(value))
+            shared_functions.update_json_file(Config.config, 'config.json')
+        else:
+            await ctx.send('Comando errato, controlla la sintassi')
+
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
