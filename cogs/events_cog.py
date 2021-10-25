@@ -19,7 +19,7 @@ import discord
 from discord.ext import commands, tasks
 from discord.flags import MessageFlags
 from utils import shared_functions
-from utils.shared_functions import Archive, BannedWords, Config
+from utils.shared_functions import Archive, BannedWords, Config, update_json_file
 
 class EventCog(commands.Cog):
     """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria
@@ -330,6 +330,22 @@ class EventCog(commands.Cog):
         if old_nick != member.nick:
             print('reset nickname a ' + old_nick)
             await member.edit(nick=old_nick)
+
+    @commands.Cog.listener()
+    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
+        """Rimuove un canale dall'elenco attivi se questo viene cancellato dal server.
+        Potrebbe essere esteso in futuro anche per aggiungere automaticamente canali all'elenco
+        tramite qualche interazione.
+        """
+        if channel.id in Config.config['active_channels_id']:
+            # devo controllare se è una delete o una creazione
+            if channel in channel.guild.channels:
+                # è appena stato creato
+                return
+            else:
+                # da rimuovere
+                Config.config['active_channels_id'].remove(channel.id)
+                update_json_file(Config.config, 'config.json')
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
