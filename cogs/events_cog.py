@@ -47,7 +47,7 @@ class EventCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.__version__ = 'v0.7'
+        self.__version__ = 'v1.0'
         self.archive = Archive.archive
 
     @commands.Cog.listener()
