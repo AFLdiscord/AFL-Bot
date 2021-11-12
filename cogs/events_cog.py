@@ -17,9 +17,8 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands, tasks
-from discord.flags import MessageFlags
 from utils import shared_functions
-from utils.shared_functions import Archive, BannedWords, Config, update_json_file
+from utils.shared_functions import Archive, BannedWords, Config
 
 class EventCog(commands.Cog):
     """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria
@@ -293,7 +292,7 @@ class EventCog(commands.Cog):
                         'expiration': None,
                         'bio': None
                     }
-                    self.archive[before.id] = afler
+                    self.archive[str(before.id)] = afler
                     shared_functions.update_json_file(self.archive, 'aflers.json')
             else:
                 #non è ancora AFL, libero di cambiare nick a patto che non contenga parole vietate
@@ -315,11 +314,6 @@ class EventCog(commands.Cog):
         """In caso di cambio di username, resetta il nickname a quello presente nel file."""
         if (before.name == after.name) and (before.discriminator == after.discriminator):
             #non ci interessa, vuol dire che ha cambiato immagine
-            return
-        try:
-            with open('aflers.json', 'r') as file:
-                self.archive = json.load(file)
-        except FileNotFoundError:
             return
         try:
             data = self.archive[str(before.id)]
@@ -345,7 +339,7 @@ class EventCog(commands.Cog):
             else:
                 # da rimuovere
                 Config.config['active_channels_id'].remove(channel.id)
-                update_json_file(Config.config, 'config.json')
+                shared_functions.update_json_file(Config.config, 'config.json')
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -559,7 +553,7 @@ def update_counter(message: discord.Message) -> None:
             'expiration': None,
             'bio': None
         }
-        Archive.archive[message.author.id] = afler
+        Archive.archive[key] = afler
     shared_functions.update_json_file(Archive.archive, 'aflers.json')
 
 
