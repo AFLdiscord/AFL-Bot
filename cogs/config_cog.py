@@ -1,4 +1,5 @@
 """:class: ConfigCog contiene i comandi di configurazione del bot."""
+import git
 import json
 from discord.ext import commands
 from utils import shared_functions
@@ -12,6 +13,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     - blacklist     mostra l'elenco delle parole bannate
     - updateconfig  aggiorna la configurazione del bot
     - printconfig   stampa la configurazione corrente
+    - pull          git pull dal repository remoto + invoca reload
     - reload        ricarica una o più cogs
     - addcog        aggiunge una o più cog dal bot e dal file extensions.json
     - removecog     rimuove una o più cog dal bot e dal file extensions.json
@@ -101,6 +103,20 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             await ctx.send('Configurazione ricaricata correttamente')
         else:
             await ctx.send('Errore nel caricamento della configurazione, mantengo impostazioni precedenti')
+
+    @commands.command(brief='git pull dal repository remoto')
+    async def pull(self, ctx):
+        """Pull del codice aggiornato dal repository remoto.
+        Effettua due operazioni:
+        - git pull
+        - invocare reload per aggiornare il bot
+
+        Sintassi:
+        <pull         #aggiorna il bot
+        """
+        repo = git.cmd.Git('.')
+        await ctx.send(repo.pull())
+        await ctx.invoke(self.bot.get_command('reload'))
 
     @commands.command(brief='ricarica una o più cogs')
     async def reload(self, ctx, *args):
