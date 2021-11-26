@@ -15,8 +15,8 @@ import re
 from datetime import datetime, timedelta
 from typing import List
 
-#utile per passare dal giorno della settimana restituito da weekday() direttamente
-#al campo corrispondente nel dizionario del json
+# utile per passare dal giorno della settimana restituito da weekday() direttamente
+# al campo corrispondente nel dizionario del json
 weekdays = {
     0: 'mon',
     1: 'tue',
@@ -27,7 +27,7 @@ weekdays = {
     6: 'sun'
 }
 
-#archivio con i dati
+# archivio con i dati
 class Archive():
     """Gestione dell'archivio con i dati riguardo i messaggi inviati.
     L'idea è di tenerlo in memoria invece di aprire il file a ogni modifica.
@@ -287,19 +287,19 @@ def clean(item: dict) -> None:
     :param item: dizionario proveniente dal file aflers.json di cui occorre contare i messaggi
     """
     if (item['last_message_date'] is None) or (item['last_message_date'] == datetime.date(datetime.now()).__str__()):
-        #(None) tecnicamente previsto da add_warn se uno viene warnato senza aver mai scritto
-        #(Oggi) vuol dire che il bot è stato riavviato a metà giornata non devo toccare i contatori
+        # (None) tecnicamente previsto da add_warn se uno viene warnato senza aver mai scritto
+        # (Oggi) vuol dire che il bot è stato riavviato a metà giornata non devo toccare i contatori
         return
     elif item['last_message_date'] == datetime.date(datetime.today() - timedelta(days=1)).__str__():
-        #messaggio di ieri, devo salvare il counter nel giorno corrispondente
+        # messaggio di ieri, devo salvare il counter nel giorno corrispondente
         if item['counter'] != 0:
             day = weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
             item[day] = item['counter']
             item['counter'] = 0
     else:
-        #devo azzerare tutti i giorni della settimana tra la data segnata (esclusa) e oggi (incluso)
-        #in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga
-        #eseguito tutti i giorni ma preferisco azzerare tutti in caso di downtime di qualche giorno
+        # devo azzerare tutti i giorni della settimana tra la data segnata (esclusa) e oggi (incluso)
+        # in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga
+        # eseguito tutti i giorni ma preferisco azzerare tutti in caso di downtime di qualche giorno
         if item['counter'] != 0:
             day = weekdays[datetime.date(datetime.strptime(item['last_message_date'], '%Y-%m-%d')).weekday()]
             item[day] = item['counter']
@@ -326,11 +326,11 @@ def link_to_clean(message: str) -> str:
     cleaned_link = None
     words = message.strip()
     words = message.split(' ')
-    if len(words) == 1:   #il messaggio non ha spazi, potrebbe essere un link
+    if len(words) == 1:   # il messaggio non ha spazi, potrebbe essere un link
         word = words[0]
         if word.__contains__('www.amazon'):
-            #si assume che i link ai prodotti amazon abbiano tutti la stessa struttura:
+            # si assume che i link ai prodotti amazon abbiano tutti la stessa struttura:
             #     https://amazon.identificativo_nazione_o_com/nome_lungo_descrittivo/dp/10CARATTER
-            #la regex effettua l'estrazione di questa porzione di link
+            # la regex effettua l'estrazione di questa porzione di link
             cleaned_link = re.findall('https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
     return cleaned_link

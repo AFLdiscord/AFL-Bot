@@ -84,12 +84,12 @@ class UtilityCog(commands.Cog, name='Utility'):
         faccia parte del server, basta che la menzione sia valida.
 
         Sintassi:
-        <avatar             #invia la propria propic
-        <avatar @someone    #invia la propic di 'someone'
+        <avatar             # invia la propria propic
+        <avatar @someone    # invia la propic di 'someone'
         """
         if user is None:
             user = ctx.author
-        #se l'utente è nel server, stampo il suo nickname invece del suo username
+        # se l'utente è nel server, stampo il suo nickname invece del suo username
         member = self.bot.get_guild(Config.config['guild_id']).get_member(user.id)
         if member is not None:
             user = member
@@ -106,8 +106,8 @@ class UtilityCog(commands.Cog, name='Utility'):
         lo stesso nickname.
 
         Sintassi:
-        <setnick afler       #cambia il nickname in afler
-        <setnick due aflers  #può contenere anche più parole
+        <setnick afler       # cambia il nickname in afler
+        <setnick due aflers  # può contenere anche più parole
         """
         if BannedWords.contains_banned_words(new_nick):
             await ctx.send('Il nickname non può contenere parole offensive')
@@ -144,7 +144,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         diritto di editare quelle ritenute offensive.
 
         Sintassi:
-        <setbio mia bio    #imposta *mia bio* come bio
+        <setbio mia bio    # imposta *mia bio* come bio
         """
         if len(bio) > Config.config['bio_length_limit']:
             await ctx.send('Bio troppo lunga, il limite è ' + str(Config.config['bio_length_limit']) + ' caratteri.')
@@ -166,8 +166,8 @@ class UtilityCog(commands.Cog, name='Utility'):
         <setbio per impostare la propria bio
 
         Sintassi:
-        <bio               #ritorna la propria bio
-        <bio @someone      #ritorna la bio di *someone*, se presente
+        <bio               # ritorna la propria bio
+        <bio @someone      # ritorna la bio di *someone*, se presente
         """
         if member is None:
             member = ctx.author

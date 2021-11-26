@@ -73,14 +73,14 @@ class EventCog(commands.Cog):
             await message.channel.send(response)
             return
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
-            #cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
+            # cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
         if message.channel.id == Config.config['presentation_channel_id']:
-            #non deve rispondere a eventuali messaggi di moderatori nel canale, solo a nuovi membri
+            # non deve rispondere a eventuali messaggi di moderatori nel canale, solo a nuovi membri
             for role in message.author.roles:
                 if role.id in Config.config['moderation_roles_id']:
                     return
-            #il controllo della validità è ancora manuale
+            # il controllo della validità è ancora manuale
             await message.author.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['afl_role_id']))
             await message.channel.send('Formidabile')
             channel = self.bot.get_channel(Config.config['welcome_channel_id'])
@@ -125,7 +125,7 @@ class EventCog(commands.Cog):
             return
         if item is None:
             return
-        #il contatore non può ovviamente andare sotto 0
+        # il contatore non può ovviamente andare sotto 0
         if item['counter'] != 0:
             item['counter'] -= 1
             shared_functions.update_json_file(self.archive, 'aflers.json')
@@ -138,7 +138,7 @@ class EventCog(commands.Cog):
         messaggio è lo stesso della on_message_delete.
         """
         if messages[0].channel.id == Config.config['poll_channel_id']:
-            #è qua solo in caso di spam sul canale proposte, improbabile visto la slowmode
+            # è qua solo in caso di spam sul canale proposte, improbabile visto la slowmode
             for message in messages:
                 remove_proposal(message)
             return
@@ -155,7 +155,7 @@ class EventCog(commands.Cog):
             finally:
                 if item is None:
                     continue
-            #il contatore non può ovviamente andare sotto 0
+            # il contatore non può ovviamente andare sotto 0
             if item['counter'] != 0:
                 item['counter'] -= 1
                 counter += 1
@@ -171,17 +171,17 @@ class EventCog(commands.Cog):
         """
         if not payload.channel_id == Config.config['poll_channel_id']:
             return
-        #ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
+        # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
         message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
         if message.author == self.bot.user:
             await message.remove_reaction(payload.emoji, payload.member)
             return
-        #aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
-        #un voto dal conteggio quando il bot la rimuove
+        # aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
+        # un voto dal conteggio quando il bot la rimuove
         adjust_vote_count(payload, 1)
         is_good = self._check_reaction_permissions(payload)
         if not is_good:
-            #devo rimuovere la reaction perchè il membro non ha i requisiti
+            # devo rimuovere la reaction perchè il membro non ha i requisiti
             try:
                 message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
                 await message.remove_reaction(payload.emoji, payload.member)
@@ -197,7 +197,7 @@ class EventCog(commands.Cog):
         """
         if not payload.channel_id == Config.config['poll_channel_id']:
             return
-        #ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
+        # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
         message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
         if message.author == self.bot.user:
             return
@@ -218,12 +218,12 @@ class EventCog(commands.Cog):
         is_good = False
         active = self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['active_role_id'])
         if payload.event_type == 'REACTION_ADD' and active not in payload.member.roles:
-            #se non è attivo, l'altra condizione è essere moderatore
+            # se non è attivo, l'altra condizione è essere moderatore
             for role in payload.member.roles:
                 if role.id in Config.config['moderation_roles_id']:
                     is_good = True
         else:
-            #è attivo
+            # è attivo
             is_good = True
         return is_good
 
@@ -273,7 +273,7 @@ class EventCog(commands.Cog):
         afl_role = guild.get_role(Config.config['afl_role_id'])
         if afl_role not in before.roles:
             if afl_role in after.roles:
-                #appena diventato AFL, crea entry e salva nickname
+                # appena diventato AFL, crea entry e salva nickname
                 if not str(after.id) in self.archive:
                     afler = {
                         'nick': after.display_name,
@@ -296,12 +296,12 @@ class EventCog(commands.Cog):
                     self.archive[str(before.id)] = afler
                     shared_functions.update_json_file(self.archive, 'aflers.json')
             else:
-                #non è ancora AFL, libero di cambiare nick a patto che non contenga parole vietate
+                # non è ancora AFL, libero di cambiare nick a patto che non contenga parole vietate
                 if BannedWords.contains_banned_words(after.display_name):
                     print('nickname con parole vietate, ripristino a ' + str(after.id))
                     await after.edit(nick=before.display_name)
         else:
-            #era già AFL, ripristino il nickname dal file
+            # era già AFL, ripristino il nickname dal file
             if before.display_name != after.display_name:
                 try:
                     old_nick = self.archive[str(after.id)]['nick']
@@ -314,7 +314,7 @@ class EventCog(commands.Cog):
     async def on_user_update(self, before, after):
         """In caso di cambio di username, resetta il nickname a quello presente nel file."""
         if (before.name == after.name) and (before.discriminator == after.discriminator):
-            #non ci interessa, vuol dire che ha cambiato immagine
+            # non ci interessa, vuol dire che ha cambiato immagine
             return
         try:
             data = self.archive[str(before.id)]
@@ -349,15 +349,15 @@ class EventCog(commands.Cog):
         loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro."""
         if isinstance(error, commands.CommandNotFound):
             if not emoji_or_mention(ctx.message.content):
-                #tutto ciò serve per non triggerare l'invio dell'help su menzioni, nomi di canali e emoji custom se il prefisso è '<'
+                # tutto ciò serve per non triggerare l'invio dell'help su menzioni, nomi di canali e emoji custom se il prefisso è '<'
                 await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
-                await ctx.send_help()   #manda tutti i comandi, necessario se ci sono più pagine
+                await ctx.send_help()   # manda tutti i comandi, necessario se ci sono più pagine
         elif isinstance(error, commands.CheckFailure):
             await ctx.send('Non hai i permessi per usare questo comando.', delete_after=5)
             await ctx.message.delete(delay=5)
         else:
             await ctx.send('Sintassi errata, controlla come usare il comando.\n' + '```' + ctx.command.help + '```')
-            #potrei fare la stessa cosa mettendo ctx.send_help(ctx.command.help) ma volevo un messaggio solo
+            # potrei fare la stessa cosa mettendo ctx.send_help(ctx.command.help) ma volevo un messaggio solo
         print(error)
 
     @commands.Cog.listener()
@@ -382,7 +382,7 @@ class EventCog(commands.Cog):
         print(f'{self.bot.user} has connected to Discord! 'f'{timestamp}')
         # controllo coerenza archivio
         coherency_check(self.archive, self.bot.get_guild(Config.config['guild_id']).members)
-        if not self.periodic_checks.is_running():    #per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
+        if not self.periodic_checks.is_running():    # per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
             if Config.config['main_channel_id'] is not None:
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 await channel.send('AFL Bot `' + self.__version__ + '` avviato alle `'f'{timestamp}`. Il prefisso è: `{self.bot.command_prefix}`')
@@ -427,7 +427,7 @@ class EventCog(commands.Cog):
                 try:
                     message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
                 except discord.NotFound:
-                    print('proposta già cancellata, ignoro')  #capita se viene cancellata dopo un riavvio o mentre è offline
+                    print('proposta già cancellata, ignoro')  # capita se viene cancellata dopo un riavvio o mentre è offline
                 else:
                     await message.delete()
                 del proposals[key]
@@ -445,11 +445,11 @@ class EventCog(commands.Cog):
                 print('member ' + item['nick'] + ' is active')
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 await channel.send('membro <@!' + key + '> è diventato attivo')
-                #azzero tutti i contatori
+                # azzero tutti i contatori
                 for i in shared_functions.weekdays:
                     item[shared_functions.weekdays.get(i)] = 0
 
-            #controllo sulla data dell'ultima violazione, ed eventuale reset
+            # controllo sulla data dell'ultima violazione, ed eventuale reset
             if item['last_violation_count'] is not None:
                 expiration = datetime.date(datetime.strptime(item['last_violation_count'], '%Y-%m-%d'))
                 if (expiration + timedelta(days=Config.config["violations_reset_days"])) <= (datetime.date(datetime.now())):
@@ -457,7 +457,7 @@ class EventCog(commands.Cog):
                     item['violations_count'] = 0
                     item['last_violation_count'] = None
 
-            #rimuovo i messaggi contati 7 giorni fa
+            # rimuovo i messaggi contati 7 giorni fa
             item[shared_functions.weekdays.get(datetime.today().weekday())] = 0
 
             if item['active'] is True:
@@ -486,7 +486,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
         print('file non trovato, lo creo ora')
         with open('proposals.json','w+') as file:
             proposals = {}
-    active_count = 2 #moderatori non hanno ruolo attivo
+    active_count = 2 # moderatori non hanno ruolo attivo
     members = guild.members
     active_role = guild.get_role(Config.config['active_role_id'])
     for member in members:
@@ -533,21 +533,21 @@ def update_counter(message: discord.Message) -> None:
     if key in Archive.archive:
         item = Archive.archive[key]
         if item['last_message_date'] == datetime.date(datetime.now()).__str__():
-            #messaggi dello stesso giorno, continuo a contare
+            # messaggi dello stesso giorno, continuo a contare
             item['counter'] += 1
         elif item['last_message_date'] is None:
-            #primo messaggio della persona
+            # primo messaggio della persona
             item['counter'] = 1
             item['last_message_date'] = datetime.date(datetime.now()).__str__()
         else:
-            #è finito il giorno, salva i messaggi di 'counter' nel giorno corrispondente e aggiorna data ultimo messaggio
+            # è finito il giorno, salva i messaggi di 'counter' nel giorno corrispondente e aggiorna data ultimo messaggio
             if item['counter'] != 0:
                 day = shared_functions.weekdays[datetime.date(datetime.strptime(item['last_message_date'], '%Y-%m-%d')).weekday()]
                 item[day] = item['counter']
             item['counter'] = 1
             item['last_message_date'] = datetime.date(datetime.now()).__str__()
     else:
-        #succede se il file viene cancellato o il bot è offline quando entra il membro
+        # succede se il file viene cancellato o il bot è offline quando entra il membro
         print('membro non presente nel file, aggiungo ora')
         afler = {
             'nick': message.author.display_name,
@@ -604,14 +604,14 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
     except KeyError:
         print('impossibile trovare la proposta')
         return
-    if str(payload.emoji.name).__eq__('\U0001F7E2'):  #sarebbe :green_circle:
+    if str(payload.emoji.name).__eq__('\U0001F7E2'):  # sarebbe :green_circle:
         proposal['yes'] += change
         if proposal['yes'] < 0:
             proposal['yes'] = 0
         if proposal['yes'] >= proposal['threshold']:
             proposal['passed'] = True
         else:
-            proposal['passed'] = False   #è possibile cambiare idea, il controllo lo fa la task
+            proposal['passed'] = False   # è possibile cambiare idea, il controllo lo fa la task
     else:
         proposal['no'] += change
         if proposal['no'] < 0:
@@ -636,7 +636,7 @@ def emoji_or_mention(content: str) -> bool:
 
     Conflitti noti:
     <@!id> -> menzione membri
-    <#id> -> menzione canali
+    <# id> -> menzione canali
     <:id> -> emoji
     <a:id> -> emoji animate
 
@@ -645,7 +645,7 @@ def emoji_or_mention(content: str) -> bool:
     :returns: se rappresenta una menzione o emoji
     :rtype: bool
     """
-    if (content.startswith('<@') or content.startswith('<#') or
+    if (content.startswith('<@') or content.startswith('<# ') or
         content.startswith('<:') or content.startswith('<a:')):
         return True
     else:

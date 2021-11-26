@@ -35,13 +35,13 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         Se si scrivono più parole queste vengono considerate come una unica entry.
         Per come sono controllate, non occorre mettere gli spazi tra le parole.
         Esempio:
-        <blackadd seistupido   #aggiunge seistupido all'elenco
+        <blackadd seistupido   # aggiunge seistupido all'elenco
         il controllo delle parole è poi in grado di capire quali messaggi la contengono
         es. 'sei stupido'  's3i stupid0' vengono tutte rilevate.
 
         Sintassi:
-        <blackadd word           #aggiunge 'word' all'elenco
-        <blackadd aListOfWords   #aggiunge 'aListOfWord' come unica entry
+        <blackadd word           # aggiunge 'word' all'elenco
+        <blackadd aListOfWords   # aggiunge 'aListOfWord' come unica entry
         """
         if ban_word in BannedWords.banned_words:
             await ctx.send('la parola è già contenuta nell\'elenco')
@@ -57,7 +57,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         con cui era stata inserita.
 
         Sintassi:
-        <blackremove word     #rimuove 'word' dall'elenco
+        <blackremove word     # rimuove 'word' dall'elenco
         """
         if ban_word in BannedWords.banned_words:
             BannedWords.remove(ban_word)
@@ -71,7 +71,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         """Stampa l'elenco delle parole attualmente bannate.
 
         Sintassi:
-        <blacklist         #stampa la lista
+        <blacklist         # stampa la lista
         alias: black, bl
         """
         await ctx.send(BannedWords.to_string())
@@ -82,7 +82,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         anche nella configurazione del bot e mantenuto in caso di riavvio.
 
         Sintassi:
-        <setprefix ?     #imposta '?' come nuovo prefisso
+        <setprefix ?     # imposta '?' come nuovo prefisso
         """
         self.bot.command_prefix = prefix
         await ctx.send(f'Prefisso cambiato in ``{prefix}``')
@@ -97,7 +97,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         """Ricarica la configurazione del bot dal file config.json
 
         Sintassi:
-        <updateconfig     #ricarica tutti i parametri dal file
+        <updateconfig     # ricarica tutti i parametri dal file
         """
         if Config.load():
             await ctx.send('Configurazione ricaricata correttamente')
@@ -112,7 +112,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         - invocare reload per aggiornare il bot
 
         Sintassi:
-        <pull         #aggiorna il bot
+        <pull         # aggiorna il bot
         """
         repo = git.cmd.Git('.')
         await ctx.send(repo.pull())
@@ -124,9 +124,9 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         le ricarica tutte.
 
         Sintassi:
-        <reload                              #ricarica tutte le estensioni
-        <reload moderation_cog               #ricarica solo ModerationCog
-        <reload moderation_cog utility_cog   #più cogs separate da spazi
+        <reload                              # ricarica tutte le estensioni
+        <reload moderation_cog               # ricarica solo ModerationCog
+        <reload moderation_cog utility_cog   # più cogs separate da spazi
         """
         if not args:
             cogs = shared_functions.get_extensions()
@@ -151,7 +151,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         """Stampa la configurazione attualmente in uso dal bot.
 
         Sintassi:
-        <printconfig       #stampa la configurazione
+        <printconfig       # stampa la configurazione
         """
         await ctx.send(Config.to_string())
 
@@ -162,8 +162,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         cog da aggiungere, che deve trovarsi nella cartella cogs del bot.
 
         Sintassi:
-        <addcog nome_cog                #aggiunge nome_cog al bot e al file extensions.json
-        <addcog nome_cog altra_cog      #più cogs separate da spazio
+        <addcog nome_cog                # aggiunge nome_cog al bot e al file extensions.json
+        <addcog nome_cog altra_cog      # più cogs separate da spazio
         """
         if not args:
             await ctx.send('Devi specificare il nome della cog da caricare.', delete_after=5)
@@ -196,8 +196,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         aggiungere, che deve trovarsi nella cartella cogs del bot.
 
         Sintassi:
-        <removecog nome_cog              #rimuove nome_cog dal bot e dal file extensions.json
-        <removecog nome_cog altra_cog    #più cogs separate da spazio
+        <removecog nome_cog              # rimuove nome_cog dal bot e dal file extensions.json
+        <removecog nome_cog altra_cog    # più cogs separate da spazio
         """
         if not args:
             await ctx.send('Devi specificare il nome della cog da rimuovere.', delete_after=5)
@@ -227,7 +227,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         extensions.json.
 
         Sintassi:
-        <coglist          #stampa elenco cog
+        <coglist          # stampa elenco cog
         """
         with open('extensions.json', 'r') as file:
             extensions = json.load(file)
@@ -244,14 +244,14 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         non fa nulla.
 
         Sintassi:
-        <addactive  id_canale    #aggiunge il canale
+        <addactive  id_canale    # aggiunge il canale
         """
         # controlla che contenga solo numeri della lunghezza giusta
         if len(id) == 18 and id.isdigit():
             id = int(id)
             if id not in Config.config['active_channels_id']:
                 Config.config['active_channels_id'].append(id)
-                await ctx.send('Canale <#' + str(id) + '> aggiunto all\'elenco')
+                await ctx.send('Canale <# ' + str(id) + '> aggiunto all\'elenco')
                 shared_functions.update_json_file(Config.config, 'config.json')
             else:
                 await ctx.send('Canale già presente')
@@ -266,14 +266,14 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         non fa nulla.
 
         Sintassi:
-        <removeactive  id_canale    #rimuove il canale
+        <removeactive  id_canale    # rimuove il canale
         """
         # controlla che contenga solo numeri della lunghezza giusta
         if len(id) == 18 and id.isdigit():
             id = int(id)
             if id in Config.config['active_channels_id']:
                 Config.config['active_channels_id'].remove(id)
-                await ctx.send('Canale <#' + str(id) + '> rimosso dall\'elenco')
+                await ctx.send('Canale <# ' + str(id) + '> rimosso dall\'elenco')
                 shared_functions.update_json_file(Config.config, 'config.json')
             else:
                 await ctx.send('Canale non presente in lista')
