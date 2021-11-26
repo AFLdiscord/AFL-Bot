@@ -14,6 +14,7 @@ Proposte
 
 import json
 from datetime import datetime, timedelta
+from typing import List
 
 import discord
 from discord.ext import commands, tasks
@@ -360,14 +361,27 @@ class EventCog(commands.Cog):
         print(error)
 
     @commands.Cog.listener()
+    async def on_resume(self):
+        """Controlla incoerenze tra l'archivio e l'elenco membri corrente, stesso controllo
+        fatto dentro on_ready.
+        """
+        coherency_check(self.archive, self.bot.get_guild(Config.config['guild_id']).members)
+
+    @commands.Cog.listener()
     async def on_ready(self):
         """Chiamata all'avvio del bot, invia un messaggio di avviso sul canale impostato come
-        MAIN_CHANNEL. Si occupa anche di avviare la task periodica per il controllo dei contatori e
-        impostare lo stato del bot con le informazioni di versione."""
+        main_channel_id nel file config.json.
+        Si occupa anche di:
+        - avviare la task periodica per il controllo dei contatori
+        - impostare lo stato del bot con le informazioni di versione.
+        - controllare la coerenza dell'archivio
+        """
         timestamp = datetime.time(datetime.now())
         botstat = discord.Game(name='AFL ' + self.__version__)
         await self.bot.change_presence(activity=botstat)
         print(f'{self.bot.user} has connected to Discord! 'f'{timestamp}')
+        # controllo coerenza archivio
+        coherency_check(self.archive, self.bot.get_guild(Config.config['guild_id']).members)
         if not self.periodic_checks.is_running():    #per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
             if Config.config['main_channel_id'] is not None:
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
@@ -533,7 +547,7 @@ def update_counter(message: discord.Message) -> None:
             item['counter'] = 1
             item['last_message_date'] = datetime.date(datetime.now()).__str__()
     else:
-        #succede se il file viene cancellato
+        #succede se il file viene cancellato o il bot è offline quando entra il membro
         print('membro non presente nel file, aggiungo ora')
         afler = {
             'nick': message.author.display_name,
@@ -636,6 +650,30 @@ def emoji_or_mention(content: str) -> bool:
         return True
     else:
         return False
+
+def coherency_check(archive: dict, members: List[discord.Member]) -> None:
+    """Controlla la coerenza tra l'elenco membri del server e l'elenco
+    degli id salvati nell'archivio aflers.json
+    Questo è per evitare incongruenze in caso di downtime del bot.
+
+    NOTA: ci interessa solo rimuovere i membri usciti, i membri entrati saranno
+    aggiunti in automatico al primo messaggio.
+    """
+    archived_ids = list(archive.keys())
+    members_ids = []
+    # salva tutti gli id dei membri presenti
+    for member in members:
+        if not member.bot:
+            members_ids.append(str(member.id))
+
+    # controlla che tutti i membri archiviati siano ancora presenti
+    # in caso contrario rimuove l'entry corrispondente dall'archivio
+    for archived in archived_ids:
+        if archived not in members_ids:
+            del archive[archived]
+
+    # save changes to file
+    shared_functions.update_json_file(archive, 'aflers.json')
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
