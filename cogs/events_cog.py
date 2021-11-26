@@ -43,12 +43,20 @@ class EventCog(commands.Cog):
     Gestione bot:
     - on_command_error
     - on_ready (avvia periodic_checks)
+
+    Inoltre è presente un comando per aggiornare lo status del bot
     """
 
     def __init__(self, bot):
         self.bot = bot
         self.__version__ = 'v1.0'
         self.archive = Archive.archive
+
+    @commands.command(brief='aggiorna lo stato del bot')
+    async def updatestatus(self, ctx):
+        """Aggiorna lo stato del bot al contenuto di self.__version__"""
+        botstat = discord.Game(name='AFL ' + self.__version__)
+        await self.bot.change_presence(activity=botstat)
 
     @commands.Cog.listener()
     async def on_message(self, message):
