@@ -49,7 +49,7 @@ class EventCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.__version__ = 'v1.1'
+        self.__version__ = 'v1.1.1'
         self.archive = Archive.archive
 
     @commands.command(brief='aggiorna lo stato del bot')
