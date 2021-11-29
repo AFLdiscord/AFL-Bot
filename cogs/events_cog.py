@@ -644,7 +644,7 @@ def emoji_or_mention(content: str) -> bool:
 
     Conflitti noti:
     <@!id> -> menzione membri
-    <# id> -> menzione canali
+    <#id> -> menzione canali
     <:id> -> emoji
     <a:id> -> emoji animate
 
@@ -653,7 +653,7 @@ def emoji_or_mention(content: str) -> bool:
     :returns: se rappresenta una menzione o emoji
     :rtype: bool
     """
-    if (content.startswith('<@') or content.startswith('<# ') or
+    if (content.startswith('<@') or content.startswith('<#') or
         content.startswith('<:') or content.startswith('<a:')):
         return True
     else:
