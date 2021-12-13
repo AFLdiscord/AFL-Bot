@@ -647,6 +647,7 @@ def emoji_or_mention(content: str) -> bool:
     <#id> -> menzione canali
     <:id> -> emoji
     <a:id> -> emoji animate
+    <t:timestamp> -> timestamps
 
     :param content: comando che ha dato errore
 
@@ -654,7 +655,7 @@ def emoji_or_mention(content: str) -> bool:
     :rtype: bool
     """
     if (content.startswith('<@') or content.startswith('<#') or
-        content.startswith('<:') or content.startswith('<a:')):
+        content.startswith('<:') or content.startswith('<a:')) or content.startswith('<t:'):
         return True
     else:
         return False
