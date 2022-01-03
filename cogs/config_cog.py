@@ -251,7 +251,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             id = int(id)
             if id not in Config.config['active_channels_id']:
                 Config.config['active_channels_id'].append(id)
-                await ctx.send('Canale <# ' + str(id) + '> aggiunto all\'elenco')
+                await ctx.send('Canale <#' + str(id) + '> aggiunto all\'elenco')
                 shared_functions.update_json_file(Config.config, 'config.json')
             else:
                 await ctx.send('Canale già presente')
@@ -273,7 +273,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             id = int(id)
             if id in Config.config['active_channels_id']:
                 Config.config['active_channels_id'].remove(id)
-                await ctx.send('Canale <# ' + str(id) + '> rimosso dall\'elenco')
+                await ctx.send('Canale <#' + str(id) + '> rimosso dall\'elenco')
                 shared_functions.update_json_file(Config.config, 'config.json')
             else:
                 await ctx.send('Canale non presente in lista')
