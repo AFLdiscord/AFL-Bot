@@ -1,5 +1,7 @@
 """Funzionalità condivise tra le diverse cog per facilitare la manutenzione. In particolare:
 Classi:
+- Afler
+- Archive
 - BannedWords per gestione delle parole bannate
 - Config per la gestione dei parametri di configuarazione del bot
 
@@ -14,6 +16,7 @@ import json
 import re
 from datetime import datetime, timedelta
 from typing import List
+from __future__ import annotations
 
 # utile per passare dal giorno della settimana restituito da weekday() direttamente
 # al campo corrispondente nel dizionario del json
@@ -26,6 +29,90 @@ weekdays = {
     5: 'sat',
     6: 'sun'
 }
+
+# wrapper per eseguire operazioni sugli elementi dell' archivio, ossia gli aflers
+class Afler():
+    """Rappresentazione di un membro del server.
+    Semplifica le operazioni di lettura/scrittura quando si accede all'archivio.
+
+    Attributes
+    -------------
+    data: Dict[] contiene i dati dell'afler
+
+    Methods
+    -------------
+    new_entry(nick) crea un nuovo afler
+    from_archive(data) crea un afler con i dati letti dall'archivio
+    nick() restituisce il nickname
+    decrease_counter() decrementa il contatore dei messaggi del giorno corrente
+    reset_violations() azzera il numero di violazioni commesse
+    """
+    def __init__(self, data: dict) -> None:
+        """
+        :param data: dizionario che contiene i dati dell'afler
+        """
+        self.data = data
+
+    @classmethod
+    def new_entry(cls, nickname: str) -> Afler:
+        """Crea un nuovo afler.
+        
+        :param nickname: il nickname del nuovo afler
+
+        :returns: l'afler appena creato
+        :rtype: Afler
+        """
+        return cls({
+            'nick': nickname,
+            'last_nick_change': datetime.date(datetime.now()).__str__(),
+            'mon': 0,
+            'tue': 0,
+            'wed': 0,
+            'thu': 0,
+            'fri': 0,
+            'sat': 0,
+            'sun': 0,
+            'counter': 0,
+            'last_message_date': None,
+            'violations_count': 0,
+            'last_violation_count': None,
+            'active': False,
+            'expiration': None,
+            'bio': None
+        })
+
+    @classmethod
+    def from_archive(cls, afler_data: dict) -> Afler:
+        """Restituisce un afler con i valori letti dall'archivio.
+        
+        :param afler_data: i dati dell'afler letti dall'archivio
+
+        :returns: l'afler caricato
+        :rtype: Afler
+        """
+        return cls(afler_data)
+    
+    def nick(self) -> str:
+        """Restituisce il nickname dell'afler.
+        
+        :returns: il nickname dell'afler
+        :rtype: str
+        """
+        return self.data['nick']
+
+    def decrease_counter(self) -> None:
+        """Decrementa il contatore dei messaggi del giorno corrente.
+        
+        :raises: AssertionException se il contatore è già a 0 e non deve essere decrementato
+        ulteriormente.
+        """
+        assert(self.data['counter'] != 0, 'counter è già a 0')
+        self.data['counter'] -= 1
+
+    def reset_violations(self) -> None:
+        """Azzera le violazioni dell'afler."""
+        self.data['violations_count'] = 0
+        self.data['last_violation_count'] = None
 
 # archivio con i dati
 class Archive():
