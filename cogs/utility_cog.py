@@ -1,10 +1,8 @@
 """:class: UtilityCog contiene comandi di uso generale."""
-import json
 from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
-from utils import shared_functions
 from utils.shared_functions import Archive, BannedWords, Config
 
 class UtilityCog(commands.Cog, name='Utility'):
@@ -17,7 +15,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     """
     def __init__(self, bot):
         self.bot = bot
-        self.archive = Archive.archive
+        self.archive = Archive.get_instance()
 
     def cog_check(self, ctx):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
@@ -42,7 +40,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if member is None:
             member = ctx.author
         try:
-            item = self.archive[str(member.id)]
+            item = self.archive.get(member.id)
         except KeyError:
             print('non presente')
             await ctx.send('l\'utente indicato non è registrato', delete_after=5)
@@ -53,11 +51,11 @@ class UtilityCog(commands.Cog, name='Utility'):
             color=member.top_role.color
         )
         status.set_thumbnail(url=member.avatar_url)
-        if item['last_message_date'] is None:
+        if item.last_message_date() is None:
             status.add_field(name='Messaggi ultimi 7 giorni:', value='0', inline=False)
         else:
-            status.add_field(name='Messaggi ultimi 7 giorni:', value=str(shared_functions.count_messages(item)) +
-                ' (ultimo il ' + item['last_message_date'] + ')', inline=False)
+            status.add_field(name='Messaggi ultimi 7 giorni:', value=str(item.count_messages()) +
+                ' (ultimo il ' + str(item.last_message_date()) + ')', inline=False)
         is_a_mod = False
         for role in member.roles:
             if role.id in Config.config['moderation_roles_id']:
@@ -65,17 +63,17 @@ class UtilityCog(commands.Cog, name='Utility'):
                 status.add_field(name='Ruolo:', value=role.name, inline=False)
                 break
         if not is_a_mod:
-            if not item['active']:
+            if not item.active:
                 status.add_field(name='Attivo:', value='no', inline=False)
             else:
-                status.add_field(name='Attivo:', value='sì (scade il ' + item['expiration'] + ')', inline=False)
-        if item['violations_count'] == 0:
+                status.add_field(name='Attivo:', value='sì (scade il ' + str(item.active_expiration()) + ')', inline=False)
+        if item.warn_count() == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
-            violations_expiration = datetime.date(datetime.strptime(item['last_violation_count'], '%Y-%m-%d') +
-                timedelta(days=Config.config['violations_reset_days'])).__str__()
-            status.add_field(name='Violazioni:', value=str(item['violations_count']) +
-                ' (scade il ' + violations_expiration + ')', inline=False)
+            if item.last_violations_count() != None:
+                violations_expiration = (item.last_violations_count() + timedelta(days=Config.config['violations_reset_days'])).__str__()
+                status.add_field(name='Violazioni:', value=str(item.warn_count()) +
+                    ' (scade il ' + violations_expiration + ')', inline=False)
         await ctx.send(embed=status)
 
     @commands.command(brief='invia la propic dell\'utente')
@@ -116,20 +114,19 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
             return
         for member in self.archive.values():
-            if member['nick'] == new_nick:
+            if member.nick == new_nick:
                 await ctx.send('Questo nickname è già in uso')
                 return
         try:
-            data = self.archive[str(ctx.author.id)]
+            item = self.archive.get(ctx.author.id)
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
-        last_change = datetime.date(datetime.strptime(data['last_nick_change'], '%Y-%m-%d'))
+        last_change = item.last_nick_change()
         difference = datetime.date(datetime.now()) - last_change
         if difference.days >=  Config.config['nick_change_days']:
-            data['nick'] = new_nick
-            data['last_nick_change'] = datetime.date(datetime.now()).__str__()
-            shared_functions.update_json_file(self.archive, 'aflers.json')
+            item.nick = new_nick
+            self.archive.save()
             await ctx.author.edit(nick=new_nick)
             await ctx.send('Nickname cambiato in ' + new_nick)
         else:
@@ -152,12 +149,12 @@ class UtilityCog(commands.Cog, name='Utility'):
         if BannedWords.contains_banned_words(bio):
             return
         try:
-            data = self.archive[str(ctx.author.id)]
+            item = self.archive.get(ctx.author.id)
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
-        data['bio'] = bio
-        shared_functions.update_json_file(self.archive, 'aflers.json')
+        item.bio = bio
+        self.archive.save()
         await ctx.send('Bio aggiunta correttamente.')
 
     @commands.command(brief='ritorna la bio dell\'utente citato')
@@ -172,16 +169,16 @@ class UtilityCog(commands.Cog, name='Utility'):
         if member is None:
             member = ctx.author
         try:
-            data = self.archive[str(member.id)]
+            item = self.archive.get(member.id)
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
-        if data['bio'] is None:
+        if item.bio is None:
             await ctx.send('L\'utente selezionato non ha una bio.')
         else:
             bio = discord.Embed(
                 title='Bio di ' + member.display_name,
-                description=data['bio'],
+                description=item.bio,
                 color=member.top_role.color
             )
             await ctx.send(embed=bio)
