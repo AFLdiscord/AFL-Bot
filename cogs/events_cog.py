@@ -432,7 +432,7 @@ class EventCog(commands.Cog):
                 await guild.get_member(id).add_roles(guild.get_role(Config.config['active_role_id']))
                 print('member ' + item.nick + ' is active')
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
-                await channel.send('membro <@!' + id + '> è diventato attivo')
+                await channel.send('membro <@!' + str(id) + '> è diventato attivo')
                 
             # controllo sulla data dell'ultima violazione, ed eventuale reset
             item.reset_violations()
@@ -444,7 +444,7 @@ class EventCog(commands.Cog):
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 guild = self.bot.get_guild(Config.config['guild_id'])
                 await guild.get_member(id).remove_roles(guild.get_role(Config.config['active_role_id']))
-                await channel.send('membro <@!' + id + '> non più attivo :(')
+                await channel.send('membro <@!' + str(id) + '> non più attivo :(')
                 item.set_inactive()
         self.archive.save()
 
@@ -591,7 +591,7 @@ def coherency_check(archive: Archive, members: List[discord.Member]) -> None:
     # salva tutti gli id dei membri presenti
     for member in members:
         if not member.bot:
-            members_ids.append(str(member.id))
+            members_ids.append(member.id)
 
     # controlla che tutti i membri archiviati siano ancora presenti
     # in caso contrario rimuove l'entry corrispondente dall'archivio

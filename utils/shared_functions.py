@@ -277,7 +277,7 @@ class Afler():
         if count > 0:
             # modifica la data solo se sono aggiunti
             self.data['last_violation_count'] = datetime.date(datetime.now()).__str__()
-        if self.data['violations_count'] < 0:
+        if self.data['violations_count'] <= 0:
             self.data['violations_count'] = 0
             self.data['last_violation_count'] = None
 
@@ -287,7 +287,7 @@ class Afler():
         :returns: il numero di warn accumulati
         :rtype: int
         """
-        pass
+        return self.data['violations_count']
 
     ## METODI A SUPPORTO DELLA LOGICA DI CONTROLLO ATTIVO E VIOLAZIONI
 
@@ -492,6 +492,7 @@ class Archive():
         :returns: lista con tutti gli afler
         :rtype: List[Afler]
         """
+        return self.wrapped_archive.values()
     
     def save(self):
         """Salva su disco le modifiche effettuate all'archivio.

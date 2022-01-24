@@ -226,7 +226,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-            elif item['violations_count'] >= 4:
+            elif item.warn_count() >= 4:
                 penalty = 'bannato dal server.'
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
