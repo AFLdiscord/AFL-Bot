@@ -5,7 +5,7 @@ from datetime import datetime
 import discord
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import Archive, BannedWords, Config
+from utils.shared_functions import Afler, Archive, BannedWords, Config
 
 class ModerationCog(commands.Cog, name='Moderazione'):
     """Contiene i comandi relativi alla moderazione:
@@ -19,7 +19,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
     """
     def __init__(self, bot):
         self.bot = bot
-        self.archive = Archive.archive
+        self.archive = Archive.get_instance()
 
     def cog_check(self, ctx):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""
@@ -73,12 +73,12 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         if member.bot:
             return
         try:
-            data = self.archive[str(member.id)]
+            item = self.archive.get(member.id)
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
-        data['nick'] = name
-        shared_functions.update_json_file(self.archive, 'aflers.json')
+        item.nick = name
+        self.archive.save()
         await member.edit(nick=name)
         await ctx.send('Nickname di ' + member.mention + ' ripristinato')
 
@@ -177,15 +177,15 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             }
         for user in self.archive.values():
             # ricalcolato a ogni richiesta, si potrebbe cacharlo se il numero di utenti cresce
-            warnc[user['violations_count']].append(user['nick'])
+            warnc[user.warn_count()].append(user.nick)
         # rimuovo gli utenti con 0 warn per non intasare il messaggio
         del warnc[0]
         response = ''
         for k in warnc.keys():
             response += str(k) + ' warn:\n'
             userlist = ''
-            for item in warnc[k]:
-                userlist += ' - ' + item + '\n'
+            for name in warnc[k]:
+                userlist += ' - ' + name + '\n'
             if userlist == '':
                 userlist = 'Nessuno\n'
             response += userlist
@@ -216,59 +216,32 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         dell'avvenuta violazione con la ragione che è stata specificata.
         """
         penalty = 'warnato.'
-        key = str(member.id)
-        if key in self.archive:
-            data = self.archive[key]
-            data['violations_count'] += number
-            data['last_violation_count'] = datetime.date(datetime.now()).__str__()
-            shared_functions.update_json_file(self.archive, 'aflers.json')
-            if data['violations_count'] <= 0:
-                data['violations_count'] = 0
-                data['last_violation_count'] = None
-                shared_functions.update_json_file(self.archive, 'aflers.json')
+        if self.archive.is_present(member.id):
+            item = self.archive.get(member.id)
+            item.modify_warn(number)
+            if number < 0:  # non deve controllare il ban se è un unwarn
                 return
-            if number < 0:  # non deve controllare se è un unwarn
-                return
-            if data['violations_count'] == 3:
+            if item.warn_count() == 3:
                 await member.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['under_surveillance_id']))
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
-                shared_functions.update_json_file(self.archive, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-            elif data['violations_count'] >= 4:
+            elif item.warn_count() >= 4:
                 penalty = 'bannato dal server.'
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
-                shared_functions.update_json_file(self.archive, 'aflers.json')
                 await member.ban(delete_message_days = 0, reason = reason)
             else:
                 channel = await member.create_dm()
-                shared_functions.update_json_file(self.archive, 'aflers.json')
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
         else:
-            # contatore per ogni giorno per ovviare i problemi discussi nella issue # 2
+            # membro che non ha mai scritto nei canali conteggiati
             if number < 0:
                 return
-            afler = {
-                'nick': member.display_name,
-                'last_nick_change': datetime.date(datetime.now()).__str__(),
-                'mon': 0,
-                'tue': 0,
-                'wed': 0,
-                'thu': 0,
-                'fri': 0,
-                'sat': 0,
-                'sun': 0,
-                'counter': 0,
-                'last_message_date': None,
-                'violations_count': number,
-                'last_violation_count': datetime.date(datetime.now()).__str__(),
-                'active': False,
-                'expiration': None,
-                'bio': None
-            }
-            self.archive[key] = afler
-            shared_functions.update_json_file(self.archive, 'aflers.json')
+            afler = Afler.new_entry(member.display_name)
+            afler.modify_warn(number)
+            self.archive.add(member.id, afler)
+        self.archive.save()
 
 def setup(bot):
     """Entry point per il caricamento della cog"""

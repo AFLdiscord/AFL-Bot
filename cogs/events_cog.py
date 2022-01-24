@@ -19,7 +19,7 @@ from typing import List
 import discord
 from discord.ext import commands, tasks
 from utils import shared_functions
-from utils.shared_functions import Archive, BannedWords, Config
+from utils.shared_functions import Afler, Archive, BannedWords, Config
 
 class EventCog(commands.Cog):
     """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria
@@ -50,7 +50,7 @@ class EventCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.__version__ = 'v1.1.1'
-        self.archive = Archive.archive
+        self.archive = Archive.get_instance()
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx):
@@ -108,7 +108,18 @@ class EventCog(commands.Cog):
         if message.channel.id == Config.config['poll_channel_id']:
             guild = self.bot.get_guild(Config.config['guild_id'])
             add_proposal(message, guild)
-        update_counter(message)
+        # controlla se il messaggio è valido
+        if not does_it_count(message):
+            return
+        # controlla se il membro è già registrato nell'archivio, in caso contrario lo aggiunge
+        if message.author.id in self.archive.keys():
+            afler = self.archive.get(message.author.id)
+        else:
+            afler = Afler.new_entry(message.author.display_name)
+            self.archive.add(message.author.id, afler)
+        # incrementa il conteggio
+        afler.increase_counter()
+        self.archive.save()
 
     @commands.Cog.listener()
     async def on_message_delete(self, message):
@@ -125,19 +136,14 @@ class EventCog(commands.Cog):
             return
         if not does_it_count(message):
             return
-        item = None
         try:
-            item = self.archive[str(message.author.id)]
+            item = self.archive.get(message.author.id)
         except KeyError:
             print('utente non presente')
             return
-        if item is None:
-            return
-        # il contatore non può ovviamente andare sotto 0
-        if item['counter'] != 0:
-            item['counter'] -= 1
-            shared_functions.update_json_file(self.archive, 'aflers.json')
-            print('rimosso un messaggio')
+        else:
+            item.decrease_counter()
+            self.archive.save()
 
     @commands.Cog.listener()
     async def on_bulk_message_delete(self, messages):
@@ -153,21 +159,18 @@ class EventCog(commands.Cog):
         if not does_it_count(messages[0]):
             return
         counter = 0
+        # TODO: possibile ottimizzazione, prima contare i messaggi per ogni utente e decrementare
+        # in un colpo solo anzichè iterare su un messaggio alla volta
         for message in messages:
-            item = None
             try:
-                item = self.archive[str(message.author.id)]
+                item = self.archive.get(message.author.id)
             except KeyError:
                 print('utente non presente')
                 continue
-            finally:
-                if item is None:
-                    continue
-            # il contatore non può ovviamente andare sotto 0
-            if item['counter'] != 0:
-                item['counter'] -= 1
+            else:
+                item.decrease_counter()
                 counter += 1
-        shared_functions.update_json_file(self.archive, 'aflers.json')
+        self.archive.save()
         print('rimossi ' + str(counter) + ' messaggi')
 
     @commands.Cog.listener()
@@ -263,12 +266,8 @@ class EventCog(commands.Cog):
         """Rimuove, se presente, l'utente da aflers.json nel momento in cui lascia il server."""
         if member.bot:
             return
-        try:
-            del self.archive[str(member.id)]
-        except KeyError:
-            print('utente non trovato')
-            return
-        shared_functions.update_json_file(self.archive, 'aflers.json')
+        self.archive.remove(member.id)
+        self.archive.save()
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
@@ -282,27 +281,9 @@ class EventCog(commands.Cog):
         if afl_role not in before.roles:
             if afl_role in after.roles:
                 # appena diventato AFL, crea entry e salva nickname
-                if not str(after.id) in self.archive:
-                    afler = {
-                        'nick': after.display_name,
-                        'last_nick_change': datetime.date(datetime.now()).__str__(),
-                        'mon': 0,
-                        'tue': 0,
-                        'wed': 0,
-                        'thu': 0,
-                        'fri': 0,
-                        'sat': 0,
-                        'sun': 0,
-                        'counter': 0,
-                        'last_message_date': None,
-                        'violations_count': 0,
-                        'last_violation_count': None,
-                        'active': False,
-                        'expiration': None,
-                        'bio': None
-                    }
-                    self.archive[str(before.id)] = afler
-                    shared_functions.update_json_file(self.archive, 'aflers.json')
+                afler = Afler.new_entry(after.display_name)
+                self.archive.add(after.id, afler)
+                self.archive.save()
             else:
                 # non è ancora AFL, libero di cambiare nick a patto che non contenga parole vietate
                 if BannedWords.contains_banned_words(after.display_name):
@@ -312,7 +293,7 @@ class EventCog(commands.Cog):
             # era già AFL, ripristino il nickname dal file
             if before.display_name != after.display_name:
                 try:
-                    old_nick = self.archive[str(after.id)]['nick']
+                    old_nick = self.archive.get(after.id).nick
                 except KeyError:
                     old_nick = before.display_name
                 await after.edit(nick=old_nick)
@@ -325,10 +306,10 @@ class EventCog(commands.Cog):
             # non ci interessa, vuol dire che ha cambiato immagine
             return
         try:
-            data = self.archive[str(before.id)]
+            item = self.archive.get(before.id)
         except KeyError:
             return
-        old_nick = data['nick']
+        old_nick = item.nick
         member = self.bot.get_guild(Config.config['guild_id']).get_member(after.id)
         if old_nick != member.nick:
             print('reset nickname a ' + old_nick)
@@ -441,43 +422,31 @@ class EventCog(commands.Cog):
                 del proposals[key]
             shared_functions.update_json_file(proposals, 'proposals.json')
         print('controllo conteggio messaggi')
-        for key in self.archive:
-            item = self.archive[key]
-            shared_functions.clean(item)
-            count = shared_functions.count_consolidated_messages(item)
-            if count >= Config.config['active_threshold'] and self.bot.get_guild(Config.config['guild_id']).get_member(int(key)).top_role.id not in Config.config['moderation_roles_id']:
-                item['active'] = True
-                item['expiration'] = datetime.date(datetime.now() + timedelta(days=Config.config['active_duration'])).__str__()
+        for id in self.archive.keys():
+            item = self.archive.get(id)
+            item.clean()
+            count = item.count_consolidated_messages()
+            if count >= Config.config['active_threshold'] and self.bot.get_guild(Config.config['guild_id']).get_member(id).top_role.id not in Config.config['moderation_roles_id']:
+                item.set_active()
                 guild = self.bot.get_guild(Config.config['guild_id'])
-                await guild.get_member(int(key)).add_roles(guild.get_role(Config.config['active_role_id']))
-                print('member ' + item['nick'] + ' is active')
+                await guild.get_member(id).add_roles(guild.get_role(Config.config['active_role_id']))
+                print('member ' + item.nick + ' is active')
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
-                await channel.send('membro <@!' + key + '> è diventato attivo')
-                # azzero tutti i contatori
-                for i in shared_functions.weekdays:
-                    item[shared_functions.weekdays.get(i)] = 0
-
+                await channel.send('membro <@!' + str(id) + '> è diventato attivo')
+                
             # controllo sulla data dell'ultima violazione, ed eventuale reset
-            if item['last_violation_count'] is not None:
-                expiration = datetime.date(datetime.strptime(item['last_violation_count'], '%Y-%m-%d'))
-                if (expiration + timedelta(days=Config.config["violations_reset_days"])) <= (datetime.date(datetime.now())):
-                    print('reset violazioni di ' + item['nick'])
-                    item['violations_count'] = 0
-                    item['last_violation_count'] = None
+            item.reset_violations()
 
             # rimuovo i messaggi contati 7 giorni fa
-            item[shared_functions.weekdays.get(datetime.today().weekday())] = 0
+            item.forget_last_week()
 
-            if item['active'] is True:
-                expiration = datetime.date(datetime.strptime(item['expiration'], '%Y-%m-%d'))
+            if item.is_active_expired():
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
-                if expiration <= ((datetime.date(datetime.now()))):
-                    guild = self.bot.get_guild(Config.config['guild_id'])
-                    await guild.get_member(int(key)).remove_roles(guild.get_role(Config.config['active_role_id']))
-                    await channel.send('membro <@!' + key + '> non più attivo :(')
-                    item['active'] = False
-                    item['expiration'] = None
-        shared_functions.update_json_file(self.archive, 'aflers.json')
+                guild = self.bot.get_guild(Config.config['guild_id'])
+                await guild.get_member(id).remove_roles(guild.get_role(Config.config['active_role_id']))
+                await channel.send('membro <@!' + str(id) + '> non più attivo :(')
+                item.set_inactive()
+        self.archive.save()
 
 def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
@@ -527,57 +496,6 @@ def remove_proposal(message: discord.Message) -> None:
         print('proposta non trovata')
     else:
         shared_functions.update_json_file(proposals, 'proposals.json')
-
-def update_counter(message: discord.Message) -> None:
-    """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
-    nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
-    Si occupa anche di aggiornare il campo 'last_message_date'.
-
-    :param message: messaggio ricevuto
-    """
-    if not does_it_count(message):
-        return
-    key = str(message.author.id)
-    if key in Archive.archive:
-        item = Archive.archive[key]
-        if item['last_message_date'] == datetime.date(datetime.now()).__str__():
-            # messaggi dello stesso giorno, continuo a contare
-            item['counter'] += 1
-        elif item['last_message_date'] is None:
-            # primo messaggio della persona
-            item['counter'] = 1
-            item['last_message_date'] = datetime.date(datetime.now()).__str__()
-        else:
-            # è finito il giorno, salva i messaggi di 'counter' nel giorno corrispondente e aggiorna data ultimo messaggio
-            if item['counter'] != 0:
-                day = shared_functions.weekdays[datetime.date(datetime.strptime(item['last_message_date'], '%Y-%m-%d')).weekday()]
-                item[day] = item['counter']
-            item['counter'] = 1
-            item['last_message_date'] = datetime.date(datetime.now()).__str__()
-    else:
-        # succede se il file viene cancellato o il bot è offline quando entra il membro
-        print('membro non presente nel file, aggiungo ora')
-        afler = {
-            'nick': message.author.display_name,
-            'last_nick_change': datetime.date(datetime.now()).__str__(),
-            'mon': 0,
-            'tue': 0,
-            'wed': 0,
-            'thu': 0,
-            'fri': 0,
-            'sat': 0,
-            'sun': 0,
-            'counter': 1,
-            'last_message_date': datetime.date(datetime.now()).__str__(),
-            'violations_count': 0,
-            'last_violation_count': None,
-            'active': False,
-            'expiration': None,
-            'bio': None
-        }
-        Archive.archive[key] = afler
-    shared_functions.update_json_file(Archive.archive, 'aflers.json')
-
 
 def does_it_count(message: discord.Message) -> bool:
     """Controlla se il canale in cui è stato mandato il messaggio passato rientra nei canali
@@ -660,7 +578,7 @@ def emoji_or_mention(content: str) -> bool:
     else:
         return False
 
-def coherency_check(archive: dict, members: List[discord.Member]) -> None:
+def coherency_check(archive: Archive, members: List[discord.Member]) -> None:
     """Controlla la coerenza tra l'elenco membri del server e l'elenco
     degli id salvati nell'archivio aflers.json
     Questo è per evitare incongruenze in caso di downtime del bot.
@@ -673,16 +591,16 @@ def coherency_check(archive: dict, members: List[discord.Member]) -> None:
     # salva tutti gli id dei membri presenti
     for member in members:
         if not member.bot:
-            members_ids.append(str(member.id))
+            members_ids.append(member.id)
 
     # controlla che tutti i membri archiviati siano ancora presenti
     # in caso contrario rimuove l'entry corrispondente dall'archivio
     for archived in archived_ids:
         if archived not in members_ids:
-            del archive[archived]
+            archive.remove(archived)
 
     # save changes to file
-    shared_functions.update_json_file(archive, 'aflers.json')
+    archive.save()
 
 def setup(bot):
     """Entry point per il caricamento della cog"""
