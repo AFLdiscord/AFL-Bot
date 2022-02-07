@@ -124,7 +124,7 @@ class Afler():
         return self.data['nick']
     
     @nick.setter
-    def nick(self, new_nick: str):
+    def nick(self, new_nick: str) -> None:
         """Modifica il nome dell'afler.
         
         :param new_nick: nuovo nickname
@@ -245,8 +245,8 @@ class Afler():
     def is_active_expired(self) -> bool:
         """Controlla se l'assegnazione del ruolo attivo è scaduta.
         
-        :returns: True se activ=True e il ruolo è scaduto, False active=True e il ruolo è scaduto
-        oppure se l'afler non è attivo
+        :returns: True se active=True e il ruolo è scaduto, False se active=True e il ruolo
+        non è scaduto oppure se active=False (l'afler non è attivo) 
         :rtype: bool
         """
         if not self.data['active']:
