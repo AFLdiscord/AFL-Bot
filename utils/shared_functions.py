@@ -595,7 +595,23 @@ class BannedWords():
         return False
 
 class BotLogger():
-    """Logging degli eventi del server in un canale dedicato."""
+    """Logging degli eventi del server in un canale dedicato. Utilizzato per inviare
+    messaggi sul canale di log del server per tenere traccia degli eventi quali warn,
+    entrata/uscita membri, messaggi rimossi, etc.
+
+    Attributes
+    -------------
+    _logger: BotLogger   attributo di classe, contiene l'istanza del logger
+
+    Classmethods
+    -------------
+    create_instance()   inizializza l'istanza dell logger
+    get_instance()   ritorna l'unica istanza del logger
+
+    Methods
+    -------------
+    log()   coroutine, compila il messaggio e lo invia nel canale
+    """
     _logger = None
 
     def __init__(self) -> None:
@@ -603,6 +619,10 @@ class BotLogger():
 
     @classmethod
     def create_instance(cls, bot) -> BotLogger:
+        """Crea e ritorna l'istanza del logger e ne inizializza gli attributi.
+        
+        :param bot: il bot
+        """
         if cls._logger is None:
             cls._logger = cls.__new__(cls)
             cls._logger.bot = bot
@@ -611,20 +631,23 @@ class BotLogger():
 
     @classmethod
     def get_instance(cls) -> BotLogger:
+        """Ritorna l'unica istanza del logger."""
         return cls._logger
 
     async def log(self, bot,  msg: str) -> None:
-        """Compose the message into a log entry and send it on
-        the specified channel. The formatting is as follows:
+        """Compila il messaggio da inviare nel canale. Il formato
+        è il seguente:
         
         YYYY-MM-DD HH:MM:SS.DDDDDD  <msg>
 
-        The date is build using datetime.datetime()
+        La data arriva da datetime.now()
 
-        :param msg: il messaggio da loggare
+        :param msg: il messaggio con l'evento da loggare
         """
         timestamp = str(datetime.now())
         msg = '`' + timestamp + '`  ' + msg
+        # dopo ore di tentativi, tenere il bot come attributo e fetchare il canale
+        # alla prima richiesta di log è l'unico approccio che ho trovato funzionare
         if self.channel is None:
             self.channel = await bot.fetch_channel(Config.config['log_channel_id'])
         await self.channel.send(msg)
