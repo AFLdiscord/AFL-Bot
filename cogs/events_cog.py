@@ -19,7 +19,7 @@ from typing import List
 import discord
 from discord.ext import commands, tasks
 from utils import shared_functions
-from utils.shared_functions import Afler, Archive, BannedWords, Config
+from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
 
 class EventCog(commands.Cog):
     """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria
@@ -51,6 +51,7 @@ class EventCog(commands.Cog):
         self.bot = bot
         self.__version__ = 'v1.1.1'
         self.archive = Archive.get_instance()
+        self.logger = BotLogger.get_instance()
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx):

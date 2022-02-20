@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
-from utils.shared_functions import Archive, BannedWords, Config
+from utils.shared_functions import Archive, BannedWords, BotLogger, Config
 
 class UtilityCog(commands.Cog, name='Utility'):
     """Contiene i comandi destinati ad essere usati dagli AFL con funzionalità varie:
@@ -16,6 +16,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     def __init__(self, bot):
         self.bot = bot
         self.archive = Archive.get_instance()
+        self.logger = BotLogger.get_instance()
 
     def cog_check(self, ctx):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""

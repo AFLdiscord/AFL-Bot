@@ -594,6 +594,41 @@ class BannedWords():
                 return True
         return False
 
+class BotLogger():
+    """Logging degli eventi del server in un canale dedicato."""
+    _logger = None
+
+    def __init__(self) -> None:
+        raise RuntimeError
+
+    @classmethod
+    def create_instance(cls, bot) -> BotLogger:
+        if cls._logger is None:
+            cls._logger = cls.__new__(cls)
+            cls._logger.bot = bot
+            cls._logger.channel = None
+        return cls._logger
+
+    @classmethod
+    def get_instance(cls) -> BotLogger:
+        return cls._logger
+
+    async def log(self, bot,  msg: str) -> None:
+        """Compose the message into a log entry and send it on
+        the specified channel. The formatting is as follows:
+        
+        YYYY-MM-DD HH:MM:SS.DDDDDD  <msg>
+
+        The date is build using datetime.datetime()
+
+        :param msg: il messaggio da loggare
+        """
+        timestamp = str(datetime.now())
+        msg = '`' + timestamp + '`  ' + msg
+        if self.channel is None:
+            self.channel = await bot.fetch_channel(Config.config['log_channel_id'])
+        await self.channel.send(msg)
+        
 class Config():
     """Gestione dei parametri di configurazione del bot. Salva tutti i parametri in un dizionario
     che può essere usato dal resto del bot per svolgere la sua funzione. I parametri possono essere
@@ -655,6 +690,7 @@ class Config():
         Config.config['main_channel_id'] = int(data['main_channel_id'])
         Config.config['presentation_channel_id'] = int(data['presentation_channel_id'])
         Config.config['welcome_channel_id'] = int(data['welcome_channel_id'])
+        Config.config['log_channel_id'] = int(data['log_channel_id'])
         Config.config['current_prefix'] = data['current_prefix']
         Config.config['moderation_roles_id'] = []
         for mod in data['moderation_roles_id']:
@@ -675,6 +711,7 @@ class Config():
         Config.config['nick_change_days'] = data['nick_change_days']
         Config.config['bio_length_limit'] = data['bio_length_limit']
         Config.config['greetings'] = data['greetings']
+
 
 def update_json_file(data, json_file: str) -> None:
     """Scrive su file json i dati passati.

@@ -1,11 +1,10 @@
 """:class: ModerationCog contiene tutti i comandi per la moderazione."""
-import json
 from datetime import datetime
 
 import discord
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import Afler, Archive, BannedWords, Config
+from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
 
 class ModerationCog(commands.Cog, name='Moderazione'):
     """Contiene i comandi relativi alla moderazione:
@@ -20,6 +19,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
     def __init__(self, bot):
         self.bot = bot
         self.archive = Archive.get_instance()
+        self.logger = BotLogger.get_instance()
 
     def cog_check(self, ctx):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""

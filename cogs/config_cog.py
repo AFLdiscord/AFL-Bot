@@ -1,9 +1,10 @@
 """:class: ConfigCog contiene i comandi di configurazione del bot."""
 import git
 import json
+
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import BannedWords, Config
+from utils.shared_functions import BannedWords, BotLogger, Config
 
 class ConfigCog(commands.Cog, name='Configurazione'):
     """Contiene i comandi di configurazione del bot:
@@ -24,6 +25,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     """
     def __init__(self, bot):
         self.bot = bot
+        self.logger = BotLogger.get_instance()
 
     def cog_check(self, ctx):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""

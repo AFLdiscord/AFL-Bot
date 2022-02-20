@@ -1,11 +1,12 @@
 """bot.py"""
 import os
 import logging
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 from utils import shared_functions
-from utils.shared_functions import Archive, BannedWords, Config
+from utils.shared_functions import Archive, BannedWords, BotLogger, Config
 
 # logging di base sul terminale
 logging.basicConfig(level=logging.INFO)
@@ -30,6 +31,9 @@ intents.bans = True
 
 # istanziare il bot (avvio in fondo al codice)
 bot = commands.Bot(command_prefix = Config.config['current_prefix'], intents=intents)
+
+# setup del logging nel canale dedicato
+logger = BotLogger.create_instance(bot)
 
 # carico i moduli dei comandi
 extensions = shared_functions.get_extensions()

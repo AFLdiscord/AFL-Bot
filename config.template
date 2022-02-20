@@ -4,6 +4,7 @@
     "main_channel_id": canale dei messaggi di sistema del bot,
     "presentation_channel_id": canale in cui i nuovi membri si presentano prima dell'ammissione,
     "welcome_channel_id": canale di benvenuto in cui si annunciano i nuovi membri,
+    "log_channel_id": canale del server in cui si ricevono i messaggi di log del bot,
     "current_prefix": "<",
     "moderation_roles_id": [id dei ruoli di moderazione separati da virgola se più di uno],
     "afl_role_id": id del ruolo AFL,
