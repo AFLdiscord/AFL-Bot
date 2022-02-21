@@ -108,7 +108,9 @@ class EventCog(commands.Cog):
             return
         if message.channel.id == Config.config['poll_channel_id']:
             guild = self.bot.get_guild(Config.config['guild_id'])
+            await self.logger.log('membro ' + message.author.display_name + ' ha aggiunto una proposta')
             add_proposal(message, guild)
+            await self.logger.log('proposta aggiunta al file: `' + message.content + '`')
         # controlla se il messaggio è valido
         if not does_it_count(message):
             return
@@ -132,7 +134,7 @@ class EventCog(commands.Cog):
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
         if message.channel.id == Config.config['poll_channel_id']:
-            print('rimuovo proposta')
+            await self.logger.log('rimuovo proposta: `' + message.content + '`')
             remove_proposal(message)
             return
         if not does_it_count(message):
@@ -140,10 +142,10 @@ class EventCog(commands.Cog):
         try:
             item = self.archive.get(message.author.id)
         except KeyError:
-            print('utente non presente')
             return
         else:
             item.decrease_counter()
+            await self.logger.log('decrementato contatore di ' + message.author.display_name)
             self.archive.save()
 
     @commands.Cog.listener()
@@ -155,6 +157,7 @@ class EventCog(commands.Cog):
         if messages[0].channel.id == Config.config['poll_channel_id']:
             # è qua solo in caso di spam sul canale proposte, improbabile visto la slowmode
             for message in messages:
+                await self.logger.log('rimuovo proposta: `' + message.content + '`')
                 remove_proposal(message)
             return
         if not does_it_count(messages[0]):
@@ -166,13 +169,12 @@ class EventCog(commands.Cog):
             try:
                 item = self.archive.get(message.author.id)
             except KeyError:
-                print('utente non presente')
                 continue
             else:
                 item.decrease_counter()
                 counter += 1
         self.archive.save()
-        print('rimossi ' + str(counter) + ' messaggi')
+        await self.logger.log('rimossi ' + str(counter) + ' messaggi')
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
@@ -190,6 +192,7 @@ class EventCog(commands.Cog):
             return
         # aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
         # un voto dal conteggio quando il bot la rimuove
+        await self.logger.log('aggiunta reazione sulla proposta `' + message.content + '`')
         adjust_vote_count(payload, 1)
         is_good = self._check_reaction_permissions(payload)
         if not is_good:
@@ -198,7 +201,7 @@ class EventCog(commands.Cog):
                 message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
                 await message.remove_reaction(payload.emoji, payload.member)
             except discord.NotFound:
-                print('impossibile trovare il messaggio o la reaction cercate')
+                await self.logger.log('impossibile trovare il messaggio o la reaction cercate')
                 return
 
     @commands.Cog.listener()
@@ -213,6 +216,7 @@ class EventCog(commands.Cog):
         message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
         if message.author == self.bot.user:
             return
+        await self.logger.log('rimosssa reazione sulla proposta `' + message.content + '`')
         adjust_vote_count(payload, -1)
 
     def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
@@ -255,10 +259,11 @@ class EventCog(commands.Cog):
         """
         if member.bot:
             return
-        print('nuovo membro')
+        await self.logger.log('nuovo membro ' + member.display_name)
         channel = await member.create_dm()
         await channel.send(Config.config['greetings'])
         if BannedWords.contains_banned_words(member.display_name):
+            await self.logger.log('nuovo membro ' + member.display_name + 'kickato per username improprio')
             await member.kick(reason="ForbiddenUsername")
             await channel.send('Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
 
@@ -267,6 +272,7 @@ class EventCog(commands.Cog):
         """Rimuove, se presente, l'utente da aflers.json nel momento in cui lascia il server."""
         if member.bot:
             return
+        await self.loggerl.log('membro ' + member.display_name + 'rimosso/uscito dal server')
         self.archive.remove(member.id)
         self.archive.save()
 
@@ -282,13 +288,14 @@ class EventCog(commands.Cog):
         if afl_role not in before.roles:
             if afl_role in after.roles:
                 # appena diventato AFL, crea entry e salva nickname
+                await self.logger.log('nuova entry nell\'archivio: ' + after.display_name)
                 afler = Afler.new_entry(after.display_name)
                 self.archive.add(after.id, afler)
                 self.archive.save()
             else:
                 # non è ancora AFL, libero di cambiare nick a patto che non contenga parole vietate
                 if BannedWords.contains_banned_words(after.display_name):
-                    print('nickname con parole vietate, ripristino a ' + str(after.id))
+                    await self.logger.log('nickname' + after.display_name + 'contiene parole vietate, ripristino a ' + before.display_name)
                     await after.edit(nick=before.display_name)
         else:
             # era già AFL, ripristino il nickname dal file
@@ -297,6 +304,7 @@ class EventCog(commands.Cog):
                     old_nick = self.archive.get(after.id).nick
                 except KeyError:
                     old_nick = before.display_name
+                await self.logger.log('ripristino nickname a ' + old_nick)
                 await after.edit(nick=old_nick)
 
 
@@ -313,7 +321,7 @@ class EventCog(commands.Cog):
         old_nick = item.nick
         member = self.bot.get_guild(Config.config['guild_id']).get_member(after.id)
         if old_nick != member.nick:
-            print('reset nickname a ' + old_nick)
+            await self.logger.log('ripristino nickname a ' + old_nick)
             await member.edit(nick=old_nick)
 
     @commands.Cog.listener()
@@ -329,6 +337,7 @@ class EventCog(commands.Cog):
                 return
             else:
                 # da rimuovere
+                await self.logger.log('rimosso il canale: ' + channel.name + '(id:' + channel.id + ')')
                 Config.config['active_channels_id'].remove(channel.id)
                 shared_functions.update_json_file(Config.config, 'config.json')
 
@@ -348,13 +357,14 @@ class EventCog(commands.Cog):
         else:
             await ctx.send('Sintassi errata, controlla come usare il comando.\n' + '```' + ctx.command.help + '```')
             # potrei fare la stessa cosa mettendo ctx.send_help(ctx.command.help) ma volevo un messaggio solo
-        print(error)
+        await self.logger.log(str(error))
 
     @commands.Cog.listener()
     async def on_resume(self):
         """Controlla incoerenze tra l'archivio e l'elenco membri corrente, stesso controllo
         fatto dentro on_ready.
         """
+        await self.logger.log('evento on_resume')
         coherency_check(self.archive, self.bot.get_guild(Config.config['guild_id']).members)
 
     @commands.Cog.listener()
@@ -369,17 +379,20 @@ class EventCog(commands.Cog):
         timestamp = datetime.time(datetime.now())
         botstat = discord.Game(name='AFL ' + self.__version__)
         await self.bot.change_presence(activity=botstat)
-        print(f'{self.bot.user} has connected to Discord! 'f'{timestamp}')
+        # inizializzazione del logger degli eventi sul canale
+        await self.logger.initialize(self.bot)
+        # log dell'avvio
+        await self.logger.log(f'{self.bot.user} connesso a discord')
         # controllo coerenza archivio
         coherency_check(self.archive, self.bot.get_guild(Config.config['guild_id']).members)
         if not self.periodic_checks.is_running():    # per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
             if Config.config['main_channel_id'] is not None:
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 await channel.send('AFL Bot `' + self.__version__ + '` avviato alle `'f'{timestamp}`. Il prefisso è: `{self.bot.command_prefix}`')
-            print('avvio task')
+            await self.logger.log('avvio task')
             self.periodic_checks.start()
         else:
-            print('task già avviata')
+            await self.logger.log('chiamata on_ready ma la task è già avviata')
 
     @tasks.loop(hours=24)
     async def periodic_checks(self):
@@ -394,12 +407,12 @@ class EventCog(commands.Cog):
         Viene avviata tramite la on_ready quando il bot ha completato la fase di setup ed è
         programmata per essere eseguita ogni 24 ore da quel momento.
         """
-        print('controllo proposte')
+        await self.logger.log('controllo proposte...')
         try:
             with open('proposals.json','r') as file:
                 proposals = json.load(file)
         except FileNotFoundError:
-            print('nessun file di proposte trovato')
+            await self.logger.log('nessun file di proposte trovato')
         else:
             to_delete = []
             for key in proposals:
@@ -407,22 +420,25 @@ class EventCog(commands.Cog):
                 if proposal['passed']:
                     to_delete.append(key)
                     channel = self.bot.get_channel(Config.config['poll_channel_id'])
+                    await self.logger.log('proposta passata: ' + proposal['content'])
                     await channel.send(
                         'Raggiunta soglia per la proposta, in attesa di approvazione dai mod.\n' +
                         '`' + proposal['content'] + '`'
                     )
                 elif datetime.date(datetime.now() - timedelta(days=3)).__str__() == proposal['timestamp']:
+                    await self.logger.log('proposta scaduta: ' + proposal['content'])
                     to_delete.append(key)
             for key in to_delete:
                 try:
                     message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
                 except discord.NotFound:
-                    print('proposta già cancellata, ignoro')  # capita se viene cancellata dopo un riavvio o mentre è offline
+                    await self.logger.log('proposta già cancellata, ignoro')  # capita se viene cancellata dopo un riavvio o mentre è offline
                 else:
                     await message.delete()
                 del proposals[key]
             shared_functions.update_json_file(proposals, 'proposals.json')
-        print('controllo conteggio messaggi')
+        await self.logger.log('controllo proposte terminato')
+        await self.logger.log('controllo conteggio messaggi...')
         for id in self.archive.keys():
             item = self.archive.get(id)
             item.clean()
@@ -431,7 +447,7 @@ class EventCog(commands.Cog):
                 item.set_active()
                 guild = self.bot.get_guild(Config.config['guild_id'])
                 await guild.get_member(id).add_roles(guild.get_role(Config.config['active_role_id']))
-                print('member ' + item.nick + ' is active')
+                await self.logger.log('membro ' + item.nick + ' è attivo')
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 await channel.send('membro <@!' + str(id) + '> è diventato attivo')
                 
@@ -445,8 +461,10 @@ class EventCog(commands.Cog):
                 channel = self.bot.get_channel(Config.config['main_channel_id'])
                 guild = self.bot.get_guild(Config.config['guild_id'])
                 await guild.get_member(id).remove_roles(guild.get_role(Config.config['active_role_id']))
+                await self.logger.log('membro ' + item.nick + ' non più è attivo')
                 await channel.send('membro <@!' + str(id) + '> non più attivo :(')
                 item.set_inactive()
+        await self.logger.log('controllo conteggio messaggi terminato')
         self.archive.save()
 
 def add_proposal(message: discord.Message, guild: discord.Guild) -> None:

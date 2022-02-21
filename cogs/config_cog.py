@@ -50,6 +50,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             return
         BannedWords.add(ban_word)
         shared_functions.update_json_file(BannedWords.banned_words, 'banned_words.json')
+        await self.logger.log(f'aggiunta parola bannata `{ban_word}`')
         await ctx.send('parola aggiunta correttamente', delete_after=5)
 
     @commands.command(brief='rimuove una parola bannata dall\'elenco')
@@ -64,6 +65,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         if ban_word in BannedWords.banned_words:
             BannedWords.remove(ban_word)
             shared_functions.update_json_file(BannedWords.banned_words, 'banned_words.json')
+            await self.logger.log(f'rimossa parola bannata `{ban_word}`')
             await ctx.send('la parola è stata rimossa', delete_after=5)
         else:
             await ctx.send('la parola non è presente nell\'elenco', delete_after=5)
@@ -87,6 +89,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         <setprefix ?     # imposta '?' come nuovo prefisso
         """
         self.bot.command_prefix = prefix
+        await self.logger.log((f'prefisso cambiato in ``{prefix}``'))
         await ctx.send(f'Prefisso cambiato in ``{prefix}``')
         Config.config['current_prefix'] = prefix
         with open('config.json', 'r') as file:
@@ -102,8 +105,10 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         <updateconfig     # ricarica tutti i parametri dal file
         """
         if Config.load():
+            await self.logger.log('aggiornata configurazione')
             await ctx.send('Configurazione ricaricata correttamente')
         else:
+            await self.logger.log('errore durante aggiornamento configurazione, mantenute impostazioni precedenti')
             await ctx.send('Errore nel caricamento della configurazione, mantengo impostazioni precedenti')
 
     @commands.command(brief='git pull dal repository remoto')
@@ -119,6 +124,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         repo = git.cmd.Git('.')
         await ctx.send(repo.pull())
         await ctx.invoke(self.bot.get_command('reload'))
+        await self.logger.log('aggiornato bot tramite comando pull')
 
     @commands.command(brief='ricarica una o più cogs')
     async def reload(self, ctx, *args):
@@ -146,6 +152,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 await ctx.send('Errore nella ricarica di ' + ext + ' , vedi log del bot.', delete_after=5)
                 await ctx.message.delete(delay=5)
         if reloaded != '':
+            await self.logger.log('estensioni ' + reloaded + 'ricaricate correttamente.')
             await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
 
     @commands.command(brief='stampa la configurazione corrente')
@@ -188,6 +195,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 else:
                     await ctx.send(ext + ' già presente.')
             if added != '':
+                await self.logger.log('estensioni ' + added + 'aggiunte correttamente')
                 await ctx.send('Estensioni ' + added + 'aggiunte correttamente.')
             shared_functions.update_json_file(extensions, 'extensions.json')
 
@@ -220,6 +228,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 else:
                     removed += '`' + ext + '` '
             if removed != '':
+                await self.logger.log('estensioni ' + removed + 'rimosse correttamente')
                 await ctx.send('Estensioni ' + removed + 'rimosse correttamente.')
             shared_functions.update_json_file(extensions, 'extensions.json')
 
@@ -253,6 +262,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             id = int(id)
             if id not in Config.config['active_channels_id']:
                 Config.config['active_channels_id'].append(id)
+                await self.logger.log('canale <#' + str(id) + '> aggiunto all\'elenco attivi')
                 await ctx.send('Canale <#' + str(id) + '> aggiunto all\'elenco')
                 shared_functions.update_json_file(Config.config, 'config.json')
             else:
@@ -275,6 +285,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             id = int(id)
             if id in Config.config['active_channels_id']:
                 Config.config['active_channels_id'].remove(id)
+                await self.logger.log('canale <#' + str(id) + '> rimosso dall\'elenco attivi')
                 await ctx.send('Canale <#' + str(id) + '> rimosso dall\'elenco')
                 shared_functions.update_json_file(Config.config, 'config.json')
             else:
@@ -304,24 +315,25 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         if not value.isdigit():
             await ctx.send('La soglia deve essere un valore numerico')
             return
+        msg = ''
         if category.startswith('a'):
             Config.config['active_threshold'] = int(value)
-            await ctx.send('Soglia messaggi per l\'attivo cambiata a ' + str(value))
-            shared_functions.update_json_file(Config.config, 'config.json')
+            msg = 'Soglia messaggi per l\'attivo cambiata a ' + str(value)
         elif category.startswith('r'):
             Config.config['active_duration'] = int(value)
-            await ctx.send('Durata dell\'attivo cambiata a ' + str(value) + ' giorni')
-            shared_functions.update_json_file(Config.config, 'config.json')
+            msg = 'Durata dell\'attivo cambiata a ' + str(value) + ' giorni'
         elif category.startswith('s'):
             Config.config['nick_change_days'] = int(value)
-            await ctx.send('Cooldown per il setnick cambiata a ' + str(value) + ' giorni')
-            shared_functions.update_json_file(Config.config, 'config.json')
+            msg = 'Cooldown per il setnick cambiata a ' + str(value) + ' giorni'
         elif category.startswith('v'):
             Config.config['violations_reset_days'] = int(value)
-            await ctx.send('Giorni per il reset delle violazioni cambiati a ' + str(value))
-            shared_functions.update_json_file(Config.config, 'config.json')
+            msg = 'Giorni per il reset delle violazioni cambiati a ' + str(value)
         else:
             await ctx.send('Comando errato, controlla la sintassi')
+            return
+        await self.logger.log(msg)
+        await ctx.send(msg)
+        shared_functions.update_json_file(Config.config, 'config.json')
 
 
 def setup(bot):

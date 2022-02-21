@@ -38,6 +38,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
             await message.delete()
+            await self.logger.log('aggiunto warn a ' + message.author.display_name + ' per linguaggio inappropriato: `' + message.content + '`')
             await self._add_warn(message.author, 'linguaggio inappropriato', 1)
 
     @commands.command(brief='reimposta il nickname dell\'utente citato')
@@ -80,6 +81,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         item.nick = name
         self.archive.save()
         await member.edit(nick=name)
+        await self.logger.log('ripristinato nickname di ' + member.display_name + ' tramite resetnick')
         await ctx.send('Nickname di ' + member.mention + ' ripristinato')
 
     @commands.command(brief='aggiunge un warn all\'utente citato')
@@ -133,6 +135,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         await self._add_warn(member, reason, 1)
         user = '<@!' + str(member.id) + '>'
+        await self.logger.log(member.display_name + ' warnato. Motivo: ' + reason)
         await ctx.send(user + ' warnato. Motivo: ' + reason)
         await ctx.message.delete(delay=5)
 
@@ -148,6 +151,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         reason = 'buona condotta'
         await self._add_warn(member, reason, -1)
         user = '<@!' + str(member.id) + '>'
+        await self.logger.log('rimosso warn a ' + member.display_name)
         await ctx.send(user + ' rimosso un warn.')
         await ctx.message.delete(delay=5)
 
@@ -203,6 +207,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             await ctx.message.delete(delay=5)
             return
         user = '<@!' + str(member.id) + '>'
+        await self.logger.log(member.display_name + ' bannato. Motivo: ' + reason)
         await ctx.send(user + ' bannato. Motivo: ' + reason)
         await ctx.message.delete(delay=5)
         penalty = 'bannato dal server.'

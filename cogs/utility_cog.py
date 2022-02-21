@@ -43,7 +43,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         try:
             item = self.archive.get(member.id)
         except KeyError:
-            print('non presente')
+            await self.logger.log('richiesto status di ' + member.display_name + 'ma non è presente nell\'archivio')
             await ctx.send('l\'utente indicato non è registrato', delete_after=5)
             await ctx.message.delete(delay=5)
             return
@@ -156,6 +156,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             return
         item.bio = bio
         self.archive.save()
+        await self.logger.log('aggiunta bio di ' + ctx.author.display_name)
         await ctx.send('Bio aggiunta correttamente.')
 
     @commands.command(brief='ritorna la bio dell\'utente citato')

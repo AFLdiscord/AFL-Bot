@@ -610,6 +610,7 @@ class BotLogger():
 
     Methods
     -------------
+    initialize()   coroutine, inizializza il canale su cui viene fatto il logging
     log()   coroutine, compila il messaggio e lo invia nel canale
     """
     _logger = None
@@ -634,7 +635,16 @@ class BotLogger():
         """Ritorna l'unica istanza del logger."""
         return cls._logger
 
-    async def log(self, bot,  msg: str) -> None:
+    async def initialize(self, bot) -> None:
+        """Inizializza il logger caricando il canale dedicato. La chiamata
+        a questo metodo deve essere fatta una volta sola prima che il logger
+        possa procedere con il logging.
+        
+        :param bot: il bot
+        """
+        self.channel = await bot.fetch_channel(Config.config['log_channel_id'])
+        
+    async def log(self,  msg: str) -> None:
         """Compila il messaggio da inviare nel canale. Il formato
         è il seguente:
         
@@ -646,10 +656,9 @@ class BotLogger():
         """
         timestamp = str(datetime.now())
         msg = '`' + timestamp + '`  ' + msg
-        # dopo ore di tentativi, tenere il bot come attributo e fetchare il canale
-        # alla prima richiesta di log è l'unico approccio che ho trovato funzionare
         if self.channel is None:
-            self.channel = await bot.fetch_channel(Config.config['log_channel_id'])
+            # fallback sul terminale
+            print(msg)
         await self.channel.send(msg)
         
 class Config():
