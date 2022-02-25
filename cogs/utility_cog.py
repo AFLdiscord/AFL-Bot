@@ -1,9 +1,10 @@
 """:class: UtilityCog contiene comandi di uso generale."""
 from datetime import datetime, timedelta
+from typing import Optional
 
 import discord
 from discord.ext import commands
-from utils.shared_functions import Archive, BannedWords, BotLogger, Config
+from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
 
 class UtilityCog(commands.Cog, name='Utility'):
     """Contiene i comandi destinati ad essere usati dagli AFL con funzionalità varie:
@@ -13,12 +14,12 @@ class UtilityCog(commands.Cog, name='Utility'):
     - setbio imposta la propria bio
     - bio ritorna la bio dell'utente citato
     """
-    def __init__(self, bot):
-        self.bot = bot
-        self.archive = Archive.get_instance()
-        self.logger = BotLogger.get_instance()
+    def __init__(self, bot: commands.Bot):
+        self.bot: commands.Bot = bot
+        self.archive: Archive = Archive.get_instance()
+        self.logger: BotLogger = BotLogger.get_instance()
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
         for role in ctx.author.roles:
             if Config.config['afl_role_id'] == role.id:
@@ -26,7 +27,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         return False
 
     @commands.command(brief='ritorna statistiche sul membro menzionato')
-    async def status(self, ctx, member: discord.Member = None):
+    async def status(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """Mostra il proprio status oppure quello del membro fornito come parametro tramite embed.
         Lo status comprende:
         - numero di messaggi degli ultimi 7 giorni
@@ -41,7 +42,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if member is None:
             member = ctx.author
         try:
-            item = self.archive.get(member.id)
+            item: Afler = self.archive.get(member.id)
         except KeyError:
             await self.logger.log('richiesto status di ' + member.display_name + 'ma non è presente nell\'archivio')
             await ctx.send('l\'utente indicato non è registrato', delete_after=5)
@@ -57,7 +58,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         else:
             status.add_field(name='Messaggi ultimi 7 giorni:', value=str(item.count_messages()) +
                 ' (ultimo il ' + str(item.last_message_date()) + ')', inline=False)
-        is_a_mod = False
+        is_a_mod: bool = False
         for role in member.roles:
             if role.id in Config.config['moderation_roles_id']:
                 is_a_mod = True
@@ -78,7 +79,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send(embed=status)
 
     @commands.command(brief='invia la propic dell\'utente')
-    async def avatar(self, ctx, user: discord.User = None):
+    async def avatar(self, ctx: commands.Context, user: Optional[discord.User] = None):
         """Invia la propria propic o quella dell'utente menzionato. Non è necessario che l'utente
         faccia parte del server, basta che la menzione sia valida.
 
@@ -99,7 +100,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send(embed=avatar)
 
     @commands.command(brief='permette di cambiare nickname periodicamente', hidden=True)
-    async def setnick(self, ctx, *, new_nick: str):
+    async def setnick(self, ctx: commands.Context, *, new_nick: str):
         """Permette di cambiare il proprio nickname periodicamente. La frequenza con
         cui è possibile farlo è definita nel config. Impedisce che due membri abbiano lo
         lo stesso nickname.
@@ -119,7 +120,7 @@ class UtilityCog(commands.Cog, name='Utility'):
                 await ctx.send('Questo nickname è già in uso')
                 return
         try:
-            item = self.archive.get(ctx.author.id)
+            item: Afler = self.archive.get(ctx.author.id)
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
@@ -136,7 +137,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send('Prossimo cambio tra ' + str(days_until_renewal.days) + ' giorni')
 
     @commands.command(brief='imposta la propria bio')
-    async def setbio(self, ctx, *, bio: str):
+    async def setbio(self, ctx: commands.Context, *, bio: str):
         """Permette di impostare una biografia visibile agli altri membri.
         Non sono ovviamente ammesse parole vietate e gli admin si riservano il
         diritto di editare quelle ritenute offensive.
@@ -150,7 +151,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if BannedWords.contains_banned_words(bio):
             return
         try:
-            item = self.archive.get(ctx.author.id)
+            item: Afler = self.archive.get(ctx.author.id)
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
@@ -160,7 +161,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send('Bio aggiunta correttamente.')
 
     @commands.command(brief='ritorna la bio dell\'utente citato')
-    async def bio(self, ctx, member: discord.Member = None):
+    async def bio(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """Ritorna la propria bio o quella dell'utente citato. Usare
         <setbio per impostare la propria bio
 
@@ -171,7 +172,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if member is None:
             member = ctx.author
         try:
-            item = self.archive.get(member.id)
+            item: Afler = self.archive.get(member.id)
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
@@ -186,6 +187,6 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send(embed=bio)
 
 
-def setup(bot):
+def setup(bot: commands.Bot):
     """Entry point per il caricamento della cog"""
     bot.add_cog(UtilityCog(bot))

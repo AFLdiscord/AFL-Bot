@@ -14,7 +14,7 @@ Proposte
 
 import json
 from datetime import datetime, timedelta
-from typing import List
+from typing import Any, Dict, List
 
 import discord
 from discord.ext import commands, tasks
@@ -47,20 +47,20 @@ class EventCog(commands.Cog):
     Inoltre è presente un comando per aggiornare lo status del bot
     """
 
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self, bot: commands.Bot):
+        self.bot: commands.Bot = bot
         self.__version__ = 'v1.2'
-        self.archive = Archive.get_instance()
-        self.logger = BotLogger.get_instance()
+        self.archive: Archive = Archive.get_instance()
+        self.logger: BotLogger = BotLogger.get_instance()
 
     @commands.command(brief='aggiorna lo stato del bot')
-    async def updatestatus(self, ctx):
+    async def updatestatus(self, ctx: commands.Context):
         """Aggiorna lo stato del bot al contenuto di self.__version__"""
         botstat = discord.Game(name='AFL ' + self.__version__)
         await self.bot.change_presence(activity=botstat)
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         """Azioni da eseguire ad ogni messaggio. Ignora i messaggi provenienti da:
         - il bot stesso
         - altri bot
@@ -125,7 +125,7 @@ class EventCog(commands.Cog):
         self.archive.save()
 
     @commands.Cog.listener()
-    async def on_message_delete(self, message):
+    async def on_message_delete(self, message: discord.Message):
         """Invocata alla cancellazione di un messaggio. Se era una proposta, questa viene rimossa.
         Se tale messaggio proveniva da un canale conteggiato occorre decrementare
         il contatore dell'utente corrispondente di uno.
@@ -149,7 +149,7 @@ class EventCog(commands.Cog):
             self.archive.save()
 
     @commands.Cog.listener()
-    async def on_bulk_message_delete(self, messages):
+    async def on_bulk_message_delete(self, messages: List[discord.Message]):
         """Invocata quando si effettua una bulk delete dei messaggi. Aggiorna i contatori di tutti
         i membri i cui messaggi sono coinvolti nella bulk delete. Il comportamento per ogni singolo
         messaggio è lo stesso della on_message_delete.
@@ -177,7 +177,7 @@ class EventCog(commands.Cog):
         await self.logger.log('rimossi ' + str(counter) + ' messaggi')
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload):
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
         """Controlla se chi reagisce ai messaggi postati nel canale proposte abbia i requisiti per farlo.
         Se il riscontro è positivO viene anche aggiornato il file delle proposte.
         In caso l'utente non abbia i requisiti la reazione viene rimossa. Ignora le reaction ai messaggi postati
@@ -205,7 +205,7 @@ class EventCog(commands.Cog):
                 return
 
     @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload):
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
         """Se la reaction è nel canale proposte, aggiorna il contatore della proposta di conseguenza
         rimuovendo il voto corrispondente. Ignora la rimozione di reaction a un messaggio in
         proposte solo se tale messaggio è stato postato dal bot stesso.
@@ -244,7 +244,7 @@ class EventCog(commands.Cog):
         return is_good
 
     @commands.Cog.listener()
-    async def on_message_edit(self, before, after):
+    async def on_message_edit(self, before: discord.Message, after: discord.Message):
         """Controlla che i messaggi non vengano editati per inserire parole della lista banned_words.
         Se viene trovata una parola bannata dopo l'edit il messaggio viene cancellato.
         """
@@ -252,7 +252,7 @@ class EventCog(commands.Cog):
             await after.delete()
 
     @commands.Cog.listener()
-    async def on_member_join(self, member):
+    async def on_member_join(self, member: discord.Member):
         """Invia il messaggio di benvenuto all'utente entrato nel server e controlla che l'username
         sia adeguato. Se l'username contiene parole offensive l'utente viene kickato dal server con
         un messaggio che lo invita a modificare il proprio nome prima di unirsi nuovamente.
@@ -268,7 +268,7 @@ class EventCog(commands.Cog):
             await channel.send('Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
 
     @commands.Cog.listener()
-    async def on_member_remove(self, member):
+    async def on_member_remove(self, member: discord.Member):
         """Rimuove, se presente, l'utente da aflers.json nel momento in cui lascia il server."""
         if member.bot:
             return
@@ -277,7 +277,7 @@ class EventCog(commands.Cog):
         self.archive.save()
 
     @commands.Cog.listener()
-    async def on_member_update(self, before, after):
+    async def on_member_update(self, before: discord.Member, after: discord.Member):
         """Impedisce ai membri del server di modificare il proprio username includendo parole
         offensive. Quando un membro riceve il ruolo AFL si occupa di creare la entry nel file
         di archivio salvando il nickname e la data. Quest'ultima serve per gestire il cambio
@@ -309,16 +309,16 @@ class EventCog(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_user_update(self, before, after):
+    async def on_user_update(self, before: discord.User, after: discord.User):
         """In caso di cambio di username, resetta il nickname a quello presente nel file."""
         if (before.name == after.name) and (before.discriminator == after.discriminator):
             # non ci interessa, vuol dire che ha cambiato immagine
             return
         try:
-            item = self.archive.get(before.id)
+            item: Afler = self.archive.get(before.id)
         except KeyError:
             return
-        old_nick = item.nick
+        old_nick: str = item.nick
         member = self.bot.get_guild(Config.config['guild_id']).get_member(after.id)
         if old_nick != member.nick:
             await self.logger.log('ripristino nickname a ' + old_nick)
@@ -342,7 +342,7 @@ class EventCog(commands.Cog):
                 shared_functions.update_json_file(Config.config, 'config.json')
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
+    async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         """Generica gestione errori per evitare crash del bot in caso di eccezioni nei comandi.
         Per ora si limita a avvisare che le menzioni possono dare problemi con certi prefissi e a
         loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro."""
@@ -474,7 +474,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     :param message: messaggio mandato nel canale proposte da aggiungere
     :param guild: il server discord
     """
-    proposals = {}
+    proposals: Dict[str, Dict[str, Any]] = {}
     try:
         with open('proposals.json','r') as file:
             proposals = json.load(file)
@@ -498,7 +498,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
         'no': 0,
         'content': message.content
     }
-    proposals[message.id] = proposal
+    proposals[str(message.id)] = proposal    # save as string for coherency with the loading
     shared_functions.update_json_file(proposals, 'proposals.json')
 
 def remove_proposal(message: discord.Message) -> None:
@@ -507,8 +507,12 @@ def remove_proposal(message: discord.Message) -> None:
 
     :param message: messaggio della proposta
     """
-    with open('proposals.json', 'r') as file:
-        proposals = json.load(file)
+    try:
+        with open('proposals.json','r') as file:
+            proposals: Dict[str, Dict[str, Any]] = json.load(file)
+    except FileNotFoundError:
+        print('errore nel file delle proposte')
+        return
     try:
         del proposals[str(message.id)]
     except KeyError:
@@ -540,7 +544,7 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
     """
     try:
         with open('proposals.json','r') as file:
-            proposals = json.load(file)
+            proposals: Dict[str, Dict[str, Any]] = json.load(file)
     except FileNotFoundError:
         print('errore nel file delle proposte')
         return
@@ -621,6 +625,6 @@ def coherency_check(archive: Archive, members: List[discord.Member]) -> None:
     # save changes to file
     archive.save()
 
-def setup(bot):
+def setup(bot: commands.Bot):
     """Entry point per il caricamento della cog"""
     bot.add_cog(EventCog(bot))

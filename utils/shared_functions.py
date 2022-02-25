@@ -15,12 +15,15 @@ Funzioni:
 
 import json
 import re
-from datetime import datetime, timedelta
-from typing import List, Optional
+from datetime import date, datetime, timedelta
+from typing import Any, ClassVar, Dict, List, Optional, Union
+
+import discord
+from discord.ext import commands
 
 # utile per passare dal giorno della settimana restituito da weekday() direttamente
 # al campo corrispondente nel dizionario del json
-weekdays = {
+weekdays: Dict[int, str] = {
     0: 'mon',
     1: 'tue',
     2: 'wed',
@@ -69,7 +72,7 @@ class Afler():
     count_messages() conta i messaggi totali
     count_consolidated_messages() conta solo i messaggi dei giorni precedenti a oggi
     """
-    def __init__(self, data: dict) -> None:
+    def __init__(self, data: Dict[str, Any]) -> None:
         """
         :param data: dizionario che contiene i dati dell'afler
         """
@@ -104,7 +107,7 @@ class Afler():
         })
 
     @classmethod
-    def from_archive(cls, afler_data: dict) -> Afler:
+    def from_archive(cls, afler_data: Dict[str, Any]) -> Afler:
         """Restituisce un afler con i valori letti dall'archivio.
         
         :param afler_data: i dati dell'afler letti dall'archivio
@@ -133,7 +136,7 @@ class Afler():
         self.data['last_nick_change'] = datetime.date(datetime.now()).__str__()
 
     @property
-    def bio(self) -> None:
+    def bio(self) -> str:
         """Restituisce la bio dell'afler
         
         :returns: bio dell'afler
@@ -158,7 +161,7 @@ class Afler():
         """
         return self.data['active']
 
-    def active_expiration(self) -> Optional[datetime.date]:
+    def active_expiration(self) -> Optional[date]:
         """Ritorna la data di scadenza del ruolo attivo.
         
         :returns: data di scadenza attivo
@@ -169,7 +172,7 @@ class Afler():
         else:
             return None
 
-    def last_nick_change(self) -> datetime.date:
+    def last_nick_change(self) -> date:
         """Ritorna la data dell'utlimo cambio di nickname
         
         :returns: data ultimo cambio
@@ -177,7 +180,7 @@ class Afler():
         """
         return datetime.date(datetime.strptime(self.data['last_nick_change'], '%Y-%m-%d'))
 
-    def last_message_date(self) -> Optional[datetime.time]:
+    def last_message_date(self) -> Optional[date]:
         """Ritorna la data dell'ultimo messaggio valido per il conteggio dell'attivo.
         
         :returns: data ultimo messaggio
@@ -188,7 +191,7 @@ class Afler():
         else:
             return None
 
-    def last_violations_count(self) -> Optional[datetime.date]:
+    def last_violations_count(self) -> Optional[date]:
         """Ritorna la data dell'ultima violazione.
         
         :returns: data ultima violazione
@@ -219,7 +222,7 @@ class Afler():
             self.data['counter'] = 1
             self.data['last_message_date'] = datetime.date(datetime.now()).__str__()
 
-    def decrease_counter(self, amount: int=1) -> None:
+    def decrease_counter(self, amount: int = 1) -> None:
         """Decrementa il contatore dei messaggi del giorno corrente.
         Impedisce che il contatore vada sotto zero, in caso il parametro passato
         sia maggiore del valore del contatore questo viene resettato a 0.
@@ -341,7 +344,7 @@ class Afler():
         :returns: il conteggio dei messaggi
         :rtype: int
         """
-        count = 0
+        count: int = 0
         for i in weekdays:
             if i != datetime.today().weekday():
                 count += self.data[weekdays.get(i)]
@@ -356,7 +359,7 @@ class Afler():
         :returns: il conteggio dei messaggi
         :rtype: int
         """
-        count = 0
+        count: int = 0
         for i in weekdays:
             count += self.data[weekdays.get(i)]
         return count
@@ -390,9 +393,9 @@ class Archive():
     values()       ritorna tutte le istanze di afler salvate
     save()         salva le modifiche fatte all'archivio
     """
-    _archive_instance = None
+    _archive_instance: ClassVar[Archive] = None
 
-    def __init__(self, archive: dict) -> None:
+    def __init__(self) -> None:
         # è sbagliato creare un'istanza, è un singleton
         raise RuntimeError('Non istanziare archivio, usa Archive.get_instance()')
 
@@ -408,14 +411,14 @@ class Archive():
         """Carica l'archivio da file e lo salva in archive. Se non esiste lo crea vuoto."""
         try:
             with open('aflers.json', 'r') as file:
-                raw_archive = json.load(file)
+                raw_archive: Dict[str, Any] = json.load(file)
                 # conversione degli id da str a int così come sono su discord
-                archive = {}
+                archive: Dict[int, Any] = {}
                 for k in raw_archive:
                     archive[int(k)] = raw_archive[k]
         except FileNotFoundError:
             with open('aflers.json','w+') as file:
-                archive = {}
+                archive: Dict[int, Any] = {}
         finally:
             cls._archive_instance = cls.__new__(cls, archive)
             # cls._archive_instance.archive l'archivio in formato dizionario così da poterlo salvare agevolemente
@@ -523,7 +526,7 @@ class BannedWords():
     contains_banned_words(text) controlla se sono presenti parole bannate nel testo fornito
     """
 
-    banned_words = []
+    banned_words: List[str] = []
 
     @staticmethod
     def to_string() -> str:
@@ -533,7 +536,7 @@ class BannedWords():
         :returns: la stringa con tutte le parole bannate
         :rtype: str
         """
-        string = ''
+        string: str = ''
         for word in BannedWords.banned_words:
             string += word + '\n'
         if string == '':
@@ -577,7 +580,7 @@ class BannedWords():
         :returns: se il testo contiene o meno una parola bannata
         :rtype: bool
         """
-        text_to_check = text.lower()
+        text_to_check: str = text.lower()
         text_to_check = re.sub('0', 'o', text_to_check)
         text_to_check = re.sub('1', 'i', text_to_check)
         text_to_check = re.sub('5', 's', text_to_check)
@@ -613,10 +616,12 @@ class BotLogger():
     initialize()   coroutine, inizializza il canale su cui viene fatto il logging
     log()   coroutine, compila il messaggio e lo invia nel canale
     """
-    _logger = None
+    _logger: ClassVar[BotLogger] = None
 
     def __init__(self) -> None:
-        raise RuntimeError
+        # attributi sono qua solo per dichiararli
+        self.channel: discord.TextChannel
+        raise RuntimeError('Usa BotLogger.create_instance per istanziare il logger')
 
     @classmethod
     def create_instance(cls, bot) -> BotLogger:
@@ -626,7 +631,6 @@ class BotLogger():
         """
         if cls._logger is None:
             cls._logger = cls.__new__(cls)
-            cls._logger.bot = bot
             cls._logger.channel = None
         return cls._logger
 
@@ -635,7 +639,7 @@ class BotLogger():
         """Ritorna l'unica istanza del logger."""
         return cls._logger
 
-    async def initialize(self, bot) -> None:
+    async def initialize(self, bot: commands.Bot) -> None:
         """Inizializza il logger caricando il canale dedicato. La chiamata
         a questo metodo deve essere fatta una volta sola prima che il logger
         possa procedere con il logging.
@@ -677,7 +681,7 @@ class Config():
     load()  carica i valori dal file config.json
     """
 
-    config = {}
+    config: Dict[str, Union[int, str, List[int], List[str]]] = {}
 
     @staticmethod
     def to_string() -> str:
@@ -762,6 +766,7 @@ def get_extensions() -> List[str]:
     :returns: la lista coi nomi delle estensioni
     :rtype: List[str]
     """
+    extensions: List[str]
     try:
         with open('extensions.json', 'r') as file:
             extensions = json.load(file)
@@ -770,7 +775,7 @@ def get_extensions() -> List[str]:
         extensions = []
     return extensions
 
-def link_to_clean(message: str) -> str:
+def link_to_clean(message: str) -> Optional[str]:
     """Controlla se il messaggio è un link da accorciare. In tal caso ritorna il link accorciato
     altrimenti None.
 
@@ -781,7 +786,7 @@ def link_to_clean(message: str) -> str:
     :returns: None o il link stesso accorciato
     :rtype: str
     """
-    cleaned_link = None
+    cleaned_link: Optional[str] = None
     words = message.strip()
     words = message.split(' ')
     if len(words) == 1:   # il messaggio non ha spazi, potrebbe essere un link

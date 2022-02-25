@@ -1,9 +1,8 @@
 """:class: ModerationCog contiene tutti i comandi per la moderazione."""
-from datetime import datetime
+from typing import Union
 
 import discord
 from discord.ext import commands
-from utils import shared_functions
 from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
 
 class ModerationCog(commands.Cog, name='Moderazione'):
@@ -16,17 +15,17 @@ class ModerationCog(commands.Cog, name='Moderazione'):
     Inoltre effettua il controllo sul contenuto dei messaggi e elimina quelli dal contenuto inadatto.
     Questi comandi possono essere usati solo da coloro che possiedono un ruolo di moderazione.
     """
-    def __init__(self, bot):
-        self.bot = bot
-        self.archive = Archive.get_instance()
-        self.logger = BotLogger.get_instance()
+    def __init__(self, bot: commands.Bot):
+        self.bot: commands.Bot = bot
+        self.archive: Archive = Archive.get_instance()
+        self.logger: BotLogger = BotLogger.get_instance()
 
-    def cog_check(self, ctx):
+    def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""
         return ctx.author.top_role.id in Config.config['moderation_roles_id']
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         """Elimina i messaggi inappropriati dai canali e aggiunge un warn all'utente.
         Ignora i messaggi da:
         - il bot stesso
@@ -42,7 +41,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             await self._add_warn(message.author, 'linguaggio inappropriato', 1)
 
     @commands.command(brief='reimposta il nickname dell\'utente citato')
-    async def resetnick(self, ctx, attempted_member=None, *, name: str=None):
+    async def resetnick(self, ctx: commands.Context, attempted_member: Union[str, discord.Member]=None, *, name: str=None):
         """Reimposta il nickname di un membro se questo non è opportuno per il server
         e i controlli automatici non sono bastati a filtrarlo. Questo permette di mantenere
         il reset automatico per i nickname in caso di cambiamento impedendo i reset manuali.
@@ -85,7 +84,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await ctx.send('Nickname di ' + member.mention + ' ripristinato')
 
     @commands.command(brief='aggiunge un warn all\'utente citato')
-    async def warn(self, ctx, attempted_member=None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
+    async def warn(self, ctx: commands.Context, attempted_member: Union[str, discord.Member]=None, *, reason: str='un moderatore ha ritenuto inopportuno il tuo comportamento'):
         """Aggiunge un warn all'utente menzionato nel messaggio. Si può menzionare in diversi modi.
         L'effetto è il seguente:
         - aggiunge un warn all'autore del messaggio a cui si risponde/utente menzionato
@@ -140,7 +139,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await ctx.message.delete(delay=5)
 
     @commands.command(brief='rimuove un warn all\'utente citato')
-    async def unwarn(self, ctx, member: discord.Member):
+    async def unwarn(self, ctx: commands.Context, member: discord.Member):
         """Rimuove un warn all'utente menzionato. Se non aveva warn non fa nulla.
 
         Sintassi:
@@ -156,7 +155,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await ctx.message.delete(delay=5)
 
     @commands.command(brief='mostra i warn di tutti i membri', aliases=['warnc', 'wc'])
-    async def warncount(self, ctx):
+    async def warncount(self, ctx: commands.Context):
         """Stampa nel canale in cui viene chiamato l'elenco di tutti i warn degli utenti.
         Esempio output:
         1 warn
@@ -196,7 +195,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await ctx.send(response)
 
     @commands.command(brief='banna il membro citato')
-    async def ban(self, ctx, member: discord.Member = None, *, reason='un moderatore ha ritenuto inopportuno il tuo comportamento'):
+    async def ban(self, ctx: commands.Context, member: discord.Member=None, *, reason: str='un moderatore ha ritenuto inopportuno il tuo comportamento'):
         """Banna un membro dal server.
 
         Sintassi:
@@ -248,6 +247,6 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             self.archive.add(member.id, afler)
         self.archive.save()
 
-def setup(bot):
+def setup(bot: commands.Bot):
     """Entry point per il caricamento della cog"""
     bot.add_cog(ModerationCog(bot))
