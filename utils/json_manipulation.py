@@ -11,6 +11,7 @@ from copy import deepcopy
 from typing import Optional
 from shared_functions import update_json_file
 
+
 class JsonManipulator():
     """Classe per manipolare il contenuto del file.
 
@@ -27,6 +28,7 @@ class JsonManipulator():
     discard() cancella tutte le modifiche fatte
     print_changes() stampa il nuovo archivio con le modifiche
     """
+
     def __init__(self) -> None:
         self.file_name = 'aflers.json'
         self.backup_old = 'aflers.json.old'
@@ -39,14 +41,14 @@ class JsonManipulator():
 
     def _load(self) -> None:
         try:
-            with open(self.file_name,'r') as file:
+            with open(self.file_name, 'r') as file:
                 self.old_archive = json.load(file)
             with open(os.path.join(os.getcwd(), self.fields), 'r') as file:
                 self.field_set = set(json.load(file))
         except (FileNotFoundError, json.decoder.JSONDecodeError):
             raise Exception("Impossibile trovare il file")
 
-    def add_and_initialize_field(self, field_name: str, default_value: Optional[str]=None) -> bool:
+    def add_and_initialize_field(self, field_name: str, default_value: Optional[str] = None) -> bool:
         """Aggiunge a ogni entry il nuovo campo `field_name` e lo inizializza
         al valore passato `default_value` che può essere anche None.
 
@@ -78,7 +80,7 @@ class JsonManipulator():
         """Sovrascrive il vecchio file aflers.json con le modifiche fatte.
         Il vecchio archivio viene salvato in afler.json.old
         """
-        with open(self.file_name,'w') as file:
+        with open(self.file_name, 'w') as file:
             update_json_file(self.new_archive, self.file_name)
         with open(self.backup_old, 'w') as file:
             update_json_file(self.old_archive, self.backup_old)
@@ -130,6 +132,7 @@ def add(archive: JsonManipulator) -> None:
     else:
         print('Campo già esistente.')
 
+
 def delete(archive: JsonManipulator) -> None:
     """Chiede in input il nome del campo da cancellare"""
     field_name = input("Nome campo: ")
@@ -138,28 +141,35 @@ def delete(archive: JsonManipulator) -> None:
     else:
         print('Il campo passato non esiste.')
 
+
 def save(archive: JsonManipulator) -> None:
     archive.save()
     print('Modifiche salvate correttamente.')
+
 
 def discard(archive: JsonManipulator) -> None:
     archive.discard()
     print('Scartate tutte le modifiche.')
 
+
 def print_changes(archive: JsonManipulator) -> None:
     archive.print_changes()
+
 
 def check_integrity(archive: JsonManipulator) -> None:
     if(archive.check_integrity()):
         print('Non sono stati rilevati errori nell\'archivio.')
 
+
 def save_and_exit(archive: JsonManipulator) -> None:
     archive.save()
     exit(0)
 
+
 def discard_and_exit(archive: JsonManipulator) -> None:
     archive.discard()
     exit(0)
+
 
 def main():
     try:
@@ -169,14 +179,14 @@ def main():
         exit(-1)
     print('Archivio caricato.')
     commands = {
-        1 : add,
-        2 : delete,
-        3 : save,
-        4 : discard,
-        5 : print_changes,
-        6 : check_integrity,
-        7 : save_and_exit,
-        8 : discard_and_exit
+        1: add,
+        2: delete,
+        3: save,
+        4: discard,
+        5: print_changes,
+        6: check_integrity,
+        7: save_and_exit,
+        8: discard_and_exit
     }
     while(True):
         selection = input('''Inserisci il numero corrispondente
@@ -198,6 +208,7 @@ def main():
             commands[selection](archive)
         else:
             print('Comando non valido.')
+
 
 if __name__ == '__main__':
     main()

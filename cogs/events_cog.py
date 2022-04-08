@@ -21,6 +21,7 @@ from discord.ext import commands, tasks
 from utils import shared_functions
 from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
 
+
 class EventCog(commands.Cog):
     """Gli eventi gestiti sono elencati qua sotto, raggruppati per categoria
     (nomi eventi autoesplicativi).
@@ -54,7 +55,6 @@ class EventCog(commands.Cog):
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
 
-
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
         """Aggiorna lo stato del bot al contenuto di self.__version__"""
@@ -79,7 +79,7 @@ class EventCog(commands.Cog):
             await message.channel.send(response)
             return
         if (message.content == '69' or
-            message.content == '420'):
+                message.content == '420'):
             response = 'nice'
             await message.channel.send(response)
             return
@@ -100,7 +100,8 @@ class EventCog(commands.Cog):
                 colour=discord.Colour.dark_theme().value
             )
             welcomeMessage.set_thumbnail(url=message.author.avatar_url)
-            welcomeMessage.add_field(name='Presentazione:', value=message.content, inline=False)
+            welcomeMessage.add_field(
+                name='Presentazione:', value=message.content, inline=False)
             await channel.send(embed=welcomeMessage)
             return
         link = shared_functions.link_to_clean(message.content)
@@ -234,7 +235,8 @@ class EventCog(commands.Cog):
         :rtype: bool
         """
         is_good = False
-        active = self.bot.get_guild(self.config.guild_id).get_role(self.config.active_role_id)
+        active = self.bot.get_guild(self.config.guild_id).get_role(
+            self.config.active_role_id)
         if payload.event_type == 'REACTION_ADD' and active not in payload.member.roles:
             # se non è attivo, l'altra condizione è essere moderatore
             for role in payload.member.roles:
@@ -309,7 +311,6 @@ class EventCog(commands.Cog):
                 await self.logger.log('ripristino nickname a ' + old_nick)
                 await after.edit(nick=old_nick)
 
-
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
         """In caso di cambio di username, resetta il nickname a quello presente nel file."""
@@ -367,7 +368,8 @@ class EventCog(commands.Cog):
         fatto dentro on_ready.
         """
         await self.logger.log('evento on_resume')
-        coherency_check(self.archive, self.bot.get_guild(self.config.guild_id).members)
+        coherency_check(self.archive, self.bot.get_guild(
+            self.config.guild_id).members)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -386,8 +388,10 @@ class EventCog(commands.Cog):
         # log dell'avvio
         await self.logger.log(f'{self.bot.user} connesso a discord')
         # controllo coerenza archivio
-        coherency_check(self.archive, self.bot.get_guild(self.config.guild_id).members)
-        if not self.periodic_checks.is_running():    # per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
+        coherency_check(self.archive, self.bot.get_guild(
+            self.config.guild_id).members)
+        # per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
+        if not self.periodic_checks.is_running():
             if self.config.main_channel_id is not None:
                 channel = self.bot.get_channel(self.config.main_channel_id)
                 await channel.send('AFL Bot `' + self.__version__ + '` avviato alle `'f'{timestamp}`. Il prefisso è: `{self.bot.command_prefix}`')
@@ -411,7 +415,7 @@ class EventCog(commands.Cog):
         """
         await self.logger.log('controllo proposte...')
         try:
-            with open('proposals.json','r') as file:
+            with open('proposals.json', 'r') as file:
                 proposals = json.load(file)
         except FileNotFoundError:
             await self.logger.log('nessun file di proposte trovato')
@@ -434,7 +438,8 @@ class EventCog(commands.Cog):
                 try:
                     message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(key)
                 except discord.NotFound:
-                    await self.logger.log('proposta già cancellata, ignoro')  # capita se viene cancellata dopo un riavvio o mentre è offline
+                    # capita se viene cancellata dopo un riavvio o mentre è offline
+                    await self.logger.log('proposta già cancellata, ignoro')
                 else:
                     await message.delete()
                 del proposals[key]
@@ -452,7 +457,7 @@ class EventCog(commands.Cog):
                 await self.logger.log('membro ' + item.nick + ' è attivo')
                 channel = self.bot.get_channel(self.config.main_channel_id)
                 await channel.send('membro <@!' + str(id) + '> è diventato attivo')
-                
+
             # controllo sulla data dell'ultima violazione, ed eventuale reset
             item.reset_violations()
 
@@ -469,6 +474,7 @@ class EventCog(commands.Cog):
         await self.logger.log('controllo conteggio messaggi terminato')
         self.archive.save()
 
+
 def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
     in quel momento.
@@ -478,13 +484,13 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
     """
     proposals: Dict[str, Dict[str, Any]] = {}
     try:
-        with open('proposals.json','r') as file:
+        with open('proposals.json', 'r') as file:
             proposals = json.load(file)
     except FileNotFoundError:
         print('file non trovato, lo creo ora')
-        with open('proposals.json','w+') as file:
+        with open('proposals.json', 'w+') as file:
             proposals = {}
-    active_count = 2 # moderatori non hanno ruolo attivo
+    active_count = 2  # moderatori non hanno ruolo attivo
     members = guild.members
     active_role = guild.get_role(Config.get_config().active_role_id)
     for member in members:
@@ -500,8 +506,10 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
         'no': 0,
         'content': message.content
     }
-    proposals[str(message.id)] = proposal    # save as string for coherency with the loading
+    # save as string for coherency with the loading
+    proposals[str(message.id)] = proposal
     shared_functions.update_json_file(proposals, 'proposals.json')
+
 
 def remove_proposal(message: discord.Message) -> None:
     """Rimuove la proposta con id uguale al messaggio passato dal file. Se non trovata
@@ -510,7 +518,7 @@ def remove_proposal(message: discord.Message) -> None:
     :param message: messaggio della proposta
     """
     try:
-        with open('proposals.json','r') as file:
+        with open('proposals.json', 'r') as file:
             proposals: Dict[str, Dict[str, Any]] = json.load(file)
     except FileNotFoundError:
         print('errore nel file delle proposte')
@@ -521,6 +529,7 @@ def remove_proposal(message: discord.Message) -> None:
         print('proposta non trovata')
     else:
         shared_functions.update_json_file(proposals, 'proposals.json')
+
 
 def does_it_count(message: discord.Message) -> bool:
     """Controlla se il canale in cui è stato mandato il messaggio passato rientra nei canali
@@ -537,6 +546,7 @@ def does_it_count(message: discord.Message) -> bool:
                 return True
     return False
 
+
 def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> None:
     """Aggiusta il contatore dei voti in base al parametro passato. Stabilisce in autonomia
     se il voto è a favore o contrario guardando il tipo di emoji cambiata.
@@ -545,7 +555,7 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
     :param change: variazione del voto (+1 o -1)
     """
     try:
-        with open('proposals.json','r') as file:
+        with open('proposals.json', 'r') as file:
             proposals: Dict[str, Dict[str, Any]] = json.load(file)
     except FileNotFoundError:
         print('errore nel file delle proposte')
@@ -562,12 +572,14 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
         if proposal['yes'] >= proposal['threshold']:
             proposal['passed'] = True
         else:
-            proposal['passed'] = False   # è possibile cambiare idea, il controllo lo fa la task
+            # è possibile cambiare idea, il controllo lo fa la task
+            proposal['passed'] = False
     else:
         proposal['no'] += change
         if proposal['no'] < 0:
             proposal['no'] = 0
     shared_functions.update_json_file(proposals, 'proposals.json')
+
 
 def calculate_threshold(active_count: int) -> int:
     """Calcola la soglia di voti a favore necessari al passaggio di una proposta.
@@ -579,6 +591,7 @@ def calculate_threshold(active_count: int) -> int:
     :rtype: int
     """
     return int(active_count / 2) + 1
+
 
 def emoji_or_mention(content: str) -> bool:
     """Controlla se la stringa riconosciuta come comando è in realtà un'emoji o
@@ -598,10 +611,11 @@ def emoji_or_mention(content: str) -> bool:
     :rtype: bool
     """
     if (content.startswith('<@') or content.startswith('<#') or
-        content.startswith('<:') or content.startswith('<a:')) or content.startswith('<t:'):
+            content.startswith('<:') or content.startswith('<a:')) or content.startswith('<t:'):
         return True
     else:
         return False
+
 
 def coherency_check(archive: Archive, members: List[discord.Member]) -> None:
     """Controlla la coerenza tra l'elenco membri del server e l'elenco
@@ -626,6 +640,7 @@ def coherency_check(archive: Archive, members: List[discord.Member]) -> None:
 
     # save changes to file
     archive.save()
+
 
 def setup(bot: commands.Bot):
     """Entry point per il caricamento della cog"""

@@ -34,6 +34,8 @@ weekdays: Dict[int, str] = {
 }
 
 # wrapper per eseguire operazioni sugli elementi dell' archivio, ossia gli aflers
+
+
 class Afler():
     """Rappresentazione di un membro del server.
     Semplifica le operazioni di lettura/scrittura quando si accede all'archivio.
@@ -72,6 +74,7 @@ class Afler():
     count_messages() conta i messaggi totali
     count_consolidated_messages() conta solo i messaggi dei giorni precedenti a oggi
     """
+
     def __init__(self, data: Dict[str, Any]) -> None:
         """
         :param data: dizionario che contiene i dati dell'afler
@@ -81,7 +84,7 @@ class Afler():
     @classmethod
     def new_entry(cls, nickname: str) -> Afler:
         """Crea un nuovo afler.
-        
+
         :param nickname: il nickname del nuovo afler
 
         :returns: l'afler appena creato
@@ -109,27 +112,27 @@ class Afler():
     @classmethod
     def from_archive(cls, afler_data: Dict[str, Any]) -> Afler:
         """Restituisce un afler con i valori letti dall'archivio.
-        
+
         :param afler_data: i dati dell'afler letti dall'archivio
 
         :returns: l'afler caricato
         :rtype: Afler
         """
         return cls(afler_data)
-    
+
     @property
     def nick(self) -> str:
         """Restituisce il nickname dell'afler.
-        
+
         :returns: il nickname dell'afler
         :rtype: str
         """
         return self.data['nick']
-    
+
     @nick.setter
     def nick(self, new_nick: str) -> None:
         """Modifica il nome dell'afler.
-        
+
         :param new_nick: nuovo nickname
         """
         self.data['nick'] = new_nick
@@ -138,7 +141,7 @@ class Afler():
     @property
     def bio(self) -> str:
         """Restituisce la bio dell'afler
-        
+
         :returns: bio dell'afler
         :rtype: str
         """
@@ -147,7 +150,7 @@ class Afler():
     @bio.setter
     def bio(self, bio: str) -> None:
         """Imposta la bio dell'afler.
-        
+
         :param bio: la stringa con la bio
         """
         self.data['bio'] = bio
@@ -155,7 +158,7 @@ class Afler():
     @property
     def active(self) -> bool:
         """Ritorna lo stato attivo dell'afler.
-        
+
         :returns: True se attivo, False altrimenti
         :rtype: bool
         """
@@ -163,7 +166,7 @@ class Afler():
 
     def active_expiration(self) -> Optional[date]:
         """Ritorna la data di scadenza del ruolo attivo.
-        
+
         :returns: data di scadenza attivo
         :rtype: Optional[datetime.date]
         """
@@ -174,7 +177,7 @@ class Afler():
 
     def last_nick_change(self) -> date:
         """Ritorna la data dell'utlimo cambio di nickname
-        
+
         :returns: data ultimo cambio
         :rtype: datetime.date
         """
@@ -182,7 +185,7 @@ class Afler():
 
     def last_message_date(self) -> Optional[date]:
         """Ritorna la data dell'ultimo messaggio valido per il conteggio dell'attivo.
-        
+
         :returns: data ultimo messaggio
         :rtype: Optional[datetime.date]
         """
@@ -193,7 +196,7 @@ class Afler():
 
     def last_violations_count(self) -> Optional[date]:
         """Ritorna la data dell'ultima violazione.
-        
+
         :returns: data ultima violazione
         :rtype: Optional[datetime.date]
         """
@@ -213,20 +216,23 @@ class Afler():
         elif self.data['last_message_date'] is None:
             # primo messaggio della persona
             self.data['counter'] = 1
-            self.data['last_message_date'] = datetime.date(datetime.now()).__str__()
+            self.data['last_message_date'] = datetime.date(
+                datetime.now()).__str__()
         else:
             # è finito il giorno, salva i messaggi di 'counter' nel giorno corrispondente e aggiorna data ultimo messaggio
             if self.data['counter'] != 0:
-                day = weekdays[datetime.date(datetime.strptime(self.data['last_message_date'], '%Y-%m-%d')).weekday()]
+                day = weekdays[datetime.date(datetime.strptime(
+                    self.data['last_message_date'], '%Y-%m-%d')).weekday()]
                 self.data[day] = self.data['counter']
             self.data['counter'] = 1
-            self.data['last_message_date'] = datetime.date(datetime.now()).__str__()
+            self.data['last_message_date'] = datetime.date(
+                datetime.now()).__str__()
 
     def decrease_counter(self, amount: int = 1) -> None:
         """Decrementa il contatore dei messaggi del giorno corrente.
         Impedisce che il contatore vada sotto zero, in caso il parametro passato
         sia maggiore del valore del contatore questo viene resettato a 0.
-        
+
         :param amount: numero di messaggi da rimuovere
         """
         if self.data['counter'] - amount >= 0:
@@ -241,23 +247,25 @@ class Afler():
         - azzerare tutti i contatori dei messaggi
         """
         self.data['active'] = True
-        self.data['expiration'] = datetime.date(datetime.now() + timedelta(days=Config.get_config().active_duration)).__str__()
+        self.data['expiration'] = datetime.date(
+            datetime.now() + timedelta(days=Config.get_config().active_duration)).__str__()
         for i in weekdays:
             self.data[weekdays.get(i)] = 0
 
     def is_active_expired(self) -> bool:
         """Controlla se l'assegnazione del ruolo attivo è scaduta.
-        
+
         :returns: True se active=True e il ruolo è scaduto, False se active=True e il ruolo
-        non è scaduto oppure se active=False (l'afler non è attivo) 
+        non è scaduto oppure se active=False (l'afler non è attivo)
         :rtype: bool
         """
         if not self.data['active']:
             return False
-        expiration = datetime.date(datetime.strptime(self.data['expiration'], '%Y-%m-%d'))
+        expiration = datetime.date(datetime.strptime(
+            self.data['expiration'], '%Y-%m-%d'))
         if expiration <= ((datetime.date(datetime.now()))):
             return True
-        else: 
+        else:
             return False
 
     def set_inactive(self) -> None:
@@ -279,25 +287,27 @@ class Afler():
         self.data['violations_count'] += count
         if count > 0:
             # modifica la data solo se sono aggiunti
-            self.data['last_violation_count'] = datetime.date(datetime.now()).__str__()
+            self.data['last_violation_count'] = datetime.date(
+                datetime.now()).__str__()
         if self.data['violations_count'] <= 0:
             self.data['violations_count'] = 0
             self.data['last_violation_count'] = None
 
     def warn_count(self) -> int:
         """Ritorna il numero di warn che l'afler ha accumulato.
-        
+
         :returns: il numero di warn accumulati
         :rtype: int
         """
         return self.data['violations_count']
 
-    ## METODI A SUPPORTO DELLA LOGICA DI CONTROLLO ATTIVO E VIOLAZIONI
+    # METODI A SUPPORTO DELLA LOGICA DI CONTROLLO ATTIVO E VIOLAZIONI
 
     def reset_violations(self) -> None:
         """Azzera le violazioni dell'afler se necessario."""
         if self.data['last_violation_count'] is not None:
-            expiration = datetime.date(datetime.strptime(self.data['last_violation_count'], '%Y-%m-%d'))
+            expiration = datetime.date(datetime.strptime(
+                self.data['last_violation_count'], '%Y-%m-%d'))
             if (expiration + timedelta(days=Config.get_config().violations_reset_days)) <= (datetime.date(datetime.now())):
                 print('reset violazioni di ' + self.data['nick'])
                 self.data['violations_count'] = 0
@@ -318,7 +328,8 @@ class Afler():
         elif self.data['last_message_date'] == datetime.date(datetime.today() - timedelta(days=1)).__str__():
             # messaggio di ieri, devo salvare il counter nel giorno corrispondente
             if self.data['counter'] != 0:
-                day = weekdays[datetime.date(datetime.today() - timedelta(days=1)).weekday()]
+                day = weekdays[datetime.date(
+                    datetime.today() - timedelta(days=1)).weekday()]
                 self.data[day] = self.data['counter']
                 self.data['counter'] = 0
         else:
@@ -326,10 +337,12 @@ class Afler():
             # in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga
             # eseguito tutti i giorni ma preferisco azzerare tutti in caso di downtime di qualche giorno
             if self.data['counter'] != 0:
-                day = weekdays[datetime.date(datetime.strptime(self.data['last_message_date'], '%Y-%m-%d')).weekday()]
+                day = weekdays[datetime.date(datetime.strptime(
+                    self.data['last_message_date'], '%Y-%m-%d')).weekday()]
                 self.data[day] = self.data['counter']
                 self.data['counter'] = 0
-            last_day = datetime.date(datetime.strptime(self.data['last_message_date'], '%Y-%m-%d')).weekday()
+            last_day = datetime.date(datetime.strptime(
+                self.data['last_message_date'], '%Y-%m-%d')).weekday()
             today = datetime.today().weekday()
             while last_day != today:
                 last_day += 1
@@ -365,6 +378,8 @@ class Afler():
         return count
 
 # archivio con i dati
+
+
 class Archive():
     """Gestione dell'archivio con i dati riguardo i messaggi inviati.
     L'idea è di tenerlo in memoria invece di aprire il file a ogni modifica. L'interfaccia è
@@ -397,7 +412,8 @@ class Archive():
 
     def __init__(self) -> None:
         # è sbagliato creare un'istanza, è un singleton
-        raise RuntimeError('Non istanziare archivio, usa Archive.get_instance()')
+        raise RuntimeError(
+            'Non istanziare archivio, usa Archive.get_instance()')
 
     @classmethod
     def get_instance(cls) -> Archive:
@@ -417,7 +433,7 @@ class Archive():
                 for k in raw_archive:
                     archive[int(k)] = raw_archive[k]
         except FileNotFoundError:
-            with open('aflers.json','w+') as file:
+            with open('aflers.json', 'w+') as file:
                 archive: Dict[int, Any] = {}
         finally:
             cls._archive_instance = cls.__new__(cls, archive)
@@ -430,13 +446,14 @@ class Archive():
             cls._archive_instance.archive = archive
             cls._archive_instance.wrapped_archive = {}
             for key in archive.keys():
-                cls._archive_instance.wrapped_archive[key] = Afler.from_archive(archive[key])
-    
+                cls._archive_instance.wrapped_archive[key] = Afler.from_archive(
+                    archive[key])
+
     def get(self, id: int) -> Afler:
         """Recupera i dati dell'afler dato il suo id.
-        
+
         :param id: id dell'afler richiesto
-        
+
         :returns: i dati dell'afler richiesto
         :rtype:  Afler
 
@@ -450,7 +467,7 @@ class Archive():
     def add(self, id: int, afler: Afler) -> None:
         """Aggiunge una nuova entry all'archivio. Se era già presente
         non fa nulla.
-        
+
         :param afler: afler da aggiungere
         """
         if not self.is_present(id):
@@ -459,7 +476,7 @@ class Archive():
 
     def remove(self, id: int) -> None:
         """Rimuove l'afler dall'archivio. In caso non fosse presente non fa nulla.
-        
+
         :param id: id dell'afler richiesto
         """
         if self.is_present(id):
@@ -468,9 +485,9 @@ class Archive():
 
     def is_present(self, id: int) -> bool:
         """Ritorna True se nell'archivio è presente un membro con l'id passato.
-        
+
         :param id: membro richiesto
-        
+
         :returns: True se il membro è presente, False altrimenti
         :rtype: bool
         """
@@ -482,7 +499,7 @@ class Archive():
     def keys(self) -> List[int]:
         """Ritorna una lista con gli id di tutti gli aflers presenti nell'archivio.
         Pensato per essere usato come il metodo keys() di un dizionario
-        
+
         :returns: lista con tutti gli id
         :rtype: List[int]
         """
@@ -491,21 +508,22 @@ class Archive():
     def values(self) -> List[Afler]:
         """Ritorna una lista con tutti i dati degli aflers salvati nell'archivio.
         Pensato per essere usato come il metodo values() di un dizionario
-        
+
         :returns: lista con tutti gli afler
         :rtype: List[Afler]
         """
         return self.wrapped_archive.values()
-    
+
     def save(self):
         """Salva su disco le modifiche effettuate all'archivio.
-        
+
         NOTA: per ora non viene mai chiamato automaticamente dagli altri metodi
         ma deve essere esplicitamente usato quando si vogliono salvare le modifiche.
         L'idea è lasciare più flessibilità, consentendo di effettuare operazioni diverse
         e poi salvare tutto alla fine.
         """
         update_json_file(self.archive, 'aflers.json')
+
 
 class BannedWords():
     """Gestione delle parole bannate. In particolare si occupa di caricare la lista dal rispettivo
@@ -549,10 +567,10 @@ class BannedWords():
         Se il file non è presente o incorre in un errore nella procedura l'elenco rimane vuoto.
         """
         try:
-            with open('banned_words.json','r') as file:
+            with open('banned_words.json', 'r') as file:
                 BannedWords.banned_words = json.load(file)
         except (FileNotFoundError, json.decoder.JSONDecodeError):
-            with open('banned_words.json','w+') as file:
+            with open('banned_words.json', 'w+') as file:
                 BannedWords.banned_words = []
 
     @staticmethod
@@ -597,6 +615,7 @@ class BannedWords():
                 return True
         return False
 
+
 class BotLogger():
     """Logging degli eventi del server in un canale dedicato. Utilizzato per inviare
     messaggi sul canale di log del server per tenere traccia degli eventi quali warn,
@@ -621,12 +640,13 @@ class BotLogger():
     def __init__(self) -> None:
         # attributi sono qua solo per dichiararli
         self.channel: discord.TextChannel
-        raise RuntimeError('Usa BotLogger.create_instance per istanziare il logger')
+        raise RuntimeError(
+            'Usa BotLogger.create_instance per istanziare il logger')
 
     @classmethod
     def create_instance(cls, bot) -> BotLogger:
         """Crea e ritorna l'istanza del logger e ne inizializza gli attributi.
-        
+
         :param bot: il bot
         """
         if cls._logger is None:
@@ -643,15 +663,15 @@ class BotLogger():
         """Inizializza il logger caricando il canale dedicato. La chiamata
         a questo metodo deve essere fatta una volta sola prima che il logger
         possa procedere con il logging.
-        
+
         :param bot: il bot
         """
         self.channel = await bot.fetch_channel(Config.get_config().log_channel_id)
-        
+
     async def log(self,  msg: str) -> None:
         """Compila il messaggio da inviare nel canale. Il formato
         è il seguente:
-        
+
         YYYY-MM-DD HH:MM:SS.DDDDDD  <msg>
 
         La data arriva da datetime.now()
@@ -664,6 +684,7 @@ class BotLogger():
             # fallback sul terminale
             print(msg)
         await self.channel.send(msg)
+
 
 class ConfigFields(TypedDict):
     """Helper per definire la struttura del file di config"""
@@ -686,7 +707,8 @@ class ConfigFields(TypedDict):
     nick_change_days: int
     bio_length_limit: int
     greetings: str
-        
+
+
 class Config():
     """Gestione dei parametri di configurazione del bot. Salva tutti i parametri in un dizionario
     che può essere usato dal resto del bot per svolgere la sua funzione. I parametri possono essere
@@ -724,7 +746,6 @@ class Config():
 
     def __init__(self) -> None:
         raise RuntimeError('use Config.get_config() instead')
-    
 
     def __str__(self) -> str:
         """Rappresentazione della configurazione del bot come stringa.
@@ -744,7 +765,6 @@ class Config():
             cls._instance = cls.__new__(cls)
             cls._instance.load()
         return cls._instance
-    
 
     def load(self) -> bool:
         """Carica i parametri dal file config.json nell'attributo di classe config. Il formato del
@@ -763,7 +783,8 @@ class Config():
                 return True
         except (FileNotFoundError, json.decoder.JSONDecodeError) as e:
             print(e)
-            print('errore nella ricarica della configurazione, mantengo configurazione precedente')
+            print(
+                'errore nella ricarica della configurazione, mantengo configurazione precedente')
             return False
 
     def _load_config(self, data: ConfigFields) -> None:
@@ -810,6 +831,7 @@ def update_json_file(data, json_file: str) -> None:
     with open(json_file, 'w') as file:
         json.dump(data, file, indent=4)
 
+
 def get_extensions() -> List[str]:
     """Carica le estensioni dal file extensions.json. Si aspetta di trovare una lista con
     i nomi delle estensioni da aggiungere al bot. Se non trova il file o ci sono errori ritorna
@@ -826,6 +848,7 @@ def get_extensions() -> List[str]:
         print('nessuna estensione trovata, controlla file extensions.json')
         extensions = []
     return extensions
+
 
 def link_to_clean(message: str) -> Optional[str]:
     """Controlla se il messaggio è un link da accorciare. In tal caso ritorna il link accorciato
@@ -847,5 +870,6 @@ def link_to_clean(message: str) -> Optional[str]:
             # si assume che i link ai prodotti amazon abbiano tutti la stessa struttura:
             #     https://amazon.identificativo_nazione_o_com/nome_lungo_descrittivo/dp/10CARATTER
             # la regex effettua l'estrazione di questa porzione di link
-            cleaned_link = re.findall('https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
+            cleaned_link = re.findall(
+                'https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
     return cleaned_link

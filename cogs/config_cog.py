@@ -7,6 +7,7 @@ from discord.ext import commands
 from utils import shared_functions
 from utils.shared_functions import BannedWords, BotLogger, Config
 
+
 class ConfigCog(commands.Cog, name='Configurazione'):
     """Contiene i comandi di configurazione del bot:
     - setprefix     cambia il prefisso del bot
@@ -24,6 +25,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     - removeactive  rimuove un canale all'elenco dei canali conteggiati per l'attivo
     - setthresholds permette di gestire le soglie per diversi parametri
     """
+
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
         self.logger: BotLogger = BotLogger.get_instance()
@@ -51,7 +53,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             await ctx.send('la parola è già contenuta nell\'elenco')
             return
         BannedWords.add(ban_word)
-        shared_functions.update_json_file(BannedWords.banned_words, 'banned_words.json')
+        shared_functions.update_json_file(
+            BannedWords.banned_words, 'banned_words.json')
         await self.logger.log(f'aggiunta parola bannata `{ban_word}`')
         await ctx.send('parola aggiunta correttamente', delete_after=5)
 
@@ -66,7 +69,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         """
         if ban_word in BannedWords.banned_words:
             BannedWords.remove(ban_word)
-            shared_functions.update_json_file(BannedWords.banned_words, 'banned_words.json')
+            shared_functions.update_json_file(
+                BannedWords.banned_words, 'banned_words.json')
             await self.logger.log(f'rimossa parola bannata `{ban_word}`')
             await ctx.send('la parola è stata rimossa', delete_after=5)
         else:
@@ -326,10 +330,12 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             msg = 'Durata dell\'attivo cambiata a ' + str(value) + ' giorni'
         elif category.startswith('s'):
             self.config.nick_change_days = int(value)
-            msg = 'Cooldown per il setnick cambiata a ' + str(value) + ' giorni'
+            msg = 'Cooldown per il setnick cambiata a ' + \
+                str(value) + ' giorni'
         elif category.startswith('v'):
             self.config.violations_reset_days = int(value)
-            msg = 'Giorni per il reset delle violazioni cambiati a ' + str(value)
+            msg = 'Giorni per il reset delle violazioni cambiati a ' + \
+                str(value)
         else:
             await ctx.send('Comando errato, controlla la sintassi')
             return

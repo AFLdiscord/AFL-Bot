@@ -6,6 +6,7 @@ import discord
 from discord.ext import commands
 from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
 
+
 class UtilityCog(commands.Cog, name='Utility'):
     """Contiene i comandi destinati ad essere usati dagli AFL con funzionalità varie:
     - status ritorna lo status del membro citato
@@ -14,6 +15,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     - setbio imposta la propria bio
     - bio ritorna la bio dell'utente citato
     """
+
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
         self.archive: Archive = Archive.get_instance()
@@ -55,10 +57,11 @@ class UtilityCog(commands.Cog, name='Utility'):
         )
         status.set_thumbnail(url=member.avatar_url)
         if item.last_message_date() is None:
-            status.add_field(name='Messaggi ultimi 7 giorni:', value='0', inline=False)
+            status.add_field(name='Messaggi ultimi 7 giorni:',
+                             value='0', inline=False)
         else:
             status.add_field(name='Messaggi ultimi 7 giorni:', value=str(item.count_messages()) +
-                ' (ultimo il ' + str(item.last_message_date()) + ')', inline=False)
+                             ' (ultimo il ' + str(item.last_message_date()) + ')', inline=False)
         is_a_mod: bool = False
         for role in member.roles:
             if role.id in self.config.moderation_roles_id:
@@ -69,14 +72,16 @@ class UtilityCog(commands.Cog, name='Utility'):
             if not item.active:
                 status.add_field(name='Attivo:', value='no', inline=False)
             else:
-                status.add_field(name='Attivo:', value='sì (scade il ' + str(item.active_expiration()) + ')', inline=False)
+                status.add_field(name='Attivo:', value='sì (scade il ' +
+                                 str(item.active_expiration()) + ')', inline=False)
         if item.warn_count() == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
             if item.last_violations_count() != None:
-                violations_expiration = (item.last_violations_count() + timedelta(days=self.config.violations_reset_days)).__str__()
+                violations_expiration = (item.last_violations_count(
+                ) + timedelta(days=self.config.violations_reset_days)).__str__()
                 status.add_field(name='Violazioni:', value=str(item.warn_count()) +
-                    ' (scade il ' + violations_expiration + ')', inline=False)
+                                 ' (scade il ' + violations_expiration + ')', inline=False)
         await ctx.send(embed=status)
 
     @commands.command(brief='invia la propic dell\'utente')
@@ -127,13 +132,14 @@ class UtilityCog(commands.Cog, name='Utility'):
             return
         last_change = item.last_nick_change()
         difference = datetime.date(datetime.now()) - last_change
-        if difference.days >=  self.config.nick_change_days:
+        if difference.days >= self.config.nick_change_days:
             item.nick = new_nick
             self.archive.save()
             await ctx.author.edit(nick=new_nick)
             await ctx.send('Nickname cambiato in ' + new_nick)
         else:
-            renewal = last_change + timedelta(days=self.config.nick_change_days)
+            renewal = last_change + \
+                timedelta(days=self.config.nick_change_days)
             days_until_renewal = renewal - datetime.date(datetime.now())
             await ctx.send('Prossimo cambio tra ' + str(days_until_renewal.days) + ' giorni')
 

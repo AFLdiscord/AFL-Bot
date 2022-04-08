@@ -30,7 +30,8 @@ intents.members = True
 intents.bans = True
 
 # istanziare il bot (avvio in fondo al codice)
-bot = commands.Bot(command_prefix = Config.get_config().current_prefix, intents=intents)
+bot = commands.Bot(
+    command_prefix=Config.get_config().current_prefix, intents=intents)
 
 # setup del logging nel canale dedicato
 logger = BotLogger.create_instance(bot)
