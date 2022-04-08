@@ -52,6 +52,8 @@ class EventCog(commands.Cog):
         self.__version__ = 'v1.2'
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
+        self.config: Config = Config.get_config()
+
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
@@ -81,18 +83,18 @@ class EventCog(commands.Cog):
             response = 'nice'
             await message.channel.send(response)
             return
-        if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
+        if BannedWords.contains_banned_words(message.content) and message.channel.id not in self.config.exceptional_channels_id:
             # cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
             return
-        if message.channel.id == Config.config['presentation_channel_id']:
+        if message.channel.id == self.config.presentation_channel_id:
             # non deve rispondere a eventuali messaggi di moderatori nel canale, solo a nuovi membri
             for role in message.author.roles:
-                if role.id in Config.config['moderation_roles_id']:
+                if role.id in self.config.moderation_roles_id:
                     return
             # il controllo della validità è ancora manuale
-            await message.author.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['afl_role_id']))
+            await message.author.add_roles(self.bot.get_guild(self.config.guild_id).get_role(self.config.afl_role_id))
             await message.channel.send('Formidabile')
-            channel = self.bot.get_channel(Config.config['welcome_channel_id'])
+            channel = self.bot.get_channel(self.config.welcome_channel_id)
             welcomeMessage = discord.Embed(
                 title=f'Diamo il benvenuto a {message.author.display_name}!',
                 colour=discord.Colour.dark_theme().value
@@ -106,8 +108,8 @@ class EventCog(commands.Cog):
             await message.delete()
             await message.channel.send('Link da ' + message.author.display_name + ':\n' + link)
             return
-        if message.channel.id == Config.config['poll_channel_id']:
-            guild = self.bot.get_guild(Config.config['guild_id'])
+        if message.channel.id == self.config.poll_channel_id:
+            guild = self.bot.get_guild(self.config.guild_id)
             await self.logger.log('membro ' + message.author.display_name + ' ha aggiunto una proposta')
             add_proposal(message, guild)
             await self.logger.log('proposta aggiunta al file: `' + message.content + '`')
@@ -133,7 +135,7 @@ class EventCog(commands.Cog):
         """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
-        if message.channel.id == Config.config['poll_channel_id']:
+        if message.channel.id == self.config.poll_channel_id:
             await self.logger.log('rimuovo proposta: `' + message.content + '`')
             remove_proposal(message)
             return
@@ -154,7 +156,7 @@ class EventCog(commands.Cog):
         i membri i cui messaggi sono coinvolti nella bulk delete. Il comportamento per ogni singolo
         messaggio è lo stesso della on_message_delete.
         """
-        if messages[0].channel.id == Config.config['poll_channel_id']:
+        if messages[0].channel.id == self.config.poll_channel_id:
             # è qua solo in caso di spam sul canale proposte, improbabile visto la slowmode
             for message in messages:
                 await self.logger.log('rimuovo proposta: `' + message.content + '`')
@@ -183,10 +185,10 @@ class EventCog(commands.Cog):
         In caso l'utente non abbia i requisiti la reazione viene rimossa. Ignora le reaction ai messaggi postati
         dal bot stesso nel canale proposte.
         """
-        if not payload.channel_id == Config.config['poll_channel_id']:
+        if not payload.channel_id == self.config.poll_channel_id:
             return
         # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
-        message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
+        message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(payload.message_id)
         if message.author == self.bot.user:
             await message.remove_reaction(payload.emoji, payload.member)
             return
@@ -210,10 +212,10 @@ class EventCog(commands.Cog):
         rimuovendo il voto corrispondente. Ignora la rimozione di reaction a un messaggio in
         proposte solo se tale messaggio è stato postato dal bot stesso.
         """
-        if not payload.channel_id == Config.config['poll_channel_id']:
+        if not payload.channel_id == self.config.poll_channel_id:
             return
         # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
-        message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(payload.message_id)
+        message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(payload.message_id)
         if message.author == self.bot.user:
             return
         await self.logger.log('rimosssa reazione sulla proposta `' + message.content + '`')
@@ -232,11 +234,11 @@ class EventCog(commands.Cog):
         :rtype: bool
         """
         is_good = False
-        active = self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['active_role_id'])
+        active = self.bot.get_guild(self.config.guild_id).get_role(self.config.active_role_id)
         if payload.event_type == 'REACTION_ADD' and active not in payload.member.roles:
             # se non è attivo, l'altra condizione è essere moderatore
             for role in payload.member.roles:
-                if role.id in Config.config['moderation_roles_id']:
+                if role.id in self.config.moderation_roles_id:
                     is_good = True
         else:
             # è attivo
@@ -261,7 +263,7 @@ class EventCog(commands.Cog):
             return
         await self.logger.log('nuovo membro ' + member.display_name)
         channel = await member.create_dm()
-        await channel.send(Config.config['greetings'])
+        await channel.send(self.config.greetings)
         if BannedWords.contains_banned_words(member.display_name):
             await self.logger.log('nuovo membro ' + member.display_name + 'kickato per username improprio')
             await member.kick(reason="ForbiddenUsername")
@@ -283,8 +285,8 @@ class EventCog(commands.Cog):
         di archivio salvando il nickname e la data. Quest'ultima serve per gestire il cambio
         di nickname periodico concesso agli AFL.
         """
-        guild = self.bot.get_guild(Config.config['guild_id'])
-        afl_role = guild.get_role(Config.config['afl_role_id'])
+        guild = self.bot.get_guild(self.config.guild_id)
+        afl_role = guild.get_role(self.config.afl_role_id)
         if afl_role not in before.roles:
             if afl_role in after.roles:
                 # appena diventato AFL, crea entry e salva nickname
@@ -319,7 +321,7 @@ class EventCog(commands.Cog):
         except KeyError:
             return
         old_nick: str = item.nick
-        member = self.bot.get_guild(Config.config['guild_id']).get_member(after.id)
+        member = self.bot.get_guild(self.config.guild_id).get_member(after.id)
         if old_nick != member.nick:
             await self.logger.log('ripristino nickname a ' + old_nick)
             await member.edit(nick=old_nick)
@@ -330,7 +332,7 @@ class EventCog(commands.Cog):
         Potrebbe essere esteso in futuro anche per aggiungere automaticamente canali all'elenco
         tramite qualche interazione.
         """
-        if channel.id in Config.config['active_channels_id']:
+        if channel.id in self.config.active_channels_id:
             # devo controllare se è una delete o una creazione
             if channel in channel.guild.channels:
                 # è appena stato creato
@@ -338,8 +340,8 @@ class EventCog(commands.Cog):
             else:
                 # da rimuovere
                 await self.logger.log('rimosso il canale: ' + channel.name + '(id:' + channel.id + ')')
-                Config.config['active_channels_id'].remove(channel.id)
-                shared_functions.update_json_file(Config.config, 'config.json')
+                self.config.active_channels_id.remove(channel.id)
+                self.config.save()
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
@@ -365,7 +367,7 @@ class EventCog(commands.Cog):
         fatto dentro on_ready.
         """
         await self.logger.log('evento on_resume')
-        coherency_check(self.archive, self.bot.get_guild(Config.config['guild_id']).members)
+        coherency_check(self.archive, self.bot.get_guild(self.config.guild_id).members)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -384,10 +386,10 @@ class EventCog(commands.Cog):
         # log dell'avvio
         await self.logger.log(f'{self.bot.user} connesso a discord')
         # controllo coerenza archivio
-        coherency_check(self.archive, self.bot.get_guild(Config.config['guild_id']).members)
+        coherency_check(self.archive, self.bot.get_guild(self.config.guild_id).members)
         if not self.periodic_checks.is_running():    # per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
-            if Config.config['main_channel_id'] is not None:
-                channel = self.bot.get_channel(Config.config['main_channel_id'])
+            if self.config.main_channel_id is not None:
+                channel = self.bot.get_channel(self.config.main_channel_id)
                 await channel.send('AFL Bot `' + self.__version__ + '` avviato alle `'f'{timestamp}`. Il prefisso è: `{self.bot.command_prefix}`')
             await self.logger.log('avvio task')
             self.periodic_checks.start()
@@ -419,7 +421,7 @@ class EventCog(commands.Cog):
                 proposal = proposals[key]
                 if proposal['passed']:
                     to_delete.append(key)
-                    channel = self.bot.get_channel(Config.config['poll_channel_id'])
+                    channel = self.bot.get_channel(self.config.poll_channel_id)
                     await self.logger.log('proposta passata: ' + proposal['content'])
                     await channel.send(
                         'Raggiunta soglia per la proposta, in attesa di approvazione dai mod.\n' +
@@ -430,7 +432,7 @@ class EventCog(commands.Cog):
                     to_delete.append(key)
             for key in to_delete:
                 try:
-                    message = await self.bot.get_channel(Config.config['poll_channel_id']).fetch_message(key)
+                    message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(key)
                 except discord.NotFound:
                     await self.logger.log('proposta già cancellata, ignoro')  # capita se viene cancellata dopo un riavvio o mentre è offline
                 else:
@@ -443,12 +445,12 @@ class EventCog(commands.Cog):
             item = self.archive.get(id)
             item.clean()
             count = item.count_consolidated_messages()
-            if count >= Config.config['active_threshold'] and self.bot.get_guild(Config.config['guild_id']).get_member(id).top_role.id not in Config.config['moderation_roles_id']:
+            if count >= self.config.active_threshold and self.bot.get_guild(self.config.guild_id).get_member(id).top_role.id not in self.config.moderation_roles_id:
                 item.set_active()
-                guild = self.bot.get_guild(Config.config['guild_id'])
-                await guild.get_member(id).add_roles(guild.get_role(Config.config['active_role_id']))
+                guild = self.bot.get_guild(self.config.guild_id)
+                await guild.get_member(id).add_roles(guild.get_role(self.config.active_role_id))
                 await self.logger.log('membro ' + item.nick + ' è attivo')
-                channel = self.bot.get_channel(Config.config['main_channel_id'])
+                channel = self.bot.get_channel(self.config.main_channel_id)
                 await channel.send('membro <@!' + str(id) + '> è diventato attivo')
                 
             # controllo sulla data dell'ultima violazione, ed eventuale reset
@@ -458,9 +460,9 @@ class EventCog(commands.Cog):
             item.forget_last_week()
 
             if item.is_active_expired():
-                channel = self.bot.get_channel(Config.config['main_channel_id'])
-                guild = self.bot.get_guild(Config.config['guild_id'])
-                await guild.get_member(id).remove_roles(guild.get_role(Config.config['active_role_id']))
+                channel = self.bot.get_channel(self.config.main_channel_id)
+                guild = self.bot.get_guild(self.config.guild_id)
+                await guild.get_member(id).remove_roles(guild.get_role(self.config.active_role_id))
                 await self.logger.log('membro ' + item.nick + ' non più è attivo')
                 await channel.send('membro <@!' + str(id) + '> non più attivo :(')
                 item.set_inactive()
@@ -484,7 +486,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
             proposals = {}
     active_count = 2 # moderatori non hanno ruolo attivo
     members = guild.members
-    active_role = guild.get_role(Config.config['active_role_id'])
+    active_role = guild.get_role(Config.get_config().active_role_id)
     for member in members:
         if not member.bot:
             if active_role in member.roles:
@@ -530,8 +532,8 @@ def does_it_count(message: discord.Message) -> bool:
     :rtype: bool
     """
     if message.guild is not None:
-        if message.guild.id == Config.config['guild_id']:
-            if message.channel.id in Config.config['active_channels_id']:
+        if message.guild.id == Config.get_config().guild_id:
+            if message.channel.id in Config.get_config().active_channels_id:
                 return True
     return False
 

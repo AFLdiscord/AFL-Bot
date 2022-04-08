@@ -19,10 +19,12 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         self.bot: commands.Bot = bot
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
+        self.config: Config = Config.get_config()
+        
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""
-        return ctx.author.top_role.id in Config.config['moderation_roles_id']
+        return ctx.author.top_role.id in self.config.moderation_roles_id
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -35,7 +37,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         """
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
-        if BannedWords.contains_banned_words(message.content) and message.channel.id not in Config.config['exceptional_channels_id']:
+        if BannedWords.contains_banned_words(message.content) and message.channel.id not in self.config.exceptional_channels_id:
             await message.delete()
             await self.logger.log('aggiunto warn a ' + message.author.display_name + ' per linguaggio inappropriato: `' + message.content + '`')
             await self._add_warn(message.author, 'linguaggio inappropriato', 1)
@@ -226,7 +228,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             if number < 0:  # non deve controllare il ban se è un unwarn
                 return
             if item.warn_count() == 3:
-                await member.add_roles(self.bot.get_guild(Config.config['guild_id']).get_role(Config.config['under_surveillance_id']))
+                await member.add_roles(self.bot.get_guild(self.config.guild_id).get_role(self.config.under_surveillance_id))
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
                 await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')

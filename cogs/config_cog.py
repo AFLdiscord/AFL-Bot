@@ -27,10 +27,11 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
         self.logger: BotLogger = BotLogger.get_instance()
+        self.config: Config = Config.get_config()
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""
-        return ctx.author.top_role.id in Config.config['moderation_roles_id']
+        return ctx.author.top_role.id in self.config.moderation_roles_id
 
     @commands.command(brief='aggiunge una parola bannata all\'elenco')
     async def blackadd(self, ctx: commands.Context, *, ban_word: str):
@@ -92,7 +93,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         self.bot.command_prefix = prefix
         await self.logger.log((f'prefisso cambiato in ``{prefix}``'))
         await ctx.send(f'Prefisso cambiato in ``{prefix}``')
-        Config.config['current_prefix'] = prefix
+        self.config.current_prefix = prefix
         with open('config.json', 'r') as file:
             data: Dict[str, Any] = json.load(file)
         data['current_prefix'] = prefix
@@ -163,7 +164,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         Sintassi:
         <printconfig       # stampa la configurazione
         """
-        await ctx.send(Config.to_string())
+        await ctx.send(str(self.config))
 
     @commands.command(brief='aggiunge una o più cog dal bot e dal file extensions.json')
     async def addcog(self, ctx: commands.Context, *args: str):
@@ -261,11 +262,11 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         # controlla che contenga solo numeri della lunghezza giusta
         if len(id) == 18 and id.isdigit():
             int_id = int(id)
-            if int_id not in Config.config['active_channels_id']:
-                Config.config['active_channels_id'].append(int_id)
+            if int_id not in self.config.active_channels_id:
+                self.config.active_channels_id.append(int_id)
                 await self.logger.log('canale <#' + id + '> aggiunto all\'elenco attivi')
                 await ctx.send('Canale <#' + id + '> aggiunto all\'elenco')
-                shared_functions.update_json_file(Config.config, 'config.json')
+                self.config.save()
             else:
                 await ctx.send('Canale già presente')
         else:
@@ -284,11 +285,11 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         # controlla che contenga solo numeri della lunghezza giusta
         if len(id) == 18 and id.isdigit():
             int_id = int(id)
-            if int_id in Config.config['active_channels_id']:
-                Config.config['active_channels_id'].remove(int_id)
+            if int_id in self.config.active_channels_id:
+                self.config.active_channels_id.remove(int_id)
                 await self.logger.log('canale <#' + id + '> rimosso dall\'elenco attivi')
                 await ctx.send('Canale <#' + id + '> rimosso dall\'elenco')
-                shared_functions.update_json_file(Config.config, 'config.json')
+                self.config.save()
             else:
                 await ctx.send('Canale non presente in lista')
         else:
@@ -318,23 +319,23 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             return
         msg: str = ''
         if category.startswith('a'):
-            Config.config['active_threshold'] = int(value)
+            self.config.active_threshold = int(value)
             msg = 'Soglia messaggi per l\'attivo cambiata a ' + str(value)
         elif category.startswith('r'):
-            Config.config['active_duration'] = int(value)
+            self.config.active_duration = int(value)
             msg = 'Durata dell\'attivo cambiata a ' + str(value) + ' giorni'
         elif category.startswith('s'):
-            Config.config['nick_change_days'] = int(value)
+            self.config.nick_change_days = int(value)
             msg = 'Cooldown per il setnick cambiata a ' + str(value) + ' giorni'
         elif category.startswith('v'):
-            Config.config['violations_reset_days'] = int(value)
+            self.config.violations_reset_days = int(value)
             msg = 'Giorni per il reset delle violazioni cambiati a ' + str(value)
         else:
             await ctx.send('Comando errato, controlla la sintassi')
             return
         await self.logger.log(msg)
         await ctx.send(msg)
-        shared_functions.update_json_file(Config.config, 'config.json')
+        self.config.save()
 
 
 def setup(bot: commands.Bot):

@@ -16,7 +16,7 @@ Funzioni:
 import json
 import re
 from datetime import date, datetime, timedelta
-from typing import Any, ClassVar, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union, TypedDict
 
 import discord
 from discord.ext import commands
@@ -241,7 +241,7 @@ class Afler():
         - azzerare tutti i contatori dei messaggi
         """
         self.data['active'] = True
-        self.data['expiration'] = datetime.date(datetime.now() + timedelta(days=Config.config['active_duration'])).__str__()
+        self.data['expiration'] = datetime.date(datetime.now() + timedelta(days=Config.get_config().active_duration)).__str__()
         for i in weekdays:
             self.data[weekdays.get(i)] = 0
 
@@ -298,7 +298,7 @@ class Afler():
         """Azzera le violazioni dell'afler se necessario."""
         if self.data['last_violation_count'] is not None:
             expiration = datetime.date(datetime.strptime(self.data['last_violation_count'], '%Y-%m-%d'))
-            if (expiration + timedelta(days=Config.config["violations_reset_days"])) <= (datetime.date(datetime.now())):
+            if (expiration + timedelta(days=Config.get_config().violations_reset_days)) <= (datetime.date(datetime.now())):
                 print('reset violazioni di ' + self.data['nick'])
                 self.data['violations_count'] = 0
                 self.data['last_violation_count'] = None
@@ -646,7 +646,7 @@ class BotLogger():
         
         :param bot: il bot
         """
-        self.channel = await bot.fetch_channel(Config.config['log_channel_id'])
+        self.channel = await bot.fetch_channel(Config.get_config().log_channel_id)
         
     async def log(self,  msg: str) -> None:
         """Compila il messaggio da inviare nel canale. Il formato
@@ -664,6 +664,28 @@ class BotLogger():
             # fallback sul terminale
             print(msg)
         await self.channel.send(msg)
+
+class ConfigFields(TypedDict):
+    """Helper per definire la struttura del file di config"""
+    guild_id: int
+    main_channel_id: int
+    presentation_channel_id: int
+    welcome_channel_id: int
+    log_channel_id: int
+    current_prefix: str
+    moderation_roles_id: List[int]
+    afl_role_id: int
+    active_role_id: int
+    active_channels_id: List[int]
+    active_threshold: int
+    active_duration: int
+    exceptional_channels_id: List[int]
+    poll_channel_id: int
+    under_surveillance_id: int
+    violation_reset_days: int
+    nick_change_days: int
+    bio_length_limit: int
+    greetings: str
         
 class Config():
     """Gestione dei parametri di configurazione del bot. Salva tutti i parametri in un dizionario
@@ -674,30 +696,57 @@ class Config():
 
     Attributes
     -------------
-    config: dict attributo di classe che conserva i parametri di configurazione in un dizionario
+        guild_id: id del server in cui contare i messaggi
+        main_channel_id: canale dei messaggi di sistema del bot
+        presentation_channel_id: canale in cui i nuovi membri si presentano prima dell'ammissione
+        welcome_channel_id: canale di benvenuto in cui si annunciano i nuovi membri
+        log_channel_id: canale del server in cui si ricevono i messaggi di log del bot
+        current_prefix: prefisso per i comandi del bot
+        moderation_roles_id: [id dei ruoli di moderazione separati da virgola se più di uno]
+        afl_role_id: id del ruolo AFL
+        active_role_id: id del ruolo attivo
+        active_channels_id: [id dei canali rilevanti al conteggio, separati da virgola se più di uno]
+        active_threshold: numero di messaggi da mandare prima di ricevere il ruolo attivo
+        active_duration: durata del ruolo attivo in giorni
+        exceptional_channels_id: [elenco dei canali non controllati dal bot, separati da virgola se più di uno]
+        poll_channel_id: canale in cui controllare le reaction alle proposte
+        under_surveillance_id: id del ruolo sotto sorveglianza (vedi regole)
+        violations_reset_days: tempo dopo cui si resettano le violazioni in giorni
+        nick_change_days: giorni concessi tra un cambio di nickname e l'altro (0 nessun limite)
+        bio_length_limit: massimo numero di caratteri per la bio
+        greetings: messaggio di benvenuto per i nuovi membri
 
     Methods
     -------------
     load()  carica i valori dal file config.json
     """
+    _instance: ClassVar[Config] = None
 
-    config: Dict[str, Union[int, str, List[int], List[str]]] = {}
+    def __init__(self) -> None:
+        raise RuntimeError('use Config.get_config() instead')
+    
 
-    @staticmethod
-    def to_string() -> str:
-        """Rappresentazione della configurazione del bot come stringa. Fatto così invece
-        che con __repr__ o __str__ perchè la classe non viene istanziata.
+    def __str__(self) -> str:
+        """Rappresentazione della configurazione del bot come stringa.
 
         :returns: la configurazione corrente del bot
         :rtype: str
         """
+        attributes = vars(self)
         string = ''
-        for key in Config.config:
-            string += key + ' : ' + str(Config.config[key]) + '\n'
+        for key in attributes:
+            string += f'{key} = {attributes[key]}\n'
         return string
 
-    @staticmethod
-    def load() -> bool:
+    @classmethod
+    def get_config(cls):
+        if cls._instance is None:
+            cls._instance = cls.__new__(cls)
+            cls._instance.load()
+        return cls._instance
+    
+
+    def load(self) -> bool:
         """Carica i parametri dal file config.json nell'attributo di classe config. Il formato del
         file deve essere quello specificato nel template (vedi config.template). Deve essere
         chiamato all'avvio del bot. Ritorna un booleano con l'esito.
@@ -709,7 +758,7 @@ class Config():
         try:
             with open('config.json', 'r') as file:
                 data = json.load(file)
-                Config._load_config(data)
+                self._load_config(data)
                 print('configurazione ricaricata correttamente')
                 return True
         except (FileNotFoundError, json.decoder.JSONDecodeError) as e:
@@ -717,36 +766,39 @@ class Config():
             print('errore nella ricarica della configurazione, mantengo configurazione precedente')
             return False
 
-    @staticmethod
-    def _load_config(data) -> None:
+    def _load_config(self, data: ConfigFields) -> None:
         """Converte i valori letti dal dizionario nei tipi corretti. Chiamato dalla load, non
         utilizzare direttamente questo metodo.
         """
-        Config.config['guild_id'] = int(data['guild_id'])
-        Config.config['main_channel_id'] = int(data['main_channel_id'])
-        Config.config['presentation_channel_id'] = int(data['presentation_channel_id'])
-        Config.config['welcome_channel_id'] = int(data['welcome_channel_id'])
-        Config.config['log_channel_id'] = int(data['log_channel_id'])
-        Config.config['current_prefix'] = data['current_prefix']
-        Config.config['moderation_roles_id'] = []
+        self.guild_id = int(data['guild_id'])
+        self.main_channel_id = int(data['main_channel_id'])
+        self.presentation_channel_id = int(data['presentation_channel_id'])
+        self.welcome_channel_id = int(data['welcome_channel_id'])
+        self.log_channel_id = int(data['log_channel_id'])
+        self.current_prefix = data['current_prefix']
+        self.moderation_roles_id = []
         for mod in data['moderation_roles_id']:
-            Config.config['moderation_roles_id'].append(int(mod))
-        Config.config['afl_role_id'] = int(data['afl_role_id'])
-        Config.config['active_role_id'] = int(data['active_role_id'])
-        Config.config['active_channels_id'] = []
+            self.moderation_roles_id.append(int(mod))
+        self.afl_role_id = int(data['afl_role_id'])
+        self.active_role_id = int(data['active_role_id'])
+        self.active_channels_id = []
         for channel in data['active_channels_id']:
-            Config.config['active_channels_id'].append(int(channel))
-        Config.config['active_threshold'] = data['active_threshold']
-        Config.config['active_duration'] = data['active_duration']
-        Config.config['exceptional_channels_id'] = []
+            self.active_channels_id.append(int(channel))
+        self.active_threshold = data['active_threshold']
+        self.active_duration = data['active_duration']
+        self.exceptional_channels_id = []
         for channel in data['exceptional_channels_id']:
-            Config.config['exceptional_channels_id'].append(int(channel))
-        Config.config['poll_channel_id'] = int(data['poll_channel_id'])
-        Config.config['under_surveillance_id'] = int(data['under_surveillance_id'])
-        Config.config['violations_reset_days'] = data['violations_reset_days']
-        Config.config['nick_change_days'] = data['nick_change_days']
-        Config.config['bio_length_limit'] = data['bio_length_limit']
-        Config.config['greetings'] = data['greetings']
+            self.exceptional_channels_id.append(int(channel))
+        self.poll_channel_id = int(data['poll_channel_id'])
+        self.under_surveillance_id = int(data['under_surveillance_id'])
+        self.violations_reset_days = data['violations_reset_days']
+        self.nick_change_days = data['nick_change_days']
+        self.bio_length_limit = data['bio_length_limit']
+        self.greetings = data['greetings']
+
+    def save(self) -> None:
+        """Save the current config"""
+        update_json_file(vars(self), 'config.json')
 
 
 def update_json_file(data, json_file: str) -> None:

@@ -18,11 +18,12 @@ class UtilityCog(commands.Cog, name='Utility'):
         self.bot: commands.Bot = bot
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
+        self.config: Config = Config.get_config()
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
         for role in ctx.author.roles:
-            if Config.config['afl_role_id'] == role.id:
+            if self.config.afl_role_id == role.id:
                 return True
         return False
 
@@ -60,7 +61,7 @@ class UtilityCog(commands.Cog, name='Utility'):
                 ' (ultimo il ' + str(item.last_message_date()) + ')', inline=False)
         is_a_mod: bool = False
         for role in member.roles:
-            if role.id in Config.config['moderation_roles_id']:
+            if role.id in self.config.moderation_roles_id:
                 is_a_mod = True
                 status.add_field(name='Ruolo:', value=role.name, inline=False)
                 break
@@ -73,7 +74,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
             if item.last_violations_count() != None:
-                violations_expiration = (item.last_violations_count() + timedelta(days=Config.config['violations_reset_days'])).__str__()
+                violations_expiration = (item.last_violations_count() + timedelta(days=self.config.violations_reset_days)).__str__()
                 status.add_field(name='Violazioni:', value=str(item.warn_count()) +
                     ' (scade il ' + violations_expiration + ')', inline=False)
         await ctx.send(embed=status)
@@ -90,7 +91,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if user is None:
             user = ctx.author
         # se l'utente è nel server, stampo il suo nickname invece del suo username
-        member = self.bot.get_guild(Config.config['guild_id']).get_member(user.id)
+        member = self.bot.get_guild(self.config.guild_id).get_member(user.id)
         if member is not None:
             user = member
         avatar = discord.Embed(
@@ -126,13 +127,13 @@ class UtilityCog(commands.Cog, name='Utility'):
             return
         last_change = item.last_nick_change()
         difference = datetime.date(datetime.now()) - last_change
-        if difference.days >=  Config.config['nick_change_days']:
+        if difference.days >=  self.config.nick_change_days:
             item.nick = new_nick
             self.archive.save()
             await ctx.author.edit(nick=new_nick)
             await ctx.send('Nickname cambiato in ' + new_nick)
         else:
-            renewal = last_change + timedelta(days=Config.config['nick_change_days'])
+            renewal = last_change + timedelta(days=self.config.nick_change_days)
             days_until_renewal = renewal - datetime.date(datetime.now())
             await ctx.send('Prossimo cambio tra ' + str(days_until_renewal.days) + ' giorni')
 
@@ -145,8 +146,8 @@ class UtilityCog(commands.Cog, name='Utility'):
         Sintassi:
         <setbio mia bio    # imposta *mia bio* come bio
         """
-        if len(bio) > Config.config['bio_length_limit']:
-            await ctx.send('Bio troppo lunga, il limite è ' + str(Config.config['bio_length_limit']) + ' caratteri.')
+        if len(bio) > self.config.bio_length_limit:
+            await ctx.send('Bio troppo lunga, il limite è ' + str(self.config.bio_length_limit) + ' caratteri.')
             return
         if BannedWords.contains_banned_words(bio):
             return

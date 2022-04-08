@@ -16,7 +16,7 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 # carica la configurazione, ricorda di modificare config.json seguendo indicazioni del template
-if not Config.load():
+if not Config.get_config().load():
     print('controlla di avere creato correttamente config.json')
     exit()
 # carica le parole bannate
@@ -30,7 +30,7 @@ intents.members = True
 intents.bans = True
 
 # istanziare il bot (avvio in fondo al codice)
-bot = commands.Bot(command_prefix = Config.config['current_prefix'], intents=intents)
+bot = commands.Bot(command_prefix = Config.get_config().current_prefix, intents=intents)
 
 # setup del logging nel canale dedicato
 logger = BotLogger.create_instance(bot)
