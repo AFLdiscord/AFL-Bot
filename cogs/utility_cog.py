@@ -115,16 +115,6 @@ class UtilityCog(commands.Cog, name='Utility'):
         <setnick afler       # cambia il nickname in afler
         <setnick due aflers  # può contenere anche più parole
         """
-        if BannedWords.contains_banned_words(new_nick):
-            await ctx.send('Il nickname non può contenere parole offensive')
-            return
-        if len(new_nick) > 32:
-            await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
-            return
-        for member in self.archive.values():
-            if member.nick == new_nick:
-                await ctx.send('Questo nickname è già in uso')
-                return
         try:
             item: Afler = self.archive.get(ctx.author.id)
         except KeyError:
@@ -132,16 +122,24 @@ class UtilityCog(commands.Cog, name='Utility'):
             return
         last_change = item.last_nick_change()
         difference = datetime.date(datetime.now()) - last_change
-        if difference.days >= self.config.nick_change_days:
-            item.nick = new_nick
-            self.archive.save()
-            await ctx.author.edit(nick=new_nick)
-            await ctx.send('Nickname cambiato in ' + new_nick)
-        else:
+        if difference.days < self.config.nick_change_days:
             renewal = last_change + \
                 timedelta(days=self.config.nick_change_days)
             days_until_renewal = renewal - datetime.date(datetime.now())
             await ctx.send('Prossimo cambio tra ' + str(days_until_renewal.days) + ' giorni')
+        elif BannedWords.contains_banned_words(new_nick):
+            await ctx.send('Il nickname non può contenere parole offensive')
+        elif len(new_nick) > 32:
+            await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
+        else:
+            for member in self.archive.values():
+                if member.nick == new_nick:
+                    await ctx.send('Questo nickname è già in uso')
+                    return
+            item.nick = new_nick
+            self.archive.save()
+            await ctx.author.edit(nick=new_nick)
+            await ctx.send('Nickname cambiato in ' + new_nick)
 
     @commands.command(brief='imposta la propria bio')
     async def setbio(self, ctx: commands.Context, *, bio: str):
