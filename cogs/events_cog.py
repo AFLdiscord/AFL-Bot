@@ -350,10 +350,11 @@ class EventCog(commands.Cog):
         Per ora si limita a avvisare che le menzioni possono dare problemi con certi prefissi e a
         loggare le chiamate di comandi senza i permessi necessari. Da espandare in futuro."""
         if isinstance(error, commands.CommandNotFound):
-            if not emoji_or_mention(ctx.message.content):
-                # tutto ciò serve per non triggerare l'invio dell'help su menzioni, nomi di canali e emoji custom se il prefisso è '<'
-                await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
-                await ctx.send_help()   # manda tutti i comandi, necessario se ci sono più pagine
+            #  non triggero l'invio dell'help su markdown (menzioni, emoji personalizzate ecc.) se il prefisso è '<'
+            if discord_markdown(ctx.message.content):
+                return
+            await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
+            await ctx.send_help()   # manda tutti i comandi, necessario se ci sono più pagine
         elif isinstance(error, commands.CheckFailure):
             await ctx.send('Non hai i permessi per usare questo comando.', delete_after=5)
             await ctx.message.delete(delay=5)
@@ -593,28 +594,24 @@ def calculate_threshold(active_count: int) -> int:
     return int(active_count / 2) + 1
 
 
-def emoji_or_mention(content: str) -> bool:
-    """Controlla se la stringa riconosciuta come comando è in realtà un'emoji o
-    una menzione a canali/membri. Serve solo a gestire i conflitti in caso il
-    prefisso del bot sia settato a '<'.
+def discord_markdown(content: str) -> bool:
+    """Controlla se la stringa riconosciuta come comando è in realtà un markdown.
+    Serve solo a gestire i conflitti in caso il prefisso del bot sia settato a '<'.
 
-    Conflitti noti:
-    <@!id> -> menzione membri
+    I markdown di discord sono raggruppabili nelle seguenti categorie:
+    <@id> -> menzione membri o ruoli
     <#id> -> menzione canali
-    <:id> -> emoji
+    <:id> -> emoji personalizzate
     <a:id> -> emoji animate
-    <t:timestamp> -> timestamps
+    <t:timestamp> -> timestamp
 
     :param content: comando che ha dato errore
 
-    :returns: se rappresenta una menzione o emoji
+    :returns: se rappresenta un markdown
     :rtype: bool
     """
-    if (content.startswith('<@') or content.startswith('<#') or
-            content.startswith('<:') or content.startswith('<a:')) or content.startswith('<t:'):
-        return True
-    else:
-        return False
+    prefix = ['@', '#', ':', 'a', 't']
+    return content[1] in prefix
 
 
 def coherency_check(archive: Archive, members: List[discord.Member]) -> None:
