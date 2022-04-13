@@ -262,19 +262,23 @@ class ConfigCog(commands.Cog, name='Configurazione'):
 
         Sintassi:
         <addactive  id_canale    # aggiunge il canale
+        <addactive  #menzione-canale  # è possibile usare anche la menzione
         """
+        # strip dei caratteri per la menzione
+        id = id.strip('<#>')
         # controlla che contenga solo numeri della lunghezza giusta
         if len(id) == 18 and id.isdigit():
             int_id = int(id)
-            if int_id not in self.config.active_channels_id:
-                self.config.active_channels_id.append(int_id)
-                await self.logger.log('canale <#' + id + '> aggiunto all\'elenco attivi')
-                await ctx.send('Canale <#' + id + '> aggiunto all\'elenco')
-                self.config.save()
-            else:
-                await ctx.send('Canale già presente')
         else:
             await ctx.send('Id canale non valido')
+            return
+        if int_id not in self.config.active_channels_id:
+            self.config.active_channels_id.append(int_id)
+            await self.logger.log('canale <#' + id + '> aggiunto all\'elenco attivi')
+            await ctx.send('Canale <#' + id + '> aggiunto all\'elenco')
+            self.config.save()
+        else:
+            await ctx.send('Canale già presente')
 
     @commands.command(brief='rimuove un canale all\'elenco dei canali conteggiati per l\'attivo')
     async def removeactive(self, ctx: commands.Context, id: str):
@@ -285,19 +289,23 @@ class ConfigCog(commands.Cog, name='Configurazione'):
 
         Sintassi:
         <removeactive  id_canale    # rimuove il canale
+        <removeactive  #menzione-canale  # è possibile usare anche la menzione
         """
+        # strip dei caratteri della menzione
+        id = id.strip('<#>')
         # controlla che contenga solo numeri della lunghezza giusta
         if len(id) == 18 and id.isdigit():
             int_id = int(id)
-            if int_id in self.config.active_channels_id:
-                self.config.active_channels_id.remove(int_id)
-                await self.logger.log('canale <#' + id + '> rimosso dall\'elenco attivi')
-                await ctx.send('Canale <#' + id + '> rimosso dall\'elenco')
-                self.config.save()
-            else:
-                await ctx.send('Canale non presente in lista')
         else:
             await ctx.send('Id canale non valido')
+            return
+        if int_id in self.config.active_channels_id:
+            self.config.active_channels_id.remove(int_id)
+            await self.logger.log('canale <#' + id + '> rimosso dall\'elenco attivi')
+            await ctx.send('Canale <#' + id + '> rimosso dall\'elenco')
+            self.config.save()
+        else:
+            await ctx.send('Canale non presente in lista')
 
     @commands.command(brief='permette di gestire le soglie per diversi parametri', aliases=['setthreshold', 'sett', 'threshold'])
     async def setthresholds(self, ctx: commands.Context, category: str, value: str):
