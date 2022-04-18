@@ -604,13 +604,15 @@ def discord_markdown(content: str) -> bool:
     <:id> -> emoji personalizzate
     <a:id> -> emoji animate
     <t:timestamp> -> timestamp
+    Inoltre, viene gestita l'emoji '<3', che non viene convertita automaticamente
+    nell'emoji standard quando il messaggio è inviato dal client mobile.
 
     :param content: comando che ha dato errore
 
     :returns: se rappresenta un markdown
     :rtype: bool
     """
-    prefix = ['@', '#', ':', 'a', 't']
+    prefix = ['@', '#', ':', 'a', 't', '3']
     return content[1] in prefix
 
 
