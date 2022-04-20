@@ -14,6 +14,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     - setnick permette di cambiare nickname periodicamente
     - setbio imposta la propria bio
     - bio ritorna la bio dell'utente citato
+    - showactive ritorna l'elenco dei canali conteggiati per l'attivo
     """
 
     def __init__(self, bot: commands.Bot):
@@ -190,6 +191,18 @@ class UtilityCog(commands.Cog, name='Utility'):
                 color=member.top_role.color
             )
             await ctx.send(embed=bio)
+    
+    @commands.command(brief='ritorna l\'elenco dei canali conteggiati per l\'attivo')
+    async def showactive(self, ctx: commands.Context):
+        """Ritorna l'elenco dei canali in cui i messaggi vengono conteggiati
+        al fine di assegnare il ruolo attivo.
+        
+        Sintassi:
+        <showactive     # ritorna l'elenco
+        """
+        channels = 'Elenco canali conteggiati per l\'attivo:\n'
+        channels += '\n'.join([f'<#{id}>' for id in self.config.active_channels_id])
+        await ctx.send(channels)
 
 
 def setup(bot: commands.Bot):
