@@ -12,6 +12,7 @@ Proposte
 - calculate_threshold logica per stabilire la sogli affinchè una proposta passi
 """
 
+import re
 import json
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
@@ -78,8 +79,7 @@ class EventCog(commands.Cog):
             response = 'pong in ' f'{round(self.bot.latency * 1000)} ms'
             await message.channel.send(response)
             return
-        if (message.content == '69' or
-                message.content == '420'):
+        if re.match('^(420|69|\s)+$', message.content.lower()):
             response = 'nice'
             await message.channel.send(response)
             return
