@@ -140,6 +140,7 @@ class EventCog(commands.Cog):
             await self.logger.log('rimuovo proposta: `' + message.content + '`')
             remove_proposal(message)
             return
+        await self.logger.log(f'messaggio di {message.author.mention} cancellato in {message.channel.mention}\n    {message.content}')
         if not does_it_count(message):
             return
         try:
@@ -177,7 +178,8 @@ class EventCog(commands.Cog):
                 item.decrease_counter()
                 counter += 1
         self.archive.save()
-        await self.logger.log('rimossi ' + str(counter) + ' messaggi')
+        channel = messages[0].channel
+        await self.logger.log(f'rimossi {counter} messaggi da {channel.mention}')
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -252,6 +254,7 @@ class EventCog(commands.Cog):
         """Controlla che i messaggi non vengano editati per inserire parole della lista banned_words.
         Se viene trovata una parola bannata dopo l'edit il messaggio viene cancellato.
         """
+        await self.logger.log(f'messaggio di {before.author.mention} modificato in {before.channel.mention}\nBefore:\n    {before.content}\nAfter:\n    {after.content}')
         if BannedWords.contains_banned_words(after.content):
             await after.delete()
 
@@ -263,11 +266,11 @@ class EventCog(commands.Cog):
         """
         if member.bot:
             return
-        await self.logger.log('nuovo membro ' + member.display_name)
+        await self.logger.log(f'nuovo membro: {member.mention}')
         channel = await member.create_dm()
         await channel.send(self.config.greetings)
         if BannedWords.contains_banned_words(member.display_name):
-            await self.logger.log('nuovo membro ' + member.display_name + 'kickato per username improprio')
+            await self.logger.log(f'nuovo membro {member.mention} kickato per username improprio')
             await member.kick(reason="ForbiddenUsername")
             await channel.send('Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
 
@@ -276,7 +279,7 @@ class EventCog(commands.Cog):
         """Rimuove, se presente, l'utente da aflers.json nel momento in cui lascia il server."""
         if member.bot:
             return
-        await self.loggerl.log('membro ' + member.display_name + 'rimosso/uscito dal server')
+        await self.loggerl.log(f'membro {member.mention} rimosso/uscito dal server')
         self.archive.remove(member.id)
         self.archive.save()
 
@@ -292,14 +295,14 @@ class EventCog(commands.Cog):
         if afl_role not in before.roles:
             if afl_role in after.roles:
                 # appena diventato AFL, crea entry e salva nickname
-                await self.logger.log('nuova entry nell\'archivio: ' + after.display_name)
+                await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
                 afler = Afler.new_entry(after.display_name)
                 self.archive.add(after.id, afler)
                 self.archive.save()
             else:
                 # non è ancora AFL, libero di cambiare nick a patto che non contenga parole vietate
                 if BannedWords.contains_banned_words(after.display_name):
-                    await self.logger.log('nickname' + after.display_name + 'contiene parole vietate, ripristino a ' + before.display_name)
+                    await self.logger.log(f'nickname di {after.mention} `{after.display_name}` contiene parole vietate, ripristino a `{before.display_name}`')
                     await after.edit(nick=before.display_name)
         else:
             # era già AFL, ripristino il nickname dal file
@@ -308,7 +311,7 @@ class EventCog(commands.Cog):
                     old_nick = self.archive.get(after.id).nick
                 except KeyError:
                     old_nick = before.display_name
-                await self.logger.log('ripristino nickname a ' + old_nick)
+                await self.logger.log(f'ripristino nickname di {after.mention} da `{after.display_name}` a `{old_nick}`')
                 await after.edit(nick=old_nick)
 
     @commands.Cog.listener()
@@ -324,7 +327,7 @@ class EventCog(commands.Cog):
         old_nick: str = item.nick
         member = self.bot.get_guild(self.config.guild_id).get_member(after.id)
         if old_nick != member.nick:
-            await self.logger.log('ripristino nickname a ' + old_nick)
+            await self.logger.log(f'ripristino nickname di {member.mention} da `{member.display_name}` a `{old_nick}`')
             await member.edit(nick=old_nick)
 
     @commands.Cog.listener()
@@ -340,7 +343,7 @@ class EventCog(commands.Cog):
                 return
             else:
                 # da rimuovere
-                await self.logger.log('rimosso il canale: ' + channel.name + '(id:' + channel.id + ')')
+                await self.logger.log(f'rimosso il canale: {channel.name} (id: {channel.id})')
                 self.config.active_channels_id.remove(channel.id)
                 self.config.save()
 
