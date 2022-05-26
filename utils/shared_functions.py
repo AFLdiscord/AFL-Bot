@@ -678,12 +678,17 @@ class BotLogger():
 
         :param msg: il messaggio con l'evento da loggare
         """
-        timestamp = str(datetime.now())
-        msg = '`' + timestamp + '`  ' + msg
+        timestamp = datetime.now()
+        msg = f'`{timestamp}` {msg}'
         if self.channel is None:
             # fallback sul terminale
             print(msg)
-        await self.channel.send(msg)
+        log_message = discord.Embed(
+            title='Log event',
+            description=msg,
+            timestamp=timestamp
+        )
+        await self.channel.send(embed=log_message)
 
 
 class ConfigFields(TypedDict):
