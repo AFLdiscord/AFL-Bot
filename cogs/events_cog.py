@@ -254,7 +254,9 @@ class EventCog(commands.Cog):
         """Controlla che i messaggi non vengano editati per inserire parole della lista banned_words.
         Se viene trovata una parola bannata dopo l'edit il messaggio viene cancellato.
         """
-        await self.logger.log(f'messaggio di {before.author.mention} modificato in {before.channel.mention}\nBefore:\n    {before.content}\nAfter:\n    {after.content}')
+        # prevent spurious activation (e.g. when embeds are loaded it counts as a modification when it shouldn't)
+        if before.content == after.content:
+            await self.logger.log(f'messaggio di {before.author.mention} modificato in {before.channel.mention}\nBefore:\n    {before.content}\nAfter:\n    {after.content}')
         if BannedWords.contains_banned_words(after.content):
             await after.delete()
 
