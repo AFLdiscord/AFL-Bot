@@ -281,7 +281,7 @@ class EventCog(commands.Cog):
         """Rimuove, se presente, l'utente da aflers.json nel momento in cui lascia il server."""
         if member.bot:
             return
-        await self.loggerl.log(f'membro {member.mention} rimosso/uscito dal server')
+        await self.logger.log(f'membro {member.mention} rimosso/uscito dal server')
         self.archive.remove(member.id)
         self.archive.save()
 
