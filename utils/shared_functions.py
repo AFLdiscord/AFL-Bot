@@ -400,13 +400,14 @@ class Archive():
 
     Methods
     -------------
-    get()          ritorna i dati dell'afler richiesto
-    add()          aggiunge una nuova entry all'archivio
-    remove()       rimuove l'afler dall'archivio
-    is_present()   controlla se l'afler è presente o meno
-    keys()         ritorna gli id di tutti gli aflers salvati
-    values()       ritorna tutte le istanze di afler salvate
-    save()         salva le modifiche fatte all'archivio
+    get()           ritorna i dati dell'afler richiesto
+    add()           aggiunge una nuova entry all'archivio
+    remove()        rimuove l'afler dall'archivio
+    is_present()    controlla se l'afler è presente o meno
+    keys()          ritorna gli id di tutti gli aflers salvati
+    values()        ritorna tutte le istanze di afler salvate
+    save()          salva le modifiche fatte all'archivio
+    contains_nick() controlla se il nickname è già utilizzato da un afler
     """
     _archive_instance: ClassVar[Archive] = None
 
@@ -523,6 +524,16 @@ class Archive():
         e poi salvare tutto alla fine.
         """
         update_json_file(self.archive, 'aflers.json')
+
+    def contains_nick(self, nick: str) -> bool:
+        """Controlla se un nickname sia utilizzato correntemente da un afler.
+
+        :param nick: nickname da cercare
+
+        :returns: True se il nickname è utilizzato da un altro membro, False altrimenti
+        :rtype: bool
+        """
+        return any(afler.nick == nick for afler in self.values())
 
 
 class BannedWords():

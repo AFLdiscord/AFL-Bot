@@ -132,11 +132,9 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send('Il nickname non può contenere parole offensive')
         elif len(new_nick) > 32:
             await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
+        elif self.archive.contains_nick(new_nick):
+            await ctx.send('Questo nickname è già in uso')
         else:
-            for member in self.archive.values():
-                if member.nick == new_nick:
-                    await ctx.send('Questo nickname è già in uso')
-                    return
             item.nick = new_nick
             self.archive.save()
             await ctx.author.edit(nick=new_nick)
@@ -191,12 +189,12 @@ class UtilityCog(commands.Cog, name='Utility'):
                 color=member.top_role.color
             )
             await ctx.send(embed=bio)
-    
+
     @commands.command(brief='ritorna l\'elenco dei canali conteggiati per l\'attivo')
     async def showactive(self, ctx: commands.Context):
         """Ritorna l'elenco dei canali in cui i messaggi vengono conteggiati
         al fine di assegnare il ruolo attivo.
-        
+
         Sintassi:
         <showactive     # ritorna l'elenco
         """
