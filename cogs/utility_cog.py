@@ -121,6 +121,10 @@ class UtilityCog(commands.Cog, name='Utility'):
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
+        # se new_nick è uguale al nickname attuale, non elaboro oltre
+        if item.nick == new_nick:
+            await ctx.send('Il nickname coincide con quello attuale')
+            return
         last_change = item.last_nick_change()
         difference = datetime.date(datetime.now()) - last_change
         if difference.days < self.config.nick_change_days:
@@ -134,11 +138,15 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
         elif self.archive.contains_nick(new_nick):
             await ctx.send('Questo nickname è già in uso')
+        elif any(ctx.author.id != afler and new_nick == self.bot.get_user(afler).name for afler in self.archive.keys()):
+            await ctx.send('Questo nickname è l\'username di un utente, non puoi usarlo')
         else:
+            old_nick = ctx.author.display_name
             item.nick = new_nick
             self.archive.save()
             await ctx.author.edit(nick=new_nick)
             await ctx.send('Nickname cambiato in ' + new_nick)
+            await self.logger.log(f'Nickname di {ctx.author.mention} modificato in `{new_nick}` (era `{old_nick}`)')
 
     @commands.command(brief='imposta la propria bio')
     async def setbio(self, ctx: commands.Context, *, bio: str):

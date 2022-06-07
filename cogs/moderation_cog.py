@@ -80,10 +80,11 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         except KeyError:
             await ctx.send('Non tovato nel file :(', delete_after=5)
             return
+        old_nick = item.nick
         item.nick = name
         self.archive.save()
         await member.edit(nick=name)
-        await self.logger.log('ripristinato nickname di ' + member.display_name + ' tramite resetnick')
+        await self.logger.log(f'Nickname di {member.mention} ripristinato in `{name}` (era `{old_nick}`)')
         await ctx.send('Nickname di ' + member.mention + ' ripristinato')
 
     @commands.command(brief='aggiunge un warn all\'utente citato')
