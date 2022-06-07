@@ -51,7 +51,7 @@ class EventCog(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
-        self.__version__ = 'v1.2'
+        self.__version__ = 'v1.3'
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
@@ -308,7 +308,8 @@ class EventCog(commands.Cog):
         new_nick = after.display_name
         guild = self.bot.get_guild(self.config.guild_id)
         afl_role = guild.get_role(self.config.afl_role_id)
-        dm = self.bot.get_user(before.id) if self.bot.get_user(before.id) is not None else self.bot.get_user(before.id).create_dm()
+        dm = self.bot.get_user(before.id) if self.bot.get_user(
+            before.id) is not None else self.bot.get_user(before.id).create_dm()
         if afl_role not in before.roles:
             if afl_role in after.roles:
                 # appena diventato AFL, crea entry e salva nickname
@@ -344,7 +345,8 @@ class EventCog(commands.Cog):
                 if difference.days < self.config.nick_change_days:
                     renewal = last_change + \
                         timedelta(days=self.config.nick_change_days)
-                    days_until_renewal = renewal - datetime.date(datetime.now())
+                    days_until_renewal = renewal - \
+                        datetime.date(datetime.now())
                     await dm.send(f'Potrai cambiare nickname nuovamente tra {days_until_renewal.days} giorni')
                 elif BannedWords.contains_banned_words(new_nick):
                     await dm.send('Il nickname non può contenere parole offensive')
