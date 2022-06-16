@@ -214,7 +214,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     @commands.command(brief='mostra il numero di messaggi mandati dagli aflers')
     async def leadboard(self, ctx: commands.Context):
         """Mostra la classifica degli afler in base ai messaggi degli ultimi
-        7 giorni.
+        7 giorni. Solo i membri con più di 0 messaggi sono mostrati.
         
         Sintassi
         <leadboard     # stampa la leadboard
@@ -225,12 +225,14 @@ class UtilityCog(commands.Cog, name='Utility'):
             nick = afler.nick
             message_count = afler.count_messages()
             # nicknames are unique
-            ranking.append((nick, message_count))
+            if message_count > 0:
+                ranking.append((nick, message_count))
         ranking = sorted(ranking, key= lambda i: i[1], reverse=True)
-        leadboard = ''
+        leadboard = '```\n'
         for i in range(len(ranking)):
             entry = ranking[i]
-            leadboard += f'{i+1} - {entry[0]}, messaggi: {entry[1]}\n'
+            leadboard += f'{i+1}) {entry[0]} - {entry[1]}\n'
+        leadboard += '```'
         await ctx.send(leadboard)
 
 
