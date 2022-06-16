@@ -1,6 +1,6 @@
 """:class: UtilityCog contiene comandi di uso generale."""
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 
 import discord
 from discord.ext import commands
@@ -15,6 +15,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     - setbio imposta la propria bio
     - bio ritorna la bio dell'utente citato
     - showactive ritorna l'elenco dei canali conteggiati per l'attivo
+    - leadboard mostra il numero di messaggi mandati dagli aflers
     """
 
     def __init__(self, bot: commands.Bot):
@@ -209,6 +210,29 @@ class UtilityCog(commands.Cog, name='Utility'):
         channels = 'Elenco canali conteggiati per l\'attivo:\n'
         channels += '\n'.join([f'<#{id}>' for id in self.config.active_channels_id])
         await ctx.send(channels)
+
+    @commands.command(brief='mostra il numero di messaggi mandati dagli aflers')
+    async def leadboard(self, ctx: commands.Context):
+        """Mostra la classifica degli afler in base ai messaggi degli ultimi
+        7 giorni.
+        
+        Sintassi
+        <leadboard     # stampa la leadboard
+        """
+        ranking = []
+        for id in self.archive.keys():
+            afler = self.archive.get(id)
+            nick = afler.nick
+            message_count = afler.count_messages()
+            # nicknames are unique
+            ranking.append((nick, message_count))
+        ranking = sorted(ranking, key= lambda i: i[1], reverse=True)
+        leadboard = ''
+        for i in range(len(ranking)):
+            entry = ranking[i]
+            leadboard += f'{i+1} - {entry[0]}, messaggi: {entry[1]}\n'
+        await ctx.send(leadboard)
+
 
 
 def setup(bot: commands.Bot):
