@@ -15,7 +15,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     - setbio imposta la propria bio
     - bio ritorna la bio dell'utente citato
     - showactive ritorna l'elenco dei canali conteggiati per l'attivo
-    - leadboard mostra il numero di messaggi mandati dagli aflers
+    - leaderboard mostra il numero di messaggi mandati dagli aflers
     """
 
     def __init__(self, bot: commands.Bot):
@@ -212,12 +212,12 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send(channels)
 
     @commands.command(brief='mostra il numero di messaggi mandati dagli aflers')
-    async def leadboard(self, ctx: commands.Context):
+    async def leaderboard(self, ctx: commands.Context):
         """Mostra la classifica degli afler in base ai messaggi degli ultimi
         7 giorni. Solo i membri con più di 0 messaggi sono mostrati.
         
         Sintassi
-        <leadboard     # stampa la leadboard
+        <leaderboard     # stampa la leaderboard
         """
         ranking = []
         for id in self.archive.keys():
@@ -228,12 +228,12 @@ class UtilityCog(commands.Cog, name='Utility'):
             if message_count > 0:
                 ranking.append((nick, message_count))
         ranking = sorted(ranking, key= lambda i: i[1], reverse=True)
-        leadboard = '```\n'
+        leaderboard = '```\n'
         for i in range(len(ranking)):
             entry = ranking[i]
-            leadboard += f'{i+1}) {entry[0]} - {entry[1]}\n'
-        leadboard += '```'
-        await ctx.send(leadboard)
+            leaderboard += f'{i+1}) {entry[0]} - {entry[1]}\n'
+        leaderboard += '```'
+        await ctx.send(leaderboard)
 
 
 
