@@ -222,11 +222,10 @@ class UtilityCog(commands.Cog, name='Utility'):
         ranking = []
         for id in self.archive.keys():
             afler = self.archive.get(id)
-            nick = afler.nick
+            mention = f'<@{id}>'
             message_count = afler.count_messages()
-            # nicknames are unique
             if message_count > 0:
-                ranking.append((nick, message_count))
+                ranking.append((mention, message_count))
         ranking = sorted(ranking, key= lambda i: i[1], reverse=True)
         leaderboard = ''
         for i in range(len(ranking)):
