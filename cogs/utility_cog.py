@@ -228,12 +228,13 @@ class UtilityCog(commands.Cog, name='Utility'):
             if message_count > 0:
                 ranking.append((nick, message_count))
         ranking = sorted(ranking, key= lambda i: i[1], reverse=True)
-        leaderboard = '```\n'
+        leaderboard = ''
         for i in range(len(ranking)):
             entry = ranking[i]
             leaderboard += f'{i+1}) {entry[0]} - {entry[1]}\n'
-        leaderboard += '```'
-        await ctx.send(leaderboard)
+        embed = discord.Embed(title='Leaderboard')
+        embed.description = leaderboard
+        await ctx.send(embed=embed)
 
 
 
