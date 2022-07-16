@@ -49,7 +49,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         try:
             item: Afler = self.archive.get(member.id)
         except KeyError:
-            await self.logger.log('richiesto status di ' + member.display_name + 'ma non è presente nell\'archivio')
+            await self.logger.log(f'richiesto status di {member.display_name} ma non è presente nell\'archivio')
             await ctx.send('l\'utente indicato non è registrato', delete_after=5)
             await ctx.message.delete(delay=5)
             return
@@ -62,8 +62,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             status.add_field(name='Messaggi ultimi 7 giorni:',
                              value='0', inline=False)
         else:
-            status.add_field(name='Messaggi ultimi 7 giorni:', value=str(item.count_messages()) +
-                             ' (ultimo il ' + str(item.last_message_date()) + ')', inline=False)
+            status.add_field(name=f'Messaggi ultimi 7 giorni:', value=f'{item.count_messages()} (ultimo il {item.last_message_date()})', inline=False)
         is_a_mod: bool = False
         for role in member.roles:
             if role.id in self.config.moderation_roles_id:
@@ -74,16 +73,14 @@ class UtilityCog(commands.Cog, name='Utility'):
             if not item.active:
                 status.add_field(name='Attivo:', value='no', inline=False)
             else:
-                status.add_field(name='Attivo:', value='sì (scade il ' +
-                                 str(item.active_expiration()) + ')', inline=False)
+                status.add_field(name='Attivo:', value=f'sì (scade il {item.active_expiration()})', inline=False)
         if item.warn_count() == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
             if item.last_violations_count() != None:
                 violations_expiration = (item.last_violations_count(
                 ) + timedelta(days=self.config.violations_reset_days)).__str__()
-                status.add_field(name='Violazioni:', value=str(item.warn_count()) +
-                                 ' (scade il ' + violations_expiration + ')', inline=False)
+                status.add_field(name='Violazioni:', value=f'{item.warn_count()} (scade il {violations_expiration})', inline=False)
         await ctx.send(embed=status)
 
     @commands.command(brief='invia la propic dell\'utente')
@@ -132,7 +129,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             renewal = last_change + \
                 timedelta(days=self.config.nick_change_days)
             days_until_renewal = renewal - datetime.date(datetime.now())
-            await ctx.send('Prossimo cambio tra ' + str(days_until_renewal.days) + ' giorni')
+            await ctx.send(f'Prossimo cambio tra {days_until_renewal.days} giorni')
         elif BannedWords.contains_banned_words(new_nick):
             await ctx.send('Il nickname non può contenere parole offensive')
         elif len(new_nick) > 32:
@@ -146,7 +143,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             item.nick = new_nick
             self.archive.save()
             await ctx.author.edit(nick=new_nick)
-            await ctx.send('Nickname cambiato in ' + new_nick)
+            await ctx.send(f'Nickname cambiato in {new_nick}')
             await self.logger.log(f'Nickname di {ctx.author.mention} modificato in `{new_nick}` (era `{old_nick}`)')
 
     @commands.command(brief='imposta la propria bio')
@@ -159,7 +156,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         <setbio mia bio    # imposta *mia bio* come bio
         """
         if len(bio) > self.config.bio_length_limit:
-            await ctx.send('Bio troppo lunga, il limite è ' + str(self.config.bio_length_limit) + ' caratteri.')
+            await ctx.send(f'Bio troppo lunga, il limite è {self.config.bio_length_limit} caratteri.')
             return
         if BannedWords.contains_banned_words(bio):
             return
@@ -170,7 +167,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             return
         item.bio = bio
         self.archive.save()
-        await self.logger.log('aggiunta bio di ' + ctx.author.display_name)
+        await self.logger.log(f'aggiunta bio di {ctx.author.display_name}')
         await ctx.send('Bio aggiunta correttamente.')
 
     @commands.command(brief='ritorna la bio dell\'utente citato')
@@ -193,7 +190,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send('L\'utente selezionato non ha una bio.')
         else:
             bio = discord.Embed(
-                title='Bio di ' + member.display_name,
+                title=f'Bio di {member.display_name}',
                 description=item.bio,
                 color=member.top_role.color
             )

@@ -93,7 +93,7 @@ class JsonManipulator():
         """Stampa una entry dell'archivio per osservare le modifiche."""
         sample_entry = self.new_archive[list(self.new_archive)[0]]
         for key in sample_entry:
-            print(str(key) + ' : ' + str(sample_entry[key]))
+            print(f'{key} : {sample_entry[key]}')
 
     def check_integrity(self) -> bool:
         """Controlla che tutte le entry nel file abbiano tutti i campi. L'elenco dei campi è
@@ -107,15 +107,15 @@ class JsonManipulator():
             entry = set(self.old_archive[key].keys())
             missing_fields = self.field_set.difference(entry)
             extra_fields = entry.difference(self.field_set)
-            print('Entry ' + str(key))
+            print(f'Entry {key}')
             if len(missing_fields) != 0:
-                print('Campi mancanti ' + str(missing_fields))
+                print(f'Campi mancanti {missing_fields}')
                 correct = False
             if len(extra_fields) != 0:
-                print('Campi extra: ' + str(extra_fields))
+                print(f'Campi extra: {extra_fields}')
                 correct = False
             if len(extra_fields) == 0 and len(missing_fields) == 0:
-                print('Nessun errore con l\'entry ' + str(key))
+                print(f'Nessun errore con l\'entry {key}')
             missing_fields = set()
             extra_fields = set()
         return correct

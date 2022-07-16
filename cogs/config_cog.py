@@ -147,19 +147,19 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         else:
             cogs: List[str] = []
             for e in args:
-                cogs.append('cogs.' + e)
+                cogs.append(f'cogs.{e}')
         reloaded: str = ''
         for ext in cogs:
             try:
                 self.bot.reload_extension(ext)
-                reloaded += '`' + ext + '` '
+                reloaded += f'`{ext}` '
             except commands.ExtensionError as e:
                 print(e)
-                await ctx.send('Errore nella ricarica di ' + ext + ' , vedi log del bot.', delete_after=5)
+                await ctx.send(f'Errore nella ricarica di {ext}, vedi log del bot.', delete_after=5)
                 await ctx.message.delete(delay=5)
         if reloaded != '':
-            await self.logger.log('estensioni ' + reloaded + 'ricaricate correttamente.')
-            await ctx.send('Estensioni ' + reloaded + 'ricaricate correttamente.')
+            await self.logger.log(f'estensioni {reloaded} ricaricate correttamente.')
+            await ctx.send(f'Estensioni {reloaded} ricaricate correttamente.')
 
     @commands.command(brief='stampa la configurazione corrente')
     async def printconfig(self, ctx: commands.Context):
@@ -188,21 +188,21 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 extensions = json.load(file)
             added: str = ''
             for ext in args:
-                ext = 'cogs.' + ext
+                ext = f'cogs.{ext}'
                 if ext not in extensions:
                     try:
                         self.bot.load_extension(ext)
                     except commands.ExtensionError as e:
-                        await ctx.send('Impossibile caricare ' + ext)
+                        await ctx.send(f'Impossibile caricare {ext}')
                         print(e)
                     else:
                         extensions.append(ext)
-                        added += '`' + ext + '` '
+                        added += '`{ext} ` '
                 else:
-                    await ctx.send(ext + ' già presente.')
+                    await ctx.send(f'{ext} già presente.')
             if added != '':
-                await self.logger.log('estensioni ' + added + 'aggiunte correttamente')
-                await ctx.send('Estensioni ' + added + 'aggiunte correttamente.')
+                await self.logger.log(f'estensioni {added} aggiunte correttamente')
+                await ctx.send(f'Estensioni {added} aggiunte correttamente.')
             shared_functions.update_json_file(extensions, 'extensions.json')
 
     @commands.command(brief='rimuove una o più cog dal bot e dal file extensions.json')
@@ -223,19 +223,19 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 extensions = json.load(file)
             removed: str = ''
             for ext in args:
-                ext = 'cogs.' + ext
+                ext = f'cogs.{ext}'
                 if ext in extensions:
                     extensions.remove(ext)
                 try:
                     self.bot.unload_extension(ext)
                 except commands.ExtensionError as e:
-                    await ctx.send('Impossibile rimuovere ' + ext)
+                    await ctx.send(f'Impossibile rimuovere {ext}')
                     print(e)
                 else:
-                    removed += '`' + ext + '` '
+                    removed += '`{ext} ` '
             if removed != '':
-                await self.logger.log('estensioni ' + removed + 'rimosse correttamente')
-                await ctx.send('Estensioni ' + removed + 'rimosse correttamente.')
+                await self.logger.log(f'estensioni {removed} rimosse correttamente')
+                await ctx.send(f'Estensioni {removed} rimosse correttamente.')
             shared_functions.update_json_file(extensions, 'extensions.json')
 
     @commands.command(brief='lista delle estensioni caricate all\'avvio')
@@ -250,8 +250,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             extensions: List[str] = json.load(file)
         cogs: str = ''
         for ext in extensions:
-            cogs += '`' + ext + '` '
-        await ctx.send('Le estensioni caricate all\'avvio sono:\n' + cogs)
+            cogs += '`{ext} ` '
+        await ctx.send(f'Le estensioni caricate all\'avvio sono:\n{cogs}')
 
     @commands.command(brief='aggiunge un canale all\'elenco dei canali conteggiati per l\'attivo')
     async def addactive(self, ctx: commands.Context, id: str):
@@ -274,8 +274,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             return
         if int_id not in self.config.active_channels_id:
             self.config.active_channels_id.append(int_id)
-            await self.logger.log('canale <#' + id + '> aggiunto all\'elenco attivi')
-            await ctx.send('Canale <#' + id + '> aggiunto all\'elenco')
+            await self.logger.log(f'canale <#{id} > aggiunto all\'elenco attivi')
+            await ctx.send(f'Canale <#{id} > aggiunto all\'elenco')
             self.config.save()
         else:
             await ctx.send('Canale già presente')
@@ -301,8 +301,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             return
         if int_id in self.config.active_channels_id:
             self.config.active_channels_id.remove(int_id)
-            await self.logger.log('canale <#' + id + '> rimosso dall\'elenco attivi')
-            await ctx.send('Canale <#' + id + '> rimosso dall\'elenco')
+            await self.logger.log(f'canale <#{id} > rimosso dall\'elenco attivi')
+            await ctx.send(f'Canale <#{id} > rimosso dall\'elenco')
             self.config.save()
         else:
             await ctx.send('Canale non presente in lista')
@@ -332,18 +332,16 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         msg: str = ''
         if category.startswith('a'):
             self.config.active_threshold = int(value)
-            msg = 'Soglia messaggi per l\'attivo cambiata a ' + str(value)
+            msg = f'Soglia messaggi per l\'attivo cambiata a {value}'
         elif category.startswith('r'):
             self.config.active_duration = int(value)
-            msg = 'Durata dell\'attivo cambiata a ' + str(value) + ' giorni'
+            msg = f'Durata dell\'attivo cambiata a {value}  giorni'
         elif category.startswith('s'):
             self.config.nick_change_days = int(value)
-            msg = 'Cooldown per il setnick cambiata a ' + \
-                str(value) + ' giorni'
+            msg = f'Cooldown per il setnick cambiata a {value} giorni'
         elif category.startswith('v'):
             self.config.violations_reset_days = int(value)
-            msg = 'Giorni per il reset delle violazioni cambiati a ' + \
-                str(value)
+            msg = f'Giorni per il reset delle violazioni cambiati a {value}'
         else:
             await ctx.send('Comando errato, controlla la sintassi')
             return

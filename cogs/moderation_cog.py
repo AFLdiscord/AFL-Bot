@@ -40,7 +40,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in self.config.exceptional_channels_id:
             await message.delete()
-            await self.logger.log('aggiunto warn a ' + message.author.display_name + ' per linguaggio inappropriato: `' + message.content + '`')
+            await self.logger.log(f'aggiunto warn a {message.author.display_name} per linguaggio inappropriato: `{message.content}`')
             await self._add_warn(message.author, 'linguaggio inappropriato', 1)
 
     @commands.command(brief='reimposta il nickname dell\'utente citato')
@@ -72,7 +72,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 if name is None:
                     name = attempted_member
                 else:
-                    name = attempted_member + ' ' + name
+                    name = f'{attempted_member} {name}'
         if member.bot:
             return
         try:
@@ -85,7 +85,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         self.archive.save()
         await member.edit(nick=name)
         await self.logger.log(f'Nickname di {member.mention} ripristinato in `{name}` (era `{old_nick}`)')
-        await ctx.send('Nickname di ' + member.mention + ' ripristinato')
+        await ctx.send(f'Nickname di {member.mention} ripristinato')
 
     @commands.command(brief='aggiunge un warn all\'utente citato')
     async def warn(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = None, *, reason: str = 'un moderatore ha ritenuto inopportuno il tuo comportamento'):
@@ -135,13 +135,13 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                     reason = attempted_member
                 else:
                     # devo inserire uno spazio altrimenti scrive tutto appicciato
-                    reason = attempted_member + ' ' + reason
+                    reason = f'{attempted_member} {reason}'
         if member.bot:   # or member == ctx.author:
             return
         await self._add_warn(member, reason, 1)
-        user = '<@!' + str(member.id) + '>'
-        await self.logger.log(member.display_name + ' warnato. Motivo: ' + reason)
-        await ctx.send(user + ' warnato. Motivo: ' + reason)
+        user = f'<@!{member.id}>'
+        await self.logger.log(f'{member.display_name} warnato. Motivo: {reason}')
+        await ctx.send(f'{user} warnato. Motivo: {reason}')
         await ctx.message.delete(delay=5)
 
     @commands.command(brief='rimuove un warn all\'utente citato')
@@ -155,9 +155,9 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         reason = 'buona condotta'
         await self._add_warn(member, reason, -1)
-        user = '<@!' + str(member.id) + '>'
-        await self.logger.log('rimosso warn a ' + member.display_name)
-        await ctx.send(user + ' rimosso un warn.')
+        user = f'<@!{member.id}>'
+        await self.logger.log(f'rimosso warn a {member.display_name}')
+        await ctx.send(f'{user} rimosso un warn.')
         await ctx.message.delete(delay=5)
 
     @commands.command(brief='mostra i warn di tutti i membri', aliases=['warnc', 'wc'])
@@ -191,10 +191,10 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         del warnc[0]
         response = ''
         for k in warnc.keys():
-            response += str(k) + ' warn:\n'
+            response += f'{k} warn:\n'
             userlist = ''
             for name in warnc[k]:
-                userlist += ' - ' + name + '\n'
+                userlist += f' - {name}\n'
             if userlist == '':
                 userlist = 'Nessuno\n'
             response += userlist
@@ -211,13 +211,13 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             await ctx.send('specifica un membro da bannare', delete_after=5)
             await ctx.message.delete(delay=5)
             return
-        user = '<@!' + str(member.id) + '>'
-        await self.logger.log(member.display_name + ' bannato. Motivo: ' + reason)
-        await ctx.send(user + ' bannato. Motivo: ' + reason)
+        user = f'<@!{member.id}>'
+        await self.logger.log(f'{member.display_name} bannato. Motivo: {reason}')
+        await ctx.send(f'{user} bannato. Motivo: {reason}')
         await ctx.message.delete(delay=5)
         penalty = 'bannato dal server.'
         channel = await member.create_dm()
-        await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
+        await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
         await member.ban(delete_message_days=0, reason=reason)
 
     async def _add_warn(self, member: discord.Member, reason: str, number: int):
@@ -235,15 +235,15 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 await member.add_roles(self.bot.get_guild(self.config.guild_id).get_role(self.config.under_surveillance_id))
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
-                await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
+                await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
             elif item.warn_count() >= 4:
                 penalty = 'bannato dal server.'
                 channel = await member.create_dm()
-                await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
+                await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
                 await member.ban(delete_message_days=0, reason=reason)
             else:
                 channel = await member.create_dm()
-                await channel.send('Sei stato ' + penalty + ' Motivo: ' + reason + '.')
+                await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
         else:
             # membro che non ha mai scritto nei canali conteggiati
             if number < 0:

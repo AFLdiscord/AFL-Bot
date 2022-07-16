@@ -309,7 +309,7 @@ class Afler():
             expiration = datetime.date(datetime.strptime(
                 self.data['last_violation_count'], '%Y-%m-%d'))
             if (expiration + timedelta(days=Config.get_config().violations_reset_days)) <= (datetime.date(datetime.now())):
-                print('reset violazioni di ' + self.data['nick'])
+                print(f'reset violazioni di  {self.data["nick"]}')
                 self.data['violations_count'] = 0
                 self.data['last_violation_count'] = None
 
