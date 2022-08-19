@@ -16,6 +16,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     - bio ritorna la bio dell'utente citato
     - showactive ritorna l'elenco dei canali conteggiati per l'attivo
     - leaderboard mostra il numero di messaggi mandati dagli aflers
+    - info invia il link alla pagina GitHub di AFL
     """
 
     def __init__(self, bot: commands.Bot):
@@ -232,8 +233,16 @@ class UtilityCog(commands.Cog, name='Utility'):
         embed.description = leaderboard
         await ctx.send(embed=embed)
 
+    @commands.command(brief='invia il link alla pagina GitHub di AFL')
+    async def info(self, ctx: commands.Context):
+        """Invia il link alla pagina GitHub di AFL.
+        
+        Sintassi
+        <info         # invia il link
+        """
+        await ctx.send('https://github.com/AFLdiscord')
 
 
 def setup(bot: commands.Bot):
-    """Entry point per il caricamento della cog"""
+    """Entry point per il caricamento della cog."""
     bot.add_cog(UtilityCog(bot))
