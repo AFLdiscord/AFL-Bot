@@ -483,9 +483,31 @@ class EventCog(commands.Cog):
                     to_delete.append(key)
                     channel = self.bot.get_channel(self.config.poll_channel_id)
                     await self.logger.log(f'proposta passata: {proposal["content"]}')
-                    await channel.send(f'Raggiunta soglia per la proposta, in attesa di approvazione dai mod.\n `{proposal["content"]}`')
+                    # meglio mettere il contenuto della poposta in un embed
+                    content = discord.Embed(
+                        title='Raggiunta soglia per la proposta',
+                        description='La soglia per la proposta è stata raggiunta, in attensa di approvazione dai mod',
+                        colour=discord.Color.green()
+                    )
+                    content.add_field(
+                        name='Contenuto',
+                        value=proposal['content'],
+                        inline=False
+                    )
+                    await channel.send(embed=content)
                 elif datetime.date(datetime.now() - timedelta(days=3)).__str__() == proposal['timestamp']:
                     await self.logger.log(f'proposta scaduta: {proposal["content"]}')
+                    content = discord.Embed(
+                        title='Proposta scaduta',
+                        description='La proposta è scaduta senza avere voti sufficienti ad essere approvata',
+                        colour=discord.Color.red()
+                    )
+                    content.add_field(
+                        name='Contenuto',
+                        value=proposal['content'],
+                        inline=False
+                    )
+                    await channel.send(embed=content)
                     to_delete.append(key)
             for key in to_delete:
                 try:
