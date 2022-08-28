@@ -486,7 +486,7 @@ class EventCog(commands.Cog):
                     # meglio mettere il contenuto della poposta in un embed
                     content = discord.Embed(
                         title='Raggiunta soglia per la proposta',
-                        description='La soglia per la proposta è stata raggiunta, in attensa di approvazione dai mod',
+                        description='La soglia per la proposta è stata raggiunta, in attesa di approvazione dai mod',
                         colour=discord.Color.green()
                     )
                     content.add_field(
