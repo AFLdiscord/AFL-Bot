@@ -477,11 +477,11 @@ class EventCog(commands.Cog):
             await self.logger.log('nessun file di proposte trovato')
         else:
             to_delete = []
+            channel = self.bot.get_channel(self.config.poll_channel_id)
             for key in proposals:
                 proposal = proposals[key]
                 if proposal['passed']:
                     to_delete.append(key)
-                    channel = self.bot.get_channel(self.config.poll_channel_id)
                     await self.logger.log(f'proposta passata: {proposal["content"]}')
                     # meglio mettere il contenuto della poposta in un embed
                     content = discord.Embed(
