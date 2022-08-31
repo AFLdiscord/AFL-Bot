@@ -697,7 +697,7 @@ class BotLogger():
         log_message = discord.Embed(
             title='Log event',
             description=msg,
-            timestamp=timestamp
+            timestamp=timestamp - timedelta(hours=2)
         )
         await self.channel.send(embed=log_message)
 
