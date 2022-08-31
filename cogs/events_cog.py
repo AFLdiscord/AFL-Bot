@@ -495,12 +495,26 @@ class EventCog(commands.Cog):
                         inline=False
                     )
                     await channel.send(embed=content)
-                elif datetime.date(datetime.now() - timedelta(days=3)).__str__() == proposal['timestamp']:
+                elif proposal['rejected']:
+                    await self.logger.log(f'proposta bocciata: {proposal["content"]}')
+                    content = discord.Embed(
+                        title='Proposta bocciata',
+                        description='La proposta è stata bocciata dalla maggioranza',
+                        colour=discord.Color.red()
+                    )
+                    content.add_field(
+                        name='Contenuto',
+                        value=proposal['content'],
+                        inline=False
+                    )
+                    await channel.send(embed=content)
+                    to_delete.append(key)
+                elif datetime.date(datetime.now() - timedelta(days=3)).__str__() >= proposal['timestamp']:
                     await self.logger.log(f'proposta scaduta: {proposal["content"]}')
                     content = discord.Embed(
                         title='Proposta scaduta',
                         description='La proposta è scaduta senza avere voti sufficienti ad essere approvata',
-                        colour=discord.Color.red()
+                        colour=discord.Color.gold()
                     )
                     content.add_field(
                         name='Contenuto',
@@ -577,6 +591,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
         'total_voters': active_count,
         'threshold': calculate_threshold(active_count),
         'passed': False,
+        'rejected': False,
         'yes': 0,
         'no': 0,
         'content': message.content
@@ -653,6 +668,10 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
         proposal['no'] += change
         if proposal['no'] < 0:
             proposal['no'] = 0
+        if proposal['no'] >= proposal['threshold']:
+            proposal['rejected'] = True
+        else:
+            proposal['rejected'] = False
     shared_functions.update_json_file(proposals, 'proposals.json')
 
 
