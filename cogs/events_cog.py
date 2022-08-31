@@ -557,7 +557,7 @@ class EventCog(commands.Cog):
                 channel = self.bot.get_channel(self.config.main_channel_id)
                 guild = self.bot.get_guild(self.config.guild_id)
                 await guild.get_member(id).remove_roles(guild.get_role(self.config.active_role_id))
-                await self.logger.log('membro {item.nick} non più è attivo')
+                await self.logger.log(f'membro {item.nick} non più è attivo')
                 await channel.send(f'membro <@!{id}> non più attivo :(')
                 item.set_inactive()
         await self.logger.log('controllo conteggio messaggi terminato')
