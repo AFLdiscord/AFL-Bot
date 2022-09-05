@@ -15,7 +15,7 @@ Funzioni:
 
 import json
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, ClassVar, Dict, List, Optional, Union, TypedDict
 
 import discord
@@ -697,7 +697,8 @@ class BotLogger():
         log_message = discord.Embed(
             title='Log event',
             description=msg,
-            timestamp=timestamp - timedelta(hours=2)
+            # Il timestamp dell'embed è regolato da discord, lo converto in UTC
+            timestamp=timestamp.astimezone(timezone.utc)
         )
         await self.channel.send(embed=log_message)
 
