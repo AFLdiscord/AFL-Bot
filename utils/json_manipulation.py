@@ -57,6 +57,11 @@ class JsonManipulator():
         :returns: se il campo è stato aggiunto
         :rtype: bool
         """
+        if default_value is not None:
+            if default_value.lower() in ['true', 'false']:
+                default_value = (default_value.lower() == 'true')
+            elif default_value.isdecimal():
+                default_value = int(default_value)
         for afler in self.new_archive.values():
             if field_name in afler:
                 return False
@@ -124,9 +129,7 @@ class JsonManipulator():
 def add(archive: JsonManipulator) -> None:
     """Chiede in input il nome del nuovo campo e il valore di default."""
     field_name = input("Nome campo: ")
-    default_value = input("Valore di default: ")
-    if default_value.lower() == 'none':
-        default_value = None
+    default_value = input("Valore di default (invio per \"null\"): ")
     if archive.add_and_initialize_field(field_name, default_value):
         print('Nuovo campo aggiunto.')
     else:
