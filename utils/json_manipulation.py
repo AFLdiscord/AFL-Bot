@@ -50,7 +50,7 @@ class JsonManipulator():
         except (FileNotFoundError, json.decoder.JSONDecodeError):
             raise Exception("Impossibile trovare il file")
 
-    def add_and_initialize_field(self, field_name: str, default_value: Optional[str] = None) -> bool:
+    def add_and_initialize_field(self, field_name: str, default_value: str) -> bool:
         """Aggiunge a ogni entry il nuovo campo `field_name` e lo inizializza
         al valore passato `default_value` che può essere anche None.
 
@@ -61,11 +61,12 @@ class JsonManipulator():
         """
         if field_name in self.fields_list:
             return False
-        if default_value is not None:
-            if default_value.lower() in ['true', 'false']:
-                default_value = (default_value.lower() == 'true')
-            elif default_value.isdecimal():
-                default_value = int(default_value)
+        if default_value == "":
+            default_value = None
+        elif default_value.lower() in ['true', 'false']:
+            default_value = (default_value.lower() == 'true')
+        elif default_value.isdecimal():
+            default_value = int(default_value)
         for afler in self.new_archive.values():
             if field_name in afler:
                 return False
