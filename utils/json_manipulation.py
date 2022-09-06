@@ -33,7 +33,8 @@ class JsonManipulator():
         self.file_name = 'aflers.json'
         self.backup_old = 'aflers.json.old'
         self.fields = 'utils/fields.json'
-        self.field_set = set()
+        self.fields_list = []
+        self.old_fields_list = []
         self.old_archive = {}
         self.new_archive = {}
         self._load()
@@ -44,7 +45,8 @@ class JsonManipulator():
             with open(self.file_name, 'r') as file:
                 self.old_archive = json.load(file)
             with open(os.path.join(os.getcwd(), self.fields), 'r') as file:
-                self.field_set = set(json.load(file))
+                self.fields_list = json.load(file)
+            self.old_fields_list.extend(self.fields_list)
         except (FileNotFoundError, json.decoder.JSONDecodeError):
             raise Exception("Impossibile trovare il file")
 
@@ -57,6 +59,8 @@ class JsonManipulator():
         :returns: se il campo è stato aggiunto
         :rtype: bool
         """
+        if field_name in self.fields_list:
+            return False
         if default_value is not None:
             if default_value.lower() in ['true', 'false']:
                 default_value = (default_value.lower() == 'true')
@@ -66,6 +70,7 @@ class JsonManipulator():
             if field_name in afler:
                 return False
             afler[field_name] = default_value
+        self.fields_list.append(field_name)
         return True
 
     def delete_field(self, field_name: str) -> bool:
@@ -79,20 +84,24 @@ class JsonManipulator():
             if field_name not in afler:
                 return False
             del afler[field_name]
+        self.fields_list.remove(field_name)
         return True
 
     def save(self) -> None:
         """Sovrascrive il vecchio file aflers.json con le modifiche fatte.
         Il vecchio archivio viene salvato in afler.json.old
         """
-        with open(self.file_name, 'w') as file:
-            update_json_file(self.new_archive, self.file_name)
-        with open(self.backup_old, 'w') as file:
-            update_json_file(self.old_archive, self.backup_old)
+        #with open(self.file_name, 'w') as file:
+        update_json_file(self.new_archive, self.file_name)
+        #with open(self.backup_old, 'w') as file:
+        update_json_file(self.old_archive, self.backup_old)
+        #with open(self.fields, 'w') as file:
+        update_json_file(self.fields_list, self.fields)
 
     def discard(self) -> None:
         """Annulla le modifiche fatte finora sul nuovo archivio."""
         self.new_archive = deepcopy(self.old_archive)
+        self.fields_list = deepcopy(self.old_fields_list)
 
     def print_changes(self) -> None:
         """Stampa una entry dell'archivio per osservare le modifiche."""
@@ -110,8 +119,8 @@ class JsonManipulator():
         correct = True
         for key in self.old_archive:
             entry = set(self.old_archive[key].keys())
-            missing_fields = self.field_set.difference(entry)
-            extra_fields = entry.difference(self.field_set)
+            missing_fields = self.fields_list.difference(entry)
+            extra_fields = entry.difference(self.fields_list)
             print(f'Entry {key}')
             if len(missing_fields) != 0:
                 print(f'Campi mancanti {missing_fields}')
