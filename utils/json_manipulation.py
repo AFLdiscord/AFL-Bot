@@ -59,18 +59,22 @@ class JsonManipulator():
         :returns: se il campo è stato aggiunto
         :rtype: bool
         """
+        value: Optional[str | bool | int] = None
         if field_name in self.fields_list:
             return False
-        if default_value == "":
-            default_value = None
-        elif default_value.lower() in ['true', 'false']:
-            default_value = (default_value.lower() == 'true')
-        elif default_value.isdecimal():
-            default_value = int(default_value)
+        if default_value != "":
+            if default_value.isdecimal():
+                value = int(default_value)
+            else:
+                default_value_casefold = default_value.casefold()
+                if default_value_casefold == 'true'.casefold():
+                    value = True
+                elif default_value_casefold == 'false'.casefold():
+                    value = False
         for afler in self.new_archive.values():
             if field_name in afler:
                 return False
-            afler[field_name] = default_value
+            afler[field_name] = value
         self.fields_list.append(field_name)
         return True
 
