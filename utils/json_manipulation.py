@@ -122,10 +122,11 @@ class JsonManipulator():
         ritorna un booleano per indicare se il file è coerente o meno.
         """
         correct = True
+        fields_set = set(self.fields_list)
         for key in self.old_archive:
             entry = set(self.old_archive[key].keys())
-            missing_fields = self.fields_list.difference(entry)
-            extra_fields = entry.difference(self.fields_list)
+            missing_fields = fields_set.difference(entry)
+            extra_fields = entry.difference(fields_set)
             print(f'Entry {key}')
             if len(missing_fields) != 0:
                 print(f'Campi mancanti {missing_fields}')
