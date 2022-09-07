@@ -720,7 +720,7 @@ class ConfigFields(TypedDict):
     exceptional_channels_id: List[int]
     poll_channel_id: int
     under_surveillance_id: int
-    violation_reset_days: int
+    violations_reset_days: int
     nick_change_days: int
     bio_length_limit: int
     greetings: str
