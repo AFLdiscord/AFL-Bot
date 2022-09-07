@@ -264,7 +264,7 @@ class EventCog(commands.Cog):
         # prevent spurious activation (e.g. when embeds are loaded it counts as a modification when it shouldn't)
         if before.content != after.content:
             await self.logger.log(f'messaggio di {before.author.mention} modificato in {before.channel.mention}\nBefore:\n    {before.content}\nAfter:\n    {after.content}')
-        if BannedWords.contains_banned_words(after.content):
+        if BannedWords.contains_banned_words(after.content) and after.channel.id not in self.config.exceptional_channels_id:
             await after.delete()
 
     @commands.Cog.listener()
