@@ -8,7 +8,7 @@ tramite comandi.
 import json
 import os
 from copy import deepcopy
-from typing import Optional
+from typing import Optional, Union
 from shared_functions import update_json_file
 
 
@@ -59,7 +59,7 @@ class JsonManipulator():
         :returns: se il campo è stato aggiunto
         :rtype: bool
         """
-        value: Optional[str | bool | int] = None
+        value: Optional[Union[str, bool, int]] = None
         if field_name in self.fields_list:
             return False
         if default_value != "":
