@@ -40,7 +40,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         if BannedWords.contains_banned_words(message.content) and message.channel.id not in self.config.exceptional_channels_id:
             await message.delete()
-            await self.logger.log(f'aggiunto warn a {message.author.display_name} per linguaggio inappropriato: `{message.content}`')
+            await self.logger.log(f'aggiunto warn a {message.author.mention} per linguaggio inappropriato: `{message.content}`')
             await self._add_warn(message.author, 'linguaggio inappropriato', 1)
 
     @commands.command(brief='reimposta il nickname dell\'utente citato')
@@ -140,7 +140,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         await self._add_warn(member, reason, 1)
         user = f'<@!{member.id}>'
-        await self.logger.log(f'{member.display_name} warnato. Motivo: {reason}')
+        await self.logger.log(f'{member.mention} warnato. Motivo: {reason}')
         await ctx.send(f'{user} warnato. Motivo: {reason}')
         await ctx.message.delete(delay=5)
 
@@ -156,7 +156,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         reason = 'buona condotta'
         await self._add_warn(member, reason, -1)
         user = f'<@!{member.id}>'
-        await self.logger.log(f'rimosso warn a {member.display_name}')
+        await self.logger.log(f'rimosso warn a {member.mention}')
         await ctx.send(f'{user} rimosso un warn.')
         await ctx.message.delete(delay=5)
 
@@ -212,7 +212,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             await ctx.message.delete(delay=5)
             return
         user = f'<@!{member.id}>'
-        await self.logger.log(f'{member.display_name} bannato. Motivo: {reason}')
+        await self.logger.log(f'{member.mention} bannato. Motivo: {reason}')
         await ctx.send(f'{user} bannato. Motivo: {reason}')
         await ctx.message.delete(delay=5)
         penalty = 'bannato dal server.'

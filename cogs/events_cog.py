@@ -118,9 +118,9 @@ class EventCog(commands.Cog):
             return
         if message.channel.id == self.config.poll_channel_id:
             guild = self.bot.get_guild(self.config.guild_id)
-            await self.logger.log(f'membro {message.author.display_name}  ha aggiunto una proposta')
+            await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
             add_proposal(message, guild)
-            await self.logger.log(f'proposta aggiunta al file: `{message.content}`')
+            await self.logger.log(f'proposta aggiunta al file:\n{message.content}')
         # controlla se il messaggio è valido
         if not does_it_count(message):
             return
@@ -144,7 +144,7 @@ class EventCog(commands.Cog):
         if message.author == self.bot.user or message.author.bot or message.guild is None:
             return
         if message.channel.id == self.config.poll_channel_id:
-            await self.logger.log(f'rimuovo proposta: `{message.content}`')
+            await self.logger.log(f'rimuovo proposta\n{message.content}')
             remove_proposal(message)
             return
         await self.logger.log(f'messaggio di {message.author.mention} cancellato in {message.channel.mention}\n    {message.content}')
@@ -156,7 +156,7 @@ class EventCog(commands.Cog):
             return
         else:
             item.decrease_counter()
-            await self.logger.log(f'decrementato contatore di {message.author.display_name}')
+            await self.logger.log(f'decrementato contatore di {message.author.mention}')
             self.archive.save()
 
     @commands.Cog.listener()
@@ -168,7 +168,7 @@ class EventCog(commands.Cog):
         if messages[0].channel.id == self.config.poll_channel_id:
             # è qua solo in caso di spam sul canale proposte, improbabile visto la slowmode
             for message in messages:
-                await self.logger.log(f'rimuovo proposta: `{message.content}`')
+                await self.logger.log(f'rimuovo proposta:\n{message.content}')
                 remove_proposal(message)
             return
         if not does_it_count(messages[0]):
@@ -204,7 +204,7 @@ class EventCog(commands.Cog):
             return
         # aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
         # un voto dal conteggio quando il bot la rimuove
-        await self.logger.log(f'aggiunta reazione sulla proposta `{message.content}`')
+        await self.logger.log(f'aggiunta reazione sulla proposta\n{message.content}')
         adjust_vote_count(payload, 1)
         is_good = self._check_reaction_permissions(payload)
         if not is_good:
@@ -228,7 +228,7 @@ class EventCog(commands.Cog):
         message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(payload.message_id)
         if message.author == self.bot.user:
             return
-        await self.logger.log(f'rimosssa reazione sulla proposta `{message.content}`')
+        await self.logger.log(f'rimosssa reazione sulla proposta\n{message.content}')
         adjust_vote_count(payload, -1)
 
     def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
@@ -543,7 +543,7 @@ class EventCog(commands.Cog):
                 item.set_active()
                 guild = self.bot.get_guild(self.config.guild_id)
                 await guild.get_member(id).add_roles(guild.get_role(self.config.active_role_id))
-                await self.logger.log(f'membro {item.nick} è attivo')
+                await self.logger.log(f'membro <@!{id}> è attivo')
                 channel = self.bot.get_channel(self.config.main_channel_id)
                 await channel.send(f'membro <@!{id}> è diventato attivo')
 
@@ -557,7 +557,7 @@ class EventCog(commands.Cog):
                 channel = self.bot.get_channel(self.config.main_channel_id)
                 guild = self.bot.get_guild(self.config.guild_id)
                 await guild.get_member(id).remove_roles(guild.get_role(self.config.active_role_id))
-                await self.logger.log(f'membro {item.nick} non più è attivo')
+                await self.logger.log(f'membro <@!{id}> non più è attivo')
                 await channel.send(f'membro <@!{id}> non più attivo :(')
                 item.set_inactive()
         await self.logger.log('controllo conteggio messaggi terminato')
