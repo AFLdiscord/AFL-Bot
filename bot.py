@@ -1,5 +1,6 @@
 """bot.py"""
 import os
+import asyncio
 import logging
 
 import discord
@@ -24,22 +25,26 @@ BannedWords.load()
 # carica l'archivio dati
 Archive.load_archive()
 
+# bot
+class AFLBot(commands.Bot):
+
+    # carico i moduli dei comandi
+    async def setup_hook(self) -> None:
+        extensions = shared_functions.get_extensions()
+        for ext in extensions:
+            await bot.load_extension(ext)
+
 # per poter ricevere le notifiche sull'unione di nuovi membri e i ban
 intents = discord.Intents.default()
+intents.message_content = True
 intents.members = True
-intents.bans = True
 
 # istanziare il bot (avvio in fondo al codice)
-bot = commands.Bot(
+bot = AFLBot(
     command_prefix=Config.get_config().current_prefix, intents=intents)
 
 # setup del logging nel canale dedicato
 logger = BotLogger.create_instance(bot)
-
-# carico i moduli dei comandi
-extensions = shared_functions.get_extensions()
-for ext in extensions:
-    bot.load_extension(ext)
 
 # lancio il bot
 bot.run(TOKEN)

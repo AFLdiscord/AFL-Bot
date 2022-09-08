@@ -254,6 +254,6 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         self.archive.save()
 
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     """Entry point per il caricamento della cog"""
-    bot.add_cog(ModerationCog(bot))
+    await bot.add_cog(ModerationCog(bot))

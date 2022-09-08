@@ -58,7 +58,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             title=f'Status di {member.display_name}',
             color=member.top_role.color
         )
-        status.set_thumbnail(url=member.avatar_url)
+        status.set_thumbnail(url=member.display_avatar)
         if item.last_message_date() is None:
             status.add_field(name='Messaggi ultimi 7 giorni:',
                              value='0', inline=False)
@@ -102,7 +102,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         avatar = discord.Embed(
             title=f'Avatar di {user.display_name}:'
         )
-        avatar.set_image(url=user.avatar_url)
+        avatar.set_image(url=user.display_avatar)
         await ctx.send(embed=avatar)
 
     @commands.command(brief='permette di cambiare nickname periodicamente', hidden=True)
@@ -243,6 +243,6 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send('https://github.com/AFLdiscord')
 
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     """Entry point per il caricamento della cog."""
-    bot.add_cog(UtilityCog(bot))
+    await bot.add_cog(UtilityCog(bot))

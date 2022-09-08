@@ -106,7 +106,7 @@ class EventCog(commands.Cog):
                 title=f'Diamo il benvenuto a {message.author.display_name}!',
                 colour=discord.Colour.dark_theme().value
             )
-            welcomeMessage.set_thumbnail(url=message.author.avatar_url)
+            welcomeMessage.set_thumbnail(url=message.author.display_avatar)
             welcomeMessage.add_field(
                 name='Presentazione:', value=message.content, inline=False)
             await channel.send(embed=welcomeMessage)
@@ -734,6 +734,6 @@ def coherency_check(archive: Archive, members: List[discord.Member]) -> None:
     archive.save()
 
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     """Entry point per il caricamento della cog"""
-    bot.add_cog(EventCog(bot))
+    await bot.add_cog(EventCog(bot))

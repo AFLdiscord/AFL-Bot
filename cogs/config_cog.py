@@ -151,7 +151,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         reloaded: str = ''
         for ext in cogs:
             try:
-                self.bot.reload_extension(ext)
+                await self.bot.reload_extension(ext)
                 reloaded += f'`{ext}` '
             except commands.ExtensionError as e:
                 print(e)
@@ -191,7 +191,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 ext = f'cogs.{ext}'
                 if ext not in extensions:
                     try:
-                        self.bot.load_extension(ext)
+                        await self.bot.load_extension(ext)
                     except commands.ExtensionError as e:
                         await ctx.send(f'Impossibile caricare {ext}')
                         print(e)
@@ -227,7 +227,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 if ext in extensions:
                     extensions.remove(ext)
                 try:
-                    self.bot.unload_extension(ext)
+                    await self.bot.unload_extension(ext)
                 except commands.ExtensionError as e:
                     await ctx.send(f'Impossibile rimuovere {ext}')
                     print(e)
@@ -250,7 +250,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             extensions: List[str] = json.load(file)
         cogs: str = ''
         for ext in extensions:
-            cogs += '`{ext} ` '
+            cogs += f'`{ext} ` '
         await ctx.send(f'Le estensioni caricate all\'avvio sono:\n{cogs}')
 
     @commands.command(brief='aggiunge un canale all\'elenco dei canali conteggiati per l\'attivo')
@@ -274,8 +274,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             return
         if int_id not in self.config.active_channels_id:
             self.config.active_channels_id.append(int_id)
-            await self.logger.log(f'canale <#{id} > aggiunto all\'elenco attivi')
-            await ctx.send(f'Canale <#{id} > aggiunto all\'elenco')
+            await self.logger.log(f'canale <#{id}> aggiunto all\'elenco attivi')
+            await ctx.send(f'Canale <#{id}> aggiunto all\'elenco')
             self.config.save()
         else:
             await ctx.send('Canale già presente')
@@ -301,8 +301,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             return
         if int_id in self.config.active_channels_id:
             self.config.active_channels_id.remove(int_id)
-            await self.logger.log(f'canale <#{id} > rimosso dall\'elenco attivi')
-            await ctx.send(f'Canale <#{id} > rimosso dall\'elenco')
+            await self.logger.log(f'canale <#{id}> rimosso dall\'elenco attivi')
+            await ctx.send(f'Canale <#{id}> rimosso dall\'elenco')
             self.config.save()
         else:
             await ctx.send('Canale non presente in lista')
@@ -350,6 +350,6 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         self.config.save()
 
 
-def setup(bot: commands.Bot):
+async def setup(bot: commands.Bot):
     """Entry point per il caricamento della cog"""
-    bot.add_cog(ConfigCog(bot))
+    await bot.add_cog(ConfigCog(bot))
