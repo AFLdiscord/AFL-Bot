@@ -21,7 +21,7 @@ pip install -r requirements.txt
 ```
 
 - creare il file config.json seguendo le indicazioni del [template](https://github.com/AFLdiscord/AFL-Bot/blob/master/config.template)
-- crare il file .env contenente il token di accesso del bot (è importante non condividerlo)
+- creare il file .env contenente il token di accesso del bot (è importante non condividerlo)
 - il contenuto del .env deve essere `DISCORD_TOKEN=your_token`
 - a questo punto si può avviare bot.py
 
