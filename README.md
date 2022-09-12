@@ -3,7 +3,7 @@
 Bot di utilità per il server discord AFL.
 Gli obiettivi principali di sviluppo attualmente sono:
 
-- gestione dei ruoli sul server, in particolare l'assegnamento del ruolo attivo
+- gestione dei ruoli sul server, in particolare l'assegnamento di due ruoli speciali che indichino una certa continuità nell'attività del server
 - filtro dei contenuti
 - comandi custom
 
