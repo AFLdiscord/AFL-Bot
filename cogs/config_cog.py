@@ -5,25 +5,24 @@ from typing import Any, Dict, List, Optional
 
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import BannedWords, BotLogger, Config
+from utils.shared_functions import Archive, BannedWords, BotLogger, Config
 
 
 class ConfigCog(commands.Cog, name='Configurazione'):
     """Contiene i comandi di configurazione del bot:
-    - setprefix     cambia il prefisso del bot
-    - blackadd      aggiunge una parola bannata all'elenco
-    - blackremove   rimuove una parola bannata dall'elenco
-    - blacklist     mostra l'elenco delle parole bannate
-    - updateconfig  aggiorna la configurazione del bot
-    - printconfig   stampa la configurazione corrente
-    - pull          git pull dal repository remoto + invoca reload
-    - reload        ricarica una o più cogs
-    - addcog        aggiunge una o più cog dal bot e dal file extensions.json
-    - removecog     rimuove una o più cog dal bot e dal file extensions.json
-    - coglist       lista delle estensioni caricate all'avvio
-    - addactive     aggiunge un canale all'elenco dei canali conteggiati per l'attivo
-    - removeactive  rimuove un canale all'elenco dei canali conteggiati per l'attivo
-    - setthresholds permette di gestire le soglie per diversi parametri
+    - setprefix         cambia il prefisso del bot
+    - blackadd          aggiunge una parola bannata all'elenco
+    - blackremove       rimuove una parola bannata dall'elenco
+    - blacklist         mostra l'elenco delle parole bannate
+    - updateconfig      aggiorna la configurazione del bot
+    - printconfig       stampa la configurazione corrente
+    - pull              git pull dal repository remoto + invoca reload
+    - reload            ricarica una o più cogs
+    - addcog            aggiunge una o più cog dal bot e dal file extensions.json
+    - removecog         rimuove una o più cog dal bot e dal file extensions.json
+    - coglist           lista delle estensioni caricate all'avvio
+    - setthresholds     permette di gestire le soglie per diversi parametri
+    - refresharchive    rilegge l'archivio dal file
     """
 
     def __init__(self, bot: commands.Bot):
@@ -348,6 +347,15 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         await self.logger.log(msg)
         await ctx.send(msg)
         self.config.save()
+
+    @commands.command(brief='permette di refreshare l\'archivio')
+    async def refresharchive(self, ctx: commands.Context) -> None:
+        """Aggiorna l'archivio del bot, rileggendolo dal disco.
+        Utile quando si interviene manualmente sul file.
+        """
+        Archive.load_archive()
+        await ctx.send('Archivio ricaricato correttamente')
+        await self.logger.log('Archivio ricaricato correttamente')
 
 
 async def setup(bot: commands.Bot):

@@ -425,7 +425,10 @@ class Archive():
 
     @classmethod
     def load_archive(cls):
-        """Carica l'archivio da file e lo salva in archive. Se non esiste lo crea vuoto."""
+        """Carica l'archivio da file e lo salva in archive.
+        Se non esiste lo crea vuoto. Se chiamato ulteriormente a bot
+        avviato, serve a refreshare l'archivio, rileggendo il file.
+        """
         try:
             with open('aflers.json', 'r') as file:
                 raw_archive: Dict[str, Any] = json.load(file)
@@ -437,7 +440,11 @@ class Archive():
             with open('aflers.json', 'w+') as file:
                 archive: Dict[int, Any] = {}
         finally:
-            cls._archive_instance = cls.__new__(cls, archive)
+            # Serve creare un'istanza dell'archivio all'avvio.
+            # Questo non è il caso invece quando si vuole fare il refresh
+            # dell'archivio dopo aver modificato i campi manualmente.
+            if cls._archive_instance is None:
+                cls._archive_instance = cls.__new__(cls, archive)
             # cls._archive_instance.archive l'archivio in formato dizionario così da poterlo salvare agevolemente
             #
             # cls._archive_instance.wrapped_archive ogni entry dell'archivio è incapsulata nella classe Afler
