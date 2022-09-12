@@ -12,6 +12,7 @@ Proposte
 - calculate_threshold logica per stabilire la sogli affinchè una proposta passi
 """
 
+from collections import Counter
 import re
 import json
 from datetime import datetime, timedelta
@@ -173,12 +174,10 @@ class EventCog(commands.Cog):
             return
         if not does_it_count(messages[0]):
             return
-        counter = 0
-        # TODO: possibile ottimizzazione, prima contare i messaggi per ogni utente e decrementare
-        # in un colpo solo anzichè iterare su un messaggio alla volta
-        for message in messages:
+        msg_counts = Counter(map(lambda msg: msg.author.id, messages))
+        for id in msg_counts.keys():
             try:
-                item = self.archive.get(message.author.id)
+                item = self.archive.get(id)
             except KeyError:
                 continue
             else:
@@ -186,7 +185,8 @@ class EventCog(commands.Cog):
                 counter += 1
         self.archive.save()
         channel = messages[0].channel
-        await self.logger.log(f'rimossi {counter} messaggi da {channel.mention}')
+        # TODO salvare log messaggi (ad esempio in un file anziché come messaggi in chiaro)
+        await self.logger.log(f'rimossi {len(messages)} messaggi da {channel.mention}')
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
