@@ -8,9 +8,8 @@ Classi:
 
 Funzioni:
 - update_json_file per salvare in json le modifiche
-- count_messages conta i messaggi presenti nei giorni della settimana e counter
-- count_consolidated_messages conta solo i messaggi già salvati nel giorno
-- clean aggiorna i contatori dei vari giorni controllando la data
+- get_extensions per caricare la lista delle estensioni
+- link_to_clean per "ripulire" i link
 """
 
 import json
@@ -46,10 +45,13 @@ class Afler():
 
     Attributes
     -------------
-    data: Dict[] contiene i dati dell'afler
-    nick: str    contiene il nickname dell'afler
-    bio: str     contiene la bio dell'afler
-    active: bool flag per dire se è attivo o meno
+    data: Dict[]                contiene i dati dell'afler
+    nick: str                   contiene il nickname dell'afler
+    bio: str                    contiene la bio dell'afler
+    orator: bool                flag per dire se è oratore o meno
+    dank: bool                  flag per dire se è cazzaro o meno
+    dank_messages_buffer: int   messaggi del ruolo cazzaro inviati nella finestra di tempo
+    total_messages: int         messaggi totali inviati dall'afler
 
     Classmethods
     -------------
@@ -58,20 +60,28 @@ class Afler():
 
     Methods
     -------------
+    orator_expiration() ritorna la scadenza del ruolo oratore
+    dank_expiration() ritorna la scadenza del ruolo cazzaro
     last_nick_change() ritorna la data dell'ultimo cambio nickname
-    last_message_date() ritorna la data dell'ultimo messaggio valido per l'attivo
+    last_message_date() ritorna la data dell'ultimo messaggio valido per l'oratore
     last_violations_count() ritorna la data di ultima violazione
-    increase_counter() incrementa il contatore messaggi
-    decrease_counter() decrementa il contatore dei messaggi del giorno corrente
-    set_active() imposta l'afler come attivo
-    is_active_expired() controlla se il ruolo attivo è scaduto
-    set_inactive() rimuove l'attivo
+    increase_orator_counter() incrementa il contatore oratore
+    decrease_orator_counter() decrementa il contatore oratore del giorno corrente
+    set_orator() imposta l'afler come oratore
+    is_orator_expired() controlla se il ruolo oratore è scaduto
+    remove_orator() rimuove il ruolo oratore
+    set_dank() imposta l'afler come cazzaro
+    increase_dank_counter() incrementa il contatore cazzaro
+    decrease_dank_counter() decrementa il contatore cazzaro
+    is_eligible_for_dank() controlla se l'afler può ottenere il ruolo cazzaro
+    is_dank_expired() controlla se il ruolo cazzaro è scaduto
+    remove_dank() rimuove il ruolo cazzaro
     modify_warn() aggiunge o rimuove warn all'afler
     warn_count() ritorna il numero di warn
     reset_violations() azzera il numero di violazioni commesse
     forget_last_week() azzera il contatore corrispondente a 7 giorni fa
     clean() sistema i dati salvati al cambio di giorno
-    count_messages() conta i messaggi totali
+    count_orator_messages() conta i messaggi totali
     count_consolidated_messages() conta solo i messaggi dei giorni precedenti a oggi
     """
 
@@ -92,7 +102,8 @@ class Afler():
         """
         return cls({
             'nick': nickname,
-            'last_nick_change': datetime.date(datetime.now()).__str__(),
+            'last_nick_change': date.today().isoformat(),
+            # TODO valutare di snellire il dizionario
             'mon': 0,
             'tue': 0,
             'wed': 0,
@@ -104,8 +115,14 @@ class Afler():
             'last_message_date': None,
             'violations_count': 0,
             'last_violation_count': None,
-            'active': False,
-            'expiration': None,
+            'orator': False,
+            'orator_expiration': None,
+            'orator_total_messages': 0,
+            'dank': False,
+            'dank_messages_buffer': 0,
+            'dank_first_message_timestamp': None,
+            'dank_expiration': None,
+            'dank_total_messages': 0,
             'bio': None
         })
 
@@ -156,22 +173,60 @@ class Afler():
         self.data['bio'] = bio
 
     @property
-    def active(self) -> bool:
-        """Ritorna lo stato attivo dell'afler.
+    def orator(self) -> bool:
+        """Ritorna lo stato oratore dell'afler.
 
-        :returns: True se attivo, False altrimenti
+        :returns: True se oratore, False altrimenti
         :rtype: bool
         """
-        return self.data['active']
+        return self.data['orator']
 
-    def active_expiration(self) -> Optional[date]:
-        """Ritorna la data di scadenza del ruolo attivo.
+    @property
+    def dank(self) -> bool:
+        """Ritorna lo stato cazzaro dell'afler.
 
-        :returns: data di scadenza attivo
+        :returns: True se cazzaro, False altrimenti
+        :rtype: bool
+        """
+        return self.data['dank']
+
+    @property
+    def dank_messages_buffer(self) -> int:
+        """Ritorna il numero di messaggi nel buffer cazzaro.
+
+        :return: il numero di messaggi nel buffer cazzaro
+        :rtype: int
+        """
+        return self.data['dank_messages_buffer']
+
+    @property
+    def total_messages(self) -> int:
+        """Restituisce il numero totale di messaggi inviati dall'afler.
+
+        :return: il numero totale di messaggi mandati
+        :rtype: int
+        """
+        return self.data['orator_total_messages'] + self.data['dank_total_messages']
+
+    def orator_expiration(self) -> Optional[date]:
+        """Ritorna la data di scadenza del ruolo oratore.
+
+        :returns: data di scadenza oratore
         :rtype: Optional[datetime.date]
         """
-        if self.data['expiration'] is not None:
-            return datetime.date(datetime.strptime(self.data['expiration'], '%Y-%m-%d'))
+        if self.data['orator_expiration'] is not None:
+            return date.fromisoformat(self.data['orator_expiration'])
+        else:
+            return None
+
+    def dank_expiration(self) -> Optional[date]:
+        """Ritorna la data di scadenza del ruolo cazzaro.
+
+        :returns: data di scadenza cazzaro
+        :rtype: Optional[datetime.date]
+        """
+        if self.data['dank_expiration'] is not None:
+            return datetime.fromisoformat(self.data['dank_expiration'])
         else:
             return None
 
@@ -184,7 +239,7 @@ class Afler():
         return datetime.date(datetime.strptime(self.data['last_nick_change'], '%Y-%m-%d'))
 
     def last_message_date(self) -> Optional[date]:
-        """Ritorna la data dell'ultimo messaggio valido per il conteggio dell'attivo.
+        """Ritorna la data dell'ultimo messaggio valido per il conteggio dell'oratore.
 
         :returns: data ultimo messaggio
         :rtype: Optional[datetime.date]
@@ -205,9 +260,9 @@ class Afler():
         else:
             return None
 
-    def increase_counter(self) -> None:
-        """Aggiorna il contatore dell'utente autore del messaggio passato. In caso l'utente non sia presente
-        nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
+    def increase_orator_counter(self) -> None:
+        """Aggiorna il contatore oratore dell'utente autore del messaggio passato. In caso l'utente non sia
+        presente nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
         Si occupa anche di aggiornare il campo 'last_message_date'.
         """
         if self.data['last_message_date'] == datetime.date(datetime.now()).__str__():
@@ -219,7 +274,8 @@ class Afler():
             self.data['last_message_date'] = datetime.date(
                 datetime.now()).__str__()
         else:
-            # è finito il giorno, salva i messaggi di 'counter' nel giorno corrispondente e aggiorna data ultimo messaggio
+            # è finito il giorno, salva i messaggi di 'counter' nel
+            # giorno corrispondente e aggiorna data ultimo messaggio
             if self.data['counter'] != 0:
                 day = weekdays[datetime.date(datetime.strptime(
                     self.data['last_message_date'], '%Y-%m-%d')).weekday()]
@@ -227,8 +283,9 @@ class Afler():
             self.data['counter'] = 1
             self.data['last_message_date'] = datetime.date(
                 datetime.now()).__str__()
+        self.data['orator_total_messages'] += 1
 
-    def decrease_counter(self, amount: int = 1) -> None:
+    def decrease_orator_counter(self, amount: int = 1) -> None:
         """Decrementa il contatore dei messaggi del giorno corrente.
         Impedisce che il contatore vada sotto zero, in caso il parametro passato
         sia maggiore del valore del contatore questo viene resettato a 0.
@@ -239,42 +296,121 @@ class Afler():
             self.data['counter'] -= amount
         else:
             self.data['counter'] = 0
+        self.data['orator_total_messages'] -= 1
 
-    def set_active(self) -> None:
-        """Imposta l'afler come attivo. Consiste in tre operazioni:
-        - impostare active=True
+    def set_orator(self) -> None:
+        """Imposta l'afler come oratore. Consiste in tre operazioni:
+        - impostare orator=True
         - salvare la data di scadenza
         - azzerare tutti i contatori dei messaggi
         """
-        self.data['active'] = True
-        self.data['expiration'] = datetime.date(
-            datetime.now() + timedelta(days=Config.get_config().active_duration)).__str__()
+        self.data['orator'] = True
+        self.data['orator_expiration'] = datetime.date(
+            datetime.now()
+            + timedelta(days=Config.get_config().orator_duration)).__str__()
         for i in weekdays:
             self.data[weekdays.get(i)] = 0
 
-    def is_active_expired(self) -> bool:
-        """Controlla se l'assegnazione del ruolo attivo è scaduta.
+    def is_orator_expired(self) -> bool:
+        """Controlla se l'assegnazione del ruolo oratore è scaduta.
 
-        :returns: True se active=True e il ruolo è scaduto, False se active=True e il ruolo
-        non è scaduto oppure se active=False (l'afler non è attivo)
+        :returns: True se orator=True e il ruolo è scaduto, False se orator=True e il ruolo
+        non è scaduto oppure se orator=False (l'afler non è oratore)
         :rtype: bool
         """
-        if not self.data['active']:
+        if not self.data['orator']:
             return False
-        expiration = datetime.date(datetime.strptime(
-            self.data['expiration'], '%Y-%m-%d'))
-        if expiration <= ((datetime.date(datetime.now()))):
+        orator_expiration = datetime.date(datetime.strptime(
+            self.data['orator_expiration'], '%Y-%m-%d'))
+        if orator_expiration <= datetime.date(datetime.now()):
             return True
         else:
             return False
 
-    def set_inactive(self) -> None:
-        """Imposta l'afler come non attivo. Consiste in due operazioni:
-        - impostare active=False
+    def remove_orator(self) -> None:
+        """Rimuove il ruolo oratore. Consiste in due operazioni:
+        - impostare orator=False
         - impostare la data di scadenza a None
         """
-        self.data['active'] = False
-        self.data['expiration'] = None
+        self.data['orator'] = False
+        self.data['orator_expiration'] = None
+
+    def set_dank(self) -> None:
+        """Imposta l'afler come cazzaro, salvando la data di scadenza
+        del ruolo.
+        """
+        self.data['dank'] = True
+        self.data['dank_messages_buffer'] = 0
+        self.data['dank_first_message_timestamp'] = None
+        expiration = (datetime.now()
+                      + timedelta(days=Config.get_config().dank_duration))
+        self.data['dank_expiration'] = expiration.isoformat(timespec='hours')
+
+    def increase_dank_counter(self) -> None:
+        """
+        Aumenta il contatore dei messaggi per il ruolo cazzaro.
+        Se la finestra di tempo è scaduta (o se non è mai stato mandato
+        un messaggio in precedenza), aggiorna il timestamp e imposta il
+        buffer a 1.
+        """
+        expired = True
+        now = datetime.now()
+        if self.data['dank_first_message_timestamp'] is not None:
+            old_timestamp = datetime.fromisoformat(
+                self.data['dank_first_message_timestamp'])
+            elapsed_time = now - old_timestamp
+            expired = (
+                elapsed_time >= timedelta(days=Config.get_config().dank_duration))
+        # 'expired' sarà True se il timestamp è vecchio o se non ce n'è uno
+        if expired:
+            self.data['dank_first_message_timestamp'] = now.isoformat(
+                timespec='hours')
+            self.data['dank_messages_buffer'] = 1
+        else:
+            self.data['dank_messages_buffer'] += 1
+        self.data['dank_total_messages'] += 1
+
+    def decrease_dank_counter(self, amount: int = 1) -> None:
+        """
+        Rimuove una certa quantità di messaggi dal contatore cazzaro.
+
+        :param amount: la quantità di messaggi da sottrarre dal contatore
+        """
+        self.data['dank_messages_buffer'] -= amount
+        if self.data['dank_messages_buffer'] < 0:
+            self.data['dank_messages_buffer'] = 0
+        self.data['dank_total_messages'] -= amount
+
+    def is_eligible_for_dank(self) -> bool:
+        """
+        Controlla se l'afler abbia scritto abbastanza messaggi per
+        ottenere il ruolo cazzaro.
+
+        :return: True se l'afler ha superato la soglia
+        :rtype: bool
+        """
+        return self.data['dank_messages_buffer'] >= Config.get_config().dank_threshold
+
+    def is_dank_expired(self) -> bool:
+        """
+        Controlla se la scadenza del ruolo cazzaro è stata raggiunta.
+
+        :return: True se la scadenza è stata raggiunta
+        :rtype: bool
+        """
+        if self.data['dank']:
+            expiration = datetime.fromisoformat(self.data['dank_expiration'])
+            if expiration <= datetime.now():
+                return True
+        return False
+
+    def remove_dank(self) -> None:
+        """Rimuove il ruolo cazzaro. Consiste in due operazioni:
+        - impostare dank=False
+        - impostare la data di scadenza a None
+        """
+        self.data['dank'] = False
+        self.data['dank_expiration'] = None
 
     def modify_warn(self, count: int) -> None:
         """Modifica il conteggio dei warn dell'afler. Il parametro count può essere sia
@@ -301,7 +437,7 @@ class Afler():
         """
         return self.data['violations_count']
 
-    # METODI A SUPPORTO DELLA LOGICA DI CONTROLLO ATTIVO E VIOLAZIONI
+    # METODI A SUPPORTO DELLA LOGICA DI CONTROLLO RUOLI E VIOLAZIONI
 
     def reset_violations(self) -> None:
         """Azzera le violazioni dell'afler se necessario."""
@@ -350,7 +486,7 @@ class Afler():
                     last_day = 0
                 self.data[weekdays[last_day]] = 0
 
-    def count_messages(self) -> int:
+    def count_orator_messages(self) -> int:
         """Ritorna il conteggio totale dei messaggi dei 7 giorni precedenti, ovvero il campo
         counter + tutti gli altri giorni salvati escluso il giorno corrente.
 
@@ -365,9 +501,10 @@ class Afler():
         return count
 
     def count_consolidated_messages(self) -> int:
-        """Ritorna il conteggio dei messaggi salvati nei campi mon, tue, wed, ... non include counter
-        Lo scopo è contare i messaggi che sono stati consolidati nello storico ai fini di stabilire se
-        si è raggiunta la soglia dell'attivo.
+        """Ritorna il conteggio dei messaggi salvati nei campi mon, tue,
+        wed, ... non include counter.
+        Lo scopo è contare i messaggi che sono stati consolidati nello
+        storico ai fini di stabilire se si è raggiunta la soglia dell'oratore.
 
         :returns: il conteggio dei messaggi
         :rtype: int
@@ -720,10 +857,15 @@ class ConfigFields(TypedDict):
     current_prefix: str
     moderation_roles_id: List[int]
     afl_role_id: int
-    active_role_id: int
-    active_channels_id: List[int]
-    active_threshold: int
-    active_duration: int
+    orator_role_id: int
+    orator_category_id: int
+    orator_threshold: int
+    orator_duration: int
+    dank_role_id: int
+    dank_category_id: int
+    dank_threshold: int
+    dank_time_window: int
+    dank_duration: int
     exceptional_channels_id: List[int]
     poll_channel_id: int
     under_surveillance_id: int
@@ -750,10 +892,15 @@ class Config():
         current_prefix: prefisso per i comandi del bot
         moderation_roles_id: [id dei ruoli di moderazione separati da virgola se più di uno]
         afl_role_id: id del ruolo AFL
-        active_role_id: id del ruolo attivo
-        active_channels_id: [id dei canali rilevanti al conteggio, separati da virgola se più di uno]
-        active_threshold: numero di messaggi da mandare prima di ricevere il ruolo attivo
-        active_duration: durata del ruolo attivo in giorni
+        orator_role_id: id del ruolo oratore
+        orator_category_id: id della categoria dei canali rilevanti al conteggio oratore
+        orator_threshold: numero di messaggi da mandare prima di ricevere il ruolo oratore
+        orator_duration: durata del ruolo oratore in GIORNI
+        dank_role_id: id del ruolo cazzari
+        dank_category_id: id della categoria dei canali rilevanti al conteggio cazzaro
+        dank_threshold: numero di messaggi da mandare prima di ricevere il ruolo cazzaro
+        dank_time_window: giorni a disposizione per mandare i messaggi per il ruolo cazzaro
+        dank_duration: durata del ruolo cazzaro in GIORNI
         exceptional_channels_id: [elenco dei canali non controllati dal bot, separati da virgola se più di uno]
         poll_channel_id: canale in cui controllare le reaction alle proposte
         under_surveillance_id: id del ruolo sotto sorveglianza (vedi regole)
@@ -825,12 +972,15 @@ class Config():
         for mod in data['moderation_roles_id']:
             self.moderation_roles_id.append(int(mod))
         self.afl_role_id = int(data['afl_role_id'])
-        self.active_role_id = int(data['active_role_id'])
-        self.active_channels_id = []
-        for channel in data['active_channels_id']:
-            self.active_channels_id.append(int(channel))
-        self.active_threshold = data['active_threshold']
-        self.active_duration = data['active_duration']
+        self.orator_role_id = int(data['orator_role_id'])
+        self.orator_category_id = int(data['orator_category_id'])
+        self.orator_threshold = data['orator_threshold']
+        self.orator_duration = data['orator_duration']
+        self.dank_role_id = int(data['dank_role_id'])
+        self.dank_category_id = int(data['dank_category_id'])
+        self.dank_threshold = data['dank_threshold']
+        self.dank_time_window = data['dank_time_window']
+        self.dank_duration = data['dank_duration']
         self.exceptional_channels_id = []
         for channel in data['exceptional_channels_id']:
             self.exceptional_channels_id.append(int(channel))

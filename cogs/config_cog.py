@@ -252,89 +252,52 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             cogs += f'`{ext} ` '
         await ctx.send(f'Le estensioni caricate all\'avvio sono:\n{cogs}')
 
-    @commands.command(brief='aggiunge un canale all\'elenco dei canali conteggiati per l\'attivo')
-    async def addactive(self, ctx: commands.Context, id: str):
-        """Aggiunge il canale all'elenco dei canali conteggiati per l'attivo.
-        Occorre attivare le opzioni sviluppatore dal client discord per poter
-        copiare gli id dei canali. Se il canale è già presente in lista
-        non fa nulla.
-
-        Sintassi:
-        <addactive  id_canale    # aggiunge il canale
-        <addactive  #menzione-canale  # è possibile usare anche la menzione
-        """
-        # strip dei caratteri per la menzione
-        id = id.strip('<#>')
-        # controlla che contenga solo numeri della lunghezza giusta
-        if len(id) == 18 and id.isdigit():
-            int_id = int(id)
-        else:
-            await ctx.send('Id canale non valido')
-            return
-        if int_id not in self.config.active_channels_id:
-            self.config.active_channels_id.append(int_id)
-            await self.logger.log(f'canale <#{id}> aggiunto all\'elenco attivi')
-            await ctx.send(f'Canale <#{id}> aggiunto all\'elenco')
-            self.config.save()
-        else:
-            await ctx.send('Canale già presente')
-
-    @commands.command(brief='rimuove un canale all\'elenco dei canali conteggiati per l\'attivo')
-    async def removeactive(self, ctx: commands.Context, id: str):
-        """Rimuove il canale dall'elenco dei canali conteggiati per l'attivo.
-        Occorre attivare le opzioni sviluppatore dal client discord per poter
-        copiare gli id dei canali. Se il canale non è presente in lista
-        non fa nulla.
-
-        Sintassi:
-        <removeactive  id_canale    # rimuove il canale
-        <removeactive  #menzione-canale  # è possibile usare anche la menzione
-        """
-        # strip dei caratteri della menzione
-        id = id.strip('<#>')
-        # controlla che contenga solo numeri della lunghezza giusta
-        if len(id) == 18 and id.isdigit():
-            int_id = int(id)
-        else:
-            await ctx.send('Id canale non valido')
-            return
-        if int_id in self.config.active_channels_id:
-            self.config.active_channels_id.remove(int_id)
-            await self.logger.log(f'canale <#{id}> rimosso dall\'elenco attivi')
-            await ctx.send(f'Canale <#{id}> rimosso dall\'elenco')
-            self.config.save()
-        else:
-            await ctx.send('Canale non presente in lista')
-
     @commands.command(brief='permette di gestire le soglie per diversi parametri', aliases=['setthreshold', 'sett', 'threshold'])
     async def setthresholds(self, ctx: commands.Context, category: str, value: str):
         """Permette di gestire le soglie per:
-        - messaggi per ruolo attivo
-        - durata ruolo attivo
+        - ruoli oratore e cazzaro
         - cooldown setnick
         - giorni per reset violazioni
 
-        Sintassi:
-        <setthreshold attivo 100    # per i giorni dell'attivo
-        <setthreshold ruolo 7       # durata ruolo attivo
-        <setthreshold setnick 30    # cooldown setnick
-        <setthreshold violazioni 7  # reset violazioni
+        Sintassi: <setthreshold [parametro] [valore]
+
+        parametro | v.default | unità | descrizione
+        ------------------------------------------------------------
+        oratore     100         msg     oratore
+        d-oratore   7           giorni  durata oratore
+        cazzaro     100         msg     cazzaro
+        d-cazzaro   7           giorni  durata cazzaro
+        tw-cazzaro  7           giorni  finestra di tempo cazzaro
+        setnick     30          giorni  cooldown setnick
+        violazioni  7           giorni  reset violazioni
 
         Ogni comando può essere abbreviato con la prima lettera di ogni soglia.
-        es.  '<setthreshold a 100' al posto di '<setthreshold attivo 100'
+        E.g.  '<setthreshold o 100' al posto di '<setthreshold oratore 100'
 
         alias: setthreshold, sett, threshold
+
+        :param category: il parametro di cui si vuole modificare la soglia
+        :param value: il nuovo valore da impostare per la soglia
         """
         if not value.isdigit():
             await ctx.send('La soglia deve essere un valore numerico')
             return
         msg: str = ''
-        if category.startswith('a'):
-            self.config.active_threshold = int(value)
-            msg = f'Soglia messaggi per l\'attivo cambiata a {value}'
-        elif category.startswith('r'):
-            self.config.active_duration = int(value)
-            msg = f'Durata dell\'attivo cambiata a {value}  giorni'
+        if category.startswith('o'):
+            self.config.orator_threshold = int(value)
+            msg = f'Soglia messaggi per l\'oratore cambiata a {value}'
+        elif category.startswith('d-o'):
+            self.config.orator_duration = int(value)
+            msg = f'Durata dell\'oratore cambiata a {value}  giorni'
+        elif category.startswith('c'):
+            self.config.dank_threshold = int(value)
+            msg = f'Soglia messaggi per il cazzaro cambiata a {value}'
+        elif category.startswith('d-c'):
+            self.config.dank_duration = int(value)
+            msg = f'Durata del cazzaro cambiata a {value}  giorni'
+        elif category.startswith('tw-c'):
+            self.config.dank_duration = int(value)
+            msg = f'Finestra di tempo del cazzaro cambiata a {value}  giorni'
         elif category.startswith('s'):
             self.config.nick_change_days = int(value)
             msg = f'Cooldown per il setnick cambiata a {value} giorni'

@@ -1,6 +1,6 @@
 """:class: UtilityCog contiene comandi di uso generale."""
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional
 
 import discord
 from discord.ext import commands
@@ -14,7 +14,6 @@ class UtilityCog(commands.Cog, name='Utility'):
     - setnick permette di cambiare nickname periodicamente
     - setbio imposta la propria bio
     - bio ritorna la bio dell'utente citato
-    - showactive ritorna l'elenco dei canali conteggiati per l'attivo
     - leaderboard mostra il numero di messaggi mandati dagli aflers
     - info invia il link alla pagina GitHub di AFL
     """
@@ -36,10 +35,9 @@ class UtilityCog(commands.Cog, name='Utility'):
     async def status(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """Mostra il proprio status oppure quello del membro fornito come parametro tramite embed.
         Lo status comprende:
-        - numero di messaggi degli ultimi 7 giorni
-        - data ultimo messaggio conteggiato (inviato nei canali da contare)
-        - possesso del ruolo attivo e relativa scadenza (assente per i mod)
-        - numero di violaizoni e relativa scadenza
+        - numero di messaggi inviati nell'ultimo periodo (nella finestra temporale)
+        - possesso dei ruoli e relativa scadenza (assente per i mod)
+        - numero di violazioni e relativa scadenza
 
         Sintassi:
         <status             ritorna lo status del chiamante
@@ -59,29 +57,36 @@ class UtilityCog(commands.Cog, name='Utility'):
             color=member.top_role.color
         )
         status.set_thumbnail(url=member.display_avatar)
-        if item.last_message_date() is None:
-            status.add_field(name='Messaggi ultimi 7 giorni:',
-                             value='0', inline=False)
-        else:
-            status.add_field(name=f'Messaggi ultimi 7 giorni:', value=f'{item.count_messages()} (ultimo il {item.last_message_date()})', inline=False)
+        # TODO fixare indentazione nella stampa per mobile
+        msg_text = f"""
+        ```
+        Oratore: {item.count_orator_messages()}
+        Cazzaro: {item.dank_messages_buffer}
+        Totale: {item.total_messages}
+        ```
+        """
+        status.add_field(name='Messaggi inviati:',
+                         value=msg_text, inline=False)
         is_a_mod: bool = False
         for role in member.roles:
             if role.id in self.config.moderation_roles_id:
                 is_a_mod = True
                 status.add_field(name='Ruolo:', value=role.name, inline=False)
                 break
-        if not is_a_mod:
-            if not item.active:
-                status.add_field(name='Attivo:', value='no', inline=False)
-            else:
-                status.add_field(name='Attivo:', value=f'sì (scade il {item.active_expiration()})', inline=False)
+        if not is_a_mod and item.orator:
+            status.add_field(
+                name='Oratore:', value=f'scade il {item.orator_expiration()}', inline=False)
+        if item.dank:
+            status.add_field(
+                name='Cazzaro:', value=f'scade il {item.dank_expiration()}', inline=False)
         if item.warn_count() == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
             if item.last_violations_count() != None:
                 violations_expiration = (item.last_violations_count(
                 ) + timedelta(days=self.config.violations_reset_days)).__str__()
-                status.add_field(name='Violazioni:', value=f'{item.warn_count()} (scade il {violations_expiration})', inline=False)
+                status.add_field(
+                    name='Violazioni:', value=f'{item.warn_count()} (scade il {violations_expiration})', inline=False)
         await ctx.send(embed=status)
 
     @commands.command(brief='invia la propic dell\'utente')
@@ -197,34 +202,22 @@ class UtilityCog(commands.Cog, name='Utility'):
             )
             await ctx.send(embed=bio)
 
-    @commands.command(brief='ritorna l\'elenco dei canali conteggiati per l\'attivo')
-    async def showactive(self, ctx: commands.Context):
-        """Ritorna l'elenco dei canali in cui i messaggi vengono conteggiati
-        al fine di assegnare il ruolo attivo.
-
-        Sintassi:
-        <showactive     # ritorna l'elenco
-        """
-        channels = 'Elenco canali conteggiati per l\'attivo:\n'
-        channels += '\n'.join([f'<#{id}>' for id in self.config.active_channels_id])
-        await ctx.send(channels)
-
     @commands.command(brief='mostra il numero di messaggi mandati dagli aflers')
     async def leaderboard(self, ctx: commands.Context):
         """Mostra la classifica degli afler in base ai messaggi degli ultimi
         7 giorni. Solo i membri con più di 0 messaggi sono mostrati.
-        
+
         Sintassi
         <leaderboard     # stampa la leaderboard
         """
+        # TODO valutare se rendere la classifica sulla base dei messaggi
+        # totali o se per categorie
         ranking = []
         for id in self.archive.keys():
             afler = self.archive.get(id)
             mention = f'<@{id}>'
-            message_count = afler.count_messages()
-            if message_count > 0:
-                ranking.append((mention, message_count))
-        ranking = sorted(ranking, key= lambda i: i[1], reverse=True)
+            ranking.append((mention, afler.total_messages))
+        ranking = sorted(ranking, key=lambda i: i[1], reverse=True)
         leaderboard = ''
         for i in range(len(ranking)):
             entry = ranking[i]
@@ -236,7 +229,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     @commands.command(brief='invia il link alla pagina GitHub di AFL')
     async def info(self, ctx: commands.Context):
         """Invia il link alla pagina GitHub di AFL.
-        
+
         Sintassi
         <info         # invia il link
         """

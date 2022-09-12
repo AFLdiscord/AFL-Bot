@@ -12,7 +12,13 @@
     "last_message_date",
     "violations_count",
     "last_violation_count",
-    "active",
-    "expiration",
+    "orator",
+    "orator_expiration",
+    "orator_total_messages",
+    "dank",
+    "dank_messages_buffer",
+    "dank_first_message_timestamp",
+    "dank_expiration",
+    "dank_total_messages",
     "bio"
 ]
