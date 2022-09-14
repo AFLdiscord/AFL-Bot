@@ -82,9 +82,6 @@ class EventCog(commands.Cog):
             response = 'nice'
             await message.channel.send(response)
             return
-        if BannedWords.contains_banned_words(message.content) and message.channel.id not in self.config.exceptional_channels_id:
-            # cancellazione e warn fatto nella cog ModerationCog, qua serve solo per non contare il messaggio
-            return
         if message.channel.id == self.config.presentation_channel_id:
             # non deve rispondere a eventuali messaggi di moderatori nel canale, solo a nuovi membri
             for role in message.author.roles:
