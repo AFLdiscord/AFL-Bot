@@ -29,19 +29,30 @@ class ModerationCog(commands.Cog, name='Moderazione'):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        """Elimina i messaggi inappropriati dai canali e aggiunge un warn all'utente.
+        """Elimina i messaggi inappropriati dai canali e aggiunge un
+        warn all'utente.
         Ignora i messaggi da:
         - il bot stesso
         - altri bot
         - canali di chat privata
         - canali ignorati (vedi config.template)
         """
-        if message.author == self.bot.user or message.author.bot or message.guild is None:
+        if (message.author == self.bot.user or
+            message.author.bot or
+            message.guild is None):
             return
-        if BannedWords.contains_banned_words(message.content) and message.channel.id not in self.config.exceptional_channels_id:
-            await message.delete()
-            await self.logger.log(f'aggiunto warn a {message.author.mention} per linguaggio inappropriato: `{message.content}`')
-            await self._add_warn(message.author, 'linguaggio inappropriato', 1)
+        if not BannedWords.contains_banned_words(message.content):
+            return
+        if isinstance(message.channel, discord.Thread):
+            channel_id = message.channel.parent_id
+        else:
+            channel_id = message.channel.id
+        if channel_id in self.config.exceptional_channels_id:
+            return
+        await message.delete()
+        await self.logger.log(f'aggiunto warn a {message.author.mention} per \
+            linguaggio inappropriato: `{message.content}`')
+        await self._add_warn(message.author, 'linguaggio inappropriato', 1)
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
