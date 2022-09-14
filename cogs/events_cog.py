@@ -490,7 +490,7 @@ class EventCog(commands.Cog):
         """
         # TODO accorciare la funzione
         role_channel = self.bot.get_channel(self.config.main_channel_id)
-        """ proposal_channel = self.bot.get_channel(self.config.poll_channel_id)
+        proposal_channel = self.bot.get_channel(self.config.poll_channel_id)
         await self.logger.log('controllo proposte...')
         try:
             with open('proposals.json', 'r') as file:
@@ -554,7 +554,7 @@ class EventCog(commands.Cog):
                     await message.delete()
                 del proposals[key]
             shared_functions.update_json_file(proposals, 'proposals.json')
-        await self.logger.log('controllo proposte terminato') """
+        await self.logger.log('controllo proposte terminato')
         await self.logger.log('controllo conteggio messaggi...')
         for id in self.archive.keys():
             item = self.archive.get(id)
