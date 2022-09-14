@@ -32,7 +32,7 @@ class EventCog(commands.Cog):
 
     Reazioni:
     - on_raw_reaction_add
-    - on_raw_reactoin_remove
+    - on_raw_reaction_remove
 
     Membri:
     - on_member_join
