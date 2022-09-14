@@ -43,6 +43,14 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             await self.logger.log(f'aggiunto warn a {message.author.mention} per linguaggio inappropriato: `{message.content}`')
             await self._add_warn(message.author, 'linguaggio inappropriato', 1)
 
+    @commands.Cog.listener()
+    async def on_message_edit(self, before: discord.Message, after: discord.Message):
+        """Riesamina i messaggi dopo la modifica per evitare tentativi di
+        bypass della censura delle parole bannate.
+        """
+        if before.content != after.content:
+            await self.on_message(after)
+
     @commands.command(brief='reimposta il nickname dell\'utente citato')
     async def resetnick(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = None, *, name: str = None):
         """Reimposta il nickname di un membro se questo non è opportuno per il server
