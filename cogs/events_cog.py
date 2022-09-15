@@ -703,7 +703,7 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
     except KeyError:
         print('impossibile trovare la proposta')
         return
-    if str(payload.emoji.name).__eq__('\U0001F7E2'):  # sarebbe :green_circle:
+    if payload.emoji.name == '🟢':
         proposal['yes'] += change
         if proposal['yes'] < 0:
             proposal['yes'] = 0
@@ -713,6 +713,7 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
             # è possibile cambiare idea, il controllo lo fa la task
             proposal['passed'] = False
     else:
+        # se payload.emoji.name == '🔴'
         proposal['no'] += change
         if proposal['no'] < 0:
             proposal['no'] = 0
