@@ -96,7 +96,7 @@ class EventCog(commands.Cog):
                 await message.channel.send('Questo nickname è l\'username di un utente, non puoi usarlo')
                 return
             # per il resto il controllo della validità è ancora manuale
-            await message.author.add_roles(self.bot.get_guild(self.config.guild_id).get_role(self.config.afl_role_id))
+            await message.author.add_roles(self.guild.get_role(self.config.afl_role_id))
             await message.channel.send('Formidabile')
             channel = self.bot.get_channel(self.config.welcome_channel_id)
             welcomeMessage = discord.Embed(
