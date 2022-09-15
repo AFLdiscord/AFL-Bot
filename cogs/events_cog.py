@@ -209,16 +209,19 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
-        """Controlla se chi reagisce ai messaggi postati nel canale proposte abbia i requisiti per farlo.
-        Se il riscontro è positivo viene anche aggiornato il file delle proposte.
-        In caso l'utente non abbia i requisiti la reazione viene rimossa. Ignora le reaction ai messaggi postati
-        dal bot stesso nel canale proposte.
+        """Controlla se chi reagisce ai messaggi postati nel canale
+        proposte abbia i requisiti per farlo.
+        Se il riscontro è positivo viene aggiornato il file delle proposte.
+        Ignora la reaction - eliminandola - se:
+        - il membro non è autorizzato a votare;
+        - la reaction non è valida per la proposta;
+        - la reaction viene messa a un messaggio del bot.
         """
         if not payload.channel_id == self.config.poll_channel_id:
             return
         # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
         message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(payload.message_id)
-        if message.author == self.bot.user:
+        if message.author == self.bot.user or payload.emoji.name not in ('🟢', '🔴'):
             await message.remove_reaction(payload.emoji, payload.member)
             return
         # aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
@@ -237,11 +240,16 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        """Se la reaction è nel canale proposte, aggiorna il contatore della proposta di conseguenza
-        rimuovendo il voto corrispondente. Ignora la rimozione di reaction a un messaggio in
-        proposte solo se tale messaggio è stato postato dal bot stesso.
+        """Se la reaction è nel canale proposte, aggiorna il contatore
+        della proposta di conseguenza rimuovendo il voto corrispondente.
+        Ignora la rimozione di reaction a un messaggio in proposte se
+        tale messaggio è stato postato dal bot stesso o se la reaction
+        non era valida per la votazione.
         """
         if not payload.channel_id == self.config.poll_channel_id:
+            return
+        # ignora le reaction non valide per il voto
+        if payload.emoji.name not in ('🟢', '🔴'):
             return
         # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
         message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(payload.message_id)
