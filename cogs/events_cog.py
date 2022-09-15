@@ -227,7 +227,6 @@ class EventCog(commands.Cog):
         # aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
         # un voto dal conteggio quando il bot la rimuove
         await self.logger.log(f'aggiunta reazione sulla proposta\n{message.content}')
-        adjust_vote_count(payload, 1)
         is_good = self._check_reaction_permissions(payload)
         if not is_good:
             # devo rimuovere la reaction perchè il membro non ha i requisiti
@@ -236,7 +235,20 @@ class EventCog(commands.Cog):
                 await message.remove_reaction(payload.emoji, payload.member)
             except discord.NotFound:
                 await self.logger.log('impossibile trovare il messaggio o la reaction cercate')
-                return
+            return
+        other_react = {
+            react for react in message.reactions
+            if react.emoji != payload.emoji.name
+        }
+        # controlla se il membro abbia già messo un'altra reaction, e
+        # nel caso la rimuove
+        if len(other_react) == 1:
+            reaction = other_react.pop()
+            async for user in reaction.users():
+                if payload.member == user:
+                    await message.remove_reaction(reaction, payload.member)
+                    break
+        adjust_vote_count(payload, 1)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
