@@ -255,7 +255,7 @@ class EventCog(commands.Cog):
         message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(payload.message_id)
         if message.author == self.bot.user:
             return
-        await self.logger.log(f'rimosssa reazione sulla proposta\n{message.content}')
+        await self.logger.log(f'rimossa reazione sulla proposta\n{message.content}')
         adjust_vote_count(payload, -1)
 
     def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
@@ -263,6 +263,7 @@ class EventCog(commands.Cog):
         ne ha diritto, ovvero se:
         - è un moderatore
         - è in possesso del ruolo oratore
+
         Entrambi questi ruoli vanno definiti nella config (vedi template).
 
         :param payload: evento riguardo la reazione
