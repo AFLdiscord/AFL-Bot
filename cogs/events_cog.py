@@ -161,21 +161,22 @@ class EventCog(commands.Cog):
             await self.logger.log(f'rimuovo proposta\n{message.content}')
             remove_proposal(message)
             return
-        if not valid_for_orator(message) and not valid_for_dank(message):
-            return
         try:
             item = self.archive.get(message.author.id)
         except KeyError:
+            await self.logger.log(f'cancellato il messaggio di un membro non più presente nel server\n{message.author.mention}: {message.content}')
             return
         else:
+            counter = ''
             if valid_for_orator(message):
                 item.decrease_orator_counter()
+                counter = f'decrementato contatore orator di {message.author.mention}'
             else:
                 item.decrease_dank_counter()
-            await self.logger.log(f'decrementato contatore di {message.author.mention}')
+                counter = f'decrementato contatore dank di {message.author.mention}'
             self.archive.save()
-        # TODO gestire file multimediali
-        await self.logger.log(f'messaggio di {message.author.mention} cancellato in {message.channel.mention}\n    {message.content}')
+            msg = f'messaggio di {message.author.mention} cancellato in {message.channel.mention}\n    {message.content}'
+        await self.logger.log(f'{msg}\n\n{counter}', media=message.attachments)
 
     @commands.Cog.listener()
     async def on_bulk_message_delete(self, messages: List[discord.Message]):
@@ -183,28 +184,10 @@ class EventCog(commands.Cog):
         i membri i cui messaggi sono coinvolti nella bulk delete. Il comportamento per ogni singolo
         messaggio è lo stesso della on_message_delete.
         """
-        if messages[0].channel.id == self.config.poll_channel_id:
-            # è qua solo in caso di spam sul canale proposte, improbabile visto la slowmode
-            for message in messages:
-                await self.logger.log(f'rimuovo proposta:\n{message.content}')
-                remove_proposal(message)
-            return
-        if not valid_for_orator(messages[0]) and not valid_for_dank(messages[0]):
-            return
-        msg_counts = Counter(map(lambda msg: msg.author.id, messages))
-        for id in msg_counts.keys():
-            try:
-                item = self.archive.get(id)
-            except KeyError:
-                continue
-            else:
-                if valid_for_orator(messages[0]):
-                    item.decrease_orator_counter(amount=msg_counts[id])
-                else:
-                    item.decrease_dank_counter(amount=msg_counts[id])
-        self.archive.save()
+        for message in messages:
+            # logga tutti i messaggi
+            await self.on_message_delete(message)
         channel = messages[0].channel
-        # TODO salvare log messaggi (ad esempio in un file anziché come messaggi in chiaro)
         await self.logger.log(f'rimossi {len(messages)} messaggi da {channel.mention}')
 
     @commands.Cog.listener()

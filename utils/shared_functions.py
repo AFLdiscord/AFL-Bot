@@ -823,7 +823,7 @@ class BotLogger():
         """
         self.channel = await bot.fetch_channel(Config.get_config().log_channel_id)
 
-    async def log(self,  msg: str) -> None:
+    async def log(self,  msg: str, media: List[discord.Attachment]=None) -> None:
         """Compila il messaggio da inviare nel canale. Il formato
         è il seguente:
 
@@ -832,9 +832,10 @@ class BotLogger():
         La data arriva da datetime.now()
 
         :param msg: il messaggio con l'evento da loggare
+        :param media: eventuali allegati del messaggio (immagini, video, etc)
         """
         timestamp = datetime.now()
-        msg = f'`{timestamp}` {msg}'
+        msg = f'`{timestamp}`\n{msg}'
         if self.channel is None:
             # fallback sul terminale
             print(msg)
@@ -844,7 +845,8 @@ class BotLogger():
             # Il timestamp dell'embed è regolato da discord, lo converto in UTC
             timestamp=timestamp.astimezone(timezone.utc)
         )
-        await self.channel.send(embed=log_message)
+        files: List[discord.File] = [await m.to_file() for m in media] if media else None
+        await self.channel.send(embed=log_message, files=files)
 
 
 class ConfigFields(TypedDict):
