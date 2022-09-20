@@ -8,7 +8,8 @@ from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Confi
 
 
 class UtilityCog(commands.Cog, name='Utility'):
-    """Contiene i comandi destinati ad essere usati dagli AFL con funzionalità varie:
+    """Contiene i comandi destinati ad essere usati dagli AFL con funzionalità varie.
+    Tutti i comandi sono utilizzabili sia da messaggio che come slash command.
     - status ritorna lo status del membro citato
     - avatar ritorna la foto profilo dell'utente citato
     - setnick permette di cambiare nickname periodicamente
@@ -31,7 +32,7 @@ class UtilityCog(commands.Cog, name='Utility'):
                 return True
         return False
 
-    @commands.command(brief='ritorna statistiche sul membro menzionato')
+    @commands.hybrid_command(brief='ritorna statistiche sul membro menzionato')
     async def status(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """Mostra il proprio status oppure quello del membro fornito come parametro tramite embed.
         Lo status comprende:
@@ -89,7 +90,7 @@ class UtilityCog(commands.Cog, name='Utility'):
                     name='Violazioni:', value=f'{item.warn_count()} (scade il {violations_expiration})', inline=False)
         await ctx.send(embed=status)
 
-    @commands.command(brief='invia la propic dell\'utente')
+    @commands.hybrid_command(brief='invia la propic dell\'utente')
     async def avatar(self, ctx: commands.Context, user: Optional[discord.User] = None):
         """Invia la propria propic o quella dell'utente menzionato. Non è necessario che l'utente
         faccia parte del server, basta che la menzione sia valida.
@@ -110,7 +111,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         avatar.set_image(url=user.display_avatar)
         await ctx.send(embed=avatar)
 
-    @commands.command(brief='permette di cambiare nickname periodicamente', hidden=True)
+    @commands.hybrid_command(brief='permette di cambiare nickname periodicamente', hidden=True)
     async def setnick(self, ctx: commands.Context, *, new_nick: str):
         """Permette di cambiare il proprio nickname periodicamente. La frequenza con
         cui è possibile farlo è definita nel config. Impedisce che due membri abbiano lo
@@ -152,7 +153,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send(f'Nickname cambiato in {new_nick}')
             await self.logger.log(f'Nickname di {ctx.author.mention} modificato in `{new_nick}` (era `{old_nick}`)')
 
-    @commands.command(brief='imposta la propria bio')
+    @commands.hybrid_command(brief='imposta la propria bio')
     async def setbio(self, ctx: commands.Context, *, bio: str):
         """Permette di impostare una biografia visibile agli altri membri.
         Non sono ovviamente ammesse parole vietate e gli admin si riservano il
@@ -176,7 +177,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         await self.logger.log(f'aggiunta bio di {ctx.author.mention}')
         await ctx.send('Bio aggiunta correttamente.')
 
-    @commands.command(brief='ritorna la bio dell\'utente citato')
+    @commands.hybrid_command(brief='ritorna la bio dell\'utente citato')
     async def bio(self, ctx: commands.Context, member: Optional[discord.Member] = None):
         """Ritorna la propria bio o quella dell'utente citato. Usare
         <setbio per impostare la propria bio
@@ -202,7 +203,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             )
             await ctx.send(embed=bio)
 
-    @commands.command(brief='mostra il numero di messaggi mandati dagli aflers')
+    @commands.hybrid_command(brief='mostra il numero di messaggi mandati dagli aflers')
     async def leaderboard(self, ctx: commands.Context):
         """Mostra la classifica degli afler in base ai messaggi degli ultimi
         7 giorni. Solo i membri con più di 0 messaggi sono mostrati.
@@ -226,7 +227,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         embed.description = leaderboard
         await ctx.send(embed=embed)
 
-    @commands.command(brief='invia il link alla pagina GitHub di AFL')
+    @commands.hybrid_command(brief='invia il link alla pagina GitHub di AFL')
     async def info(self, ctx: commands.Context):
         """Invia il link alla pagina GitHub di AFL.
 

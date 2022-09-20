@@ -453,6 +453,7 @@ class EventCog(commands.Cog):
         - impostare lo stato del bot con le informazioni di versione.
         - controllare la coerenza dell'archivio
         """
+        await self.bot.tree.sync()
         self.guild = self.bot.get_guild(self.config.guild_id)
         timestamp = datetime.time(datetime.now())
         botstat = discord.Game(name=f'AFL {self.__version__}')
