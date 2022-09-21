@@ -119,9 +119,8 @@ class EventCog(commands.Cog):
             await self.logger.log(f'proposta aggiunta al file:\n{message.content}')
             return
         # se è un comando non verifico i contatori (come per gli slash command)
-        if message.content[:1] == self.config.current_prefix:
-            if not discord_markdown(message.content):
-                return
+        if self.is_command(message):
+            return
         # TODO migliorare accesso a oggetto afler, magari spostandolo all'inizio o in un'altra funzione
         # controlla se il messaggio è valido
         if valid_for_orator(message):
@@ -168,10 +167,13 @@ class EventCog(commands.Cog):
             return
         else:
             counter = ''
-            if valid_for_orator(message):
+            if self.is_command(message):
+                # non devo decrementare nulla perchè i messaggi non contano
+                return
+            elif valid_for_orator(message):
                 item.decrease_orator_counter()
                 counter = f'decrementato contatore orator di {message.author.mention}'
-            else:
+            elif valid_for_dank(message):
                 item.decrease_dank_counter()
                 counter = f'decrementato contatore dank di {message.author.mention}'
             self.archive.save()
@@ -606,6 +608,21 @@ class EventCog(commands.Cog):
         await self.logger.log(f'membro <@!{id}> è diventato un cazzaro')
         await role_channel.send(f'membro <@!{id}> è diventato un cazzaro')
         afler.set_dank()
+
+    def is_command(self, message: discord.Message) -> bool:
+        """Controlla se il messaggio è un comando testuale.
+        Serve per evitare di contare come messaggio inviato un comando.
+
+        :param message: il messaggio in questione
+
+        :returns: True se è un comando, altrimenti False
+        :rtype: bool
+        """
+        # gestisce anche prefissi più lunghi
+        if message.content.startswith(self.config.current_prefix):
+            if not discord_markdown(message.content):
+                return True
+        return False
 
 
 def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
