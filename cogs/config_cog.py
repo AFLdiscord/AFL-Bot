@@ -157,6 +157,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 await ctx.send(f'Errore nella ricarica di {ext}, vedi log del bot.', delete_after=5)
                 await ctx.message.delete(delay=5)
         if reloaded != '':
+            # sync degli slash commands
+            await self.bot.tree.sync()
             await self.logger.log(f'estensioni {reloaded} ricaricate correttamente.')
             await ctx.send(f'Estensioni {reloaded} ricaricate correttamente.')
 
@@ -202,6 +204,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             if added != '':
                 await self.logger.log(f'estensioni {added} aggiunte correttamente')
                 await ctx.send(f'Estensioni {added} aggiunte correttamente.')
+                # sync degli slash commands
+                await self.bot.tree.sync()
             shared_functions.update_json_file(extensions, 'extensions.json')
 
     @commands.command(brief='rimuove una o più cog dal bot e dal file extensions.json')
@@ -235,6 +239,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             if removed != '':
                 await self.logger.log(f'estensioni {removed} rimosse correttamente')
                 await ctx.send(f'Estensioni {removed} rimosse correttamente.')
+                # sync degli slash commands
+                await self.bot.tree.sync()
             shared_functions.update_json_file(extensions, 'extensions.json')
 
     @commands.command(brief='lista delle estensioni caricate all\'avvio')
