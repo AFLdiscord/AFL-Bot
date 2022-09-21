@@ -58,14 +58,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             color=member.top_role.color
         )
         status.set_thumbnail(url=member.display_avatar)
-        # TODO fixare indentazione nella stampa per mobile
-        msg_text = f"""
-        ```
-        Oratore: {item.count_orator_messages()}
-        Cazzaro: {item.dank_messages_buffer}
-        Totale: {item.total_messages}
-        ```
-        """
+        msg_text = f'Oratore: {item.count_orator_messages()}\nCazzaro: {item.dank_messages_buffer}\nTotale: {item.total_messages}'
         status.add_field(name='Messaggi inviati:',
                          value=msg_text, inline=False)
         is_a_mod: bool = False
