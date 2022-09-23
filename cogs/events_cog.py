@@ -568,7 +568,7 @@ class EventCog(commands.Cog):
                 await role_channel.send(f'membro <@!{id}> è diventato oratore')
 
             # controllo sulla data dell'ultima violazione, ed eventuale reset
-            # item.reset_violations()
+            item.reset_violations()
 
             # rimuovo i messaggi contati 7 giorni fa
             item.forget_last_week()
