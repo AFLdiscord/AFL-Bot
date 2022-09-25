@@ -1,7 +1,11 @@
 """Questo modulo contiene tutti i listener per i diversi eventi rilevanti per il bot raccolti
 nella classe EventCog
 
-Sono inoltre presenti due funzioni usiliarie alle funzioni del bot:
+Contiene anche due comandi:
+- updatestatus  per aggiornare l'attività del bot (sta giocando a...)
+- presentation  per consentire ai nuovi membri di presentarsi
+
+Sono inoltre presenti delle funzioni usiliarie alle funzioni del bot:
 Proposte
 - add_proposal        aggiunge una nuova proposta al file che le traccia
 - remove_proposal     rimuove la proposta dal file
@@ -9,9 +13,9 @@ Proposte
 - calculate_threshold logica per stabilire la sogli affinchè una proposta passi
 """
 
-from collections import Counter
 import re
 import json
+from enum import Enum
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
@@ -61,6 +65,51 @@ class EventCog(commands.Cog):
         botstat = discord.Game(name=f'AFL {self.__version__}')
         await self.bot.change_presence(activity=botstat)
 
+    class Sex(Enum):
+        maschio = 'maschio'
+        femmina = 'femmina'
+        non_binario = 'non binario'
+        altro = 'altro'
+
+        def str(self) -> str:
+            return self.value
+
+    @discord.app_commands.command(description='Usa questo comando per presentarti')
+    @discord.app_commands.rename(age='età', sex='sesso')
+    @discord.app_commands.describe(
+        age='la tua età',
+        sex='il tuo sesso'
+    )
+    async def presentation(self, interaction: discord.Interaction, age: discord.app_commands.Range[int, 0, 100], sex: Sex):
+        """Consente ai nuovi membri di presentarsi fornendo le informazioni richieste
+        Questo comando è disponibile solo come slash command.
+        I parametri sono validati automaticamente, in particolare
+        - età deve essere un intero positivo
+        - sesso può essere solo una delle opzioni della classe Sex
+
+        Sintassi
+        /presentation 69 maschio   # età e sesso
+        """
+        if interaction.channel_id != self.config.presentation_channel_id:
+            # si può usare solo per presentarsi
+            await interaction.response.send_message('Questo comando è riservato per la presentazione dei nuovi membri', ephemeral=True)
+            return
+        await interaction.user.add_roles(self.guild.get_role(self.config.afl_role_id))
+        msg = f'{interaction.user.mention} si è presentato con età={age} e sesso={sex.value}'
+        await interaction.response.send_message(msg)
+        await self.logger.log(msg)
+        channel = self.bot.get_channel(self.config.welcome_channel_id)
+        welcomeMessage = discord.Embed(
+            title=f'Diamo il benvenuto a {interaction.user.display_name}!',
+            colour=discord.Colour.dark_theme().value
+        )
+        welcomeMessage.set_thumbnail(url=interaction.user.display_avatar)
+        welcomeMessage.add_field(
+            name='Presentazione:', value=f'età: {age}\nsesso: {sex.value}', inline=False)
+        await channel.send(embed=welcomeMessage)
+        return
+        
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         """Azioni da eseguire ad ogni messaggio. Ignora i messaggi provenienti da:
@@ -87,27 +136,8 @@ class EventCog(commands.Cog):
             for role in message.author.roles:
                 if role.id in self.config.moderation_roles_id:
                     return
-            # TODO centralizzare il controllo del nickname
-            # controllo se il nick del nuovo membro è già utilizzato
-            if self.archive.contains_nick(message.author.display_name):
-                await message.channel.send('Il tuo nickname è già utilizzato da un altro membro, modificalo dalle impostazioni del server e ripresentati!')
-                return
-            if any(message.author.display_name == self.bot.get_user(afler).name for afler in self.archive.keys()):
-                await message.channel.send('Questo nickname è l\'username di un utente, non puoi usarlo')
-                return
-            # per il resto il controllo della validità è ancora manuale
-            await message.author.add_roles(self.guild.get_role(self.config.afl_role_id))
-            await message.channel.send('Formidabile')
-            channel = self.bot.get_channel(self.config.welcome_channel_id)
-            welcomeMessage = discord.Embed(
-                title=f'Diamo il benvenuto a {message.author.display_name}!',
-                colour=discord.Colour.dark_theme().value
-            )
-            welcomeMessage.set_thumbnail(url=message.author.display_avatar)
-            welcomeMessage.add_field(
-                name='Presentazione:', value=message.content, inline=False)
-            await channel.send(embed=welcomeMessage)
-            return
+            # a tutti gli altri dice di presentarsi
+            await message.reply('Presentati usando il comando `/presentation`')
         link = shared_functions.link_to_clean(message.content)
         if link is not None:
             await message.delete()
@@ -299,6 +329,7 @@ class EventCog(commands.Cog):
         await self.logger.log(f'nuovo membro: {member.mention}')
         channel = await member.create_dm()
         await channel.send(self.config.greetings)
+        # controlla se il nome dell'utente è valido
         if BannedWords.contains_banned_words(member.display_name):
             await self.logger.log(f'nuovo membro {member.mention} kickato per username improprio')
             await member.kick(reason="ForbiddenUsername")
