@@ -45,13 +45,20 @@ class Afler():
 
     Attributes
     -------------
-    data: Dict[]                contiene i dati dell'afler
-    nick: str                   contiene il nickname dell'afler
-    bio: str                    contiene la bio dell'afler
-    orator: bool                flag per dire se è oratore o meno
-    dank: bool                  flag per dire se è cazzaro o meno
-    dank_messages_buffer: int   messaggi del ruolo cazzaro inviati nella finestra di tempo
-    total_messages: int         messaggi totali inviati dall'afler
+    data: Dict[]                            contiene i dati dell'afler
+    nick: str                               contiene il nickname dell'afler
+    bio: str                                contiene la bio dell'afler
+    orator: bool                            flag per dire se è oratore o meno
+    dank: bool                              flag per dire se è cazzaro o meno
+    dank_messages_buffer: int               messaggi del ruolo cazzaro inviati nella finestra di tempo
+    orator_total_messages: int              totale messaggi orator
+    dank_total_messages: int                totale messaggi dank
+    total_messages: int                     messaggi totali inviati dall'afler
+    orator_expiration: Optional[date]       data di scadenza del ruolo oratore
+    dank_expiration: Optional[date]         data di scadenza del ruolo cazzaro
+    last_nick_change: date                  data dell'ultimo cambio nickname
+    last_message_date: Optional[date]       data dell'ultimo messaggio valido per l'oratore
+    last_violations_count: Optional[date]   data di ultima violazione
 
     Classmethods
     -------------
@@ -60,11 +67,6 @@ class Afler():
 
     Methods
     -------------
-    orator_expiration() ritorna la scadenza del ruolo oratore
-    dank_expiration() ritorna la scadenza del ruolo cazzaro
-    last_nick_change() ritorna la data dell'ultimo cambio nickname
-    last_message_date() ritorna la data dell'ultimo messaggio valido per l'oratore
-    last_violations_count() ritorna la data di ultima violazione
     increase_orator_counter() incrementa il contatore oratore
     decrease_orator_counter() decrementa il contatore oratore del giorno corrente
     set_orator() imposta l'afler come oratore
@@ -157,7 +159,7 @@ class Afler():
 
     @property
     def bio(self) -> str:
-        """Restituisce la bio dell'afler
+        """Restituisce la bio dell'afler.
 
         :returns: bio dell'afler
         :rtype: str
@@ -200,14 +202,36 @@ class Afler():
         return self.data['dank_messages_buffer']
 
     @property
+    def orator_total_messages(self) -> int:
+        """Ritorna il numero totale di messaggi orator.
+        I totali sono calcolati dalla versione 2.0 del bot.
+        
+        :return: il totale dei messaggi orator
+        :rtype: int
+        """
+        return self.data['orator_total_messages']
+
+    @property
+    def dank_total_messages(self) -> int:
+        """Ritorna il numero totale di messaggi dank.
+        I totali sono calcolati dalla versione 2.0 del bot.
+        
+        :return: il totale dei messaggi dank
+        :rtype: int
+        """
+        return self.data['dank_total_messages']
+
+    @property
     def total_messages(self) -> int:
         """Restituisce il numero totale di messaggi inviati dall'afler.
+        I totali sono calcolati dalla versione 2.0 del bot.
 
         :return: il numero totale di messaggi mandati
         :rtype: int
         """
         return self.data['orator_total_messages'] + self.data['dank_total_messages']
 
+    @property
     def orator_expiration(self) -> Optional[date]:
         """Ritorna la data di scadenza del ruolo oratore.
 
@@ -219,6 +243,7 @@ class Afler():
         else:
             return None
 
+    @property
     def dank_expiration(self) -> Optional[date]:
         """Ritorna la data di scadenza del ruolo cazzaro.
 
@@ -230,6 +255,7 @@ class Afler():
         else:
             return None
 
+    @property
     def last_nick_change(self) -> date:
         """Ritorna la data dell'utlimo cambio di nickname
 
@@ -238,6 +264,7 @@ class Afler():
         """
         return datetime.date(datetime.strptime(self.data['last_nick_change'], '%Y-%m-%d'))
 
+    @property
     def last_message_date(self) -> Optional[date]:
         """Ritorna la data dell'ultimo messaggio valido per il conteggio dell'oratore.
 
@@ -249,6 +276,7 @@ class Afler():
         else:
             return None
 
+    @property
     def last_violations_count(self) -> Optional[date]:
         """Ritorna la data dell'ultima violazione.
 
@@ -501,7 +529,7 @@ class Afler():
         return count
 
     def count_consolidated_messages(self) -> int:
-        """Ritorna il conteggio dei messaggi salvati nei campi mon, tue,
+        """Ritorna il conteggio dei messaggi orator salvati nei campi mon, tue,
         wed, ... non include counter.
         Lo scopo è contare i messaggi che sono stati consolidati nello
         storico ai fini di stabilire se si è raggiunta la soglia dell'oratore.
@@ -514,9 +542,9 @@ class Afler():
             count += self.data[weekdays.get(i)]
         return count
 
+
+
 # archivio con i dati
-
-
 class Archive():
     """Gestione dell'archivio con i dati riguardo i messaggi inviati.
     L'idea è di tenerlo in memoria invece di aprire il file a ogni modifica. L'interfaccia è

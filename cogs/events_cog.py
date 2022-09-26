@@ -390,7 +390,7 @@ class EventCog(commands.Cog):
                 if item.nick == new_nick:
                     return
                 # altrimenti procedo come `setnick`, usando come contesto il canale dm
-                last_change = item.last_nick_change()
+                last_change = item.last_nick_change
                 difference = datetime.date(datetime.now()) - last_change
                 if difference.days < self.config.nick_change_days:
                     renewal = last_change + \

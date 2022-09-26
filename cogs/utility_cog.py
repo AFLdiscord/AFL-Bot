@@ -69,16 +69,15 @@ class UtilityCog(commands.Cog, name='Utility'):
                 break
         if not is_a_mod and item.orator:
             status.add_field(
-                name='Oratore:', value=f'scade il {item.orator_expiration()}', inline=False)
+                name='Oratore:', value=f'scade il {item.orator_expiration}', inline=False)
         if item.dank:
             status.add_field(
-                name='Cazzaro:', value=f'scade il {item.dank_expiration()}', inline=False)
+                name='Cazzaro:', value=f'scade il {item.dank_expiration}', inline=False)
         if item.warn_count() == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
-            if item.last_violations_count() != None:
-                violations_expiration = (item.last_violations_count(
-                ) + timedelta(days=self.config.violations_reset_days)).__str__()
+            if item.last_violations_count != None:
+                violations_expiration = (item.last_violations_count + timedelta(days=self.config.violations_reset_days)).__str__()
                 status.add_field(
                     name='Violazioni:', value=f'{item.warn_count()} (scade il {violations_expiration})', inline=False)
         await ctx.send(embed=status)
