@@ -593,10 +593,15 @@ class EventCog(commands.Cog):
             item.clean()
             count = item.count_consolidated_messages()
             if count >= self.config.orator_threshold and self.guild.get_member(id).top_role.id not in self.config.moderation_roles_id:
-                item.set_orator()
                 await self.guild.get_member(id).add_roles(self.guild.get_role(self.config.orator_role_id))
-                await self.logger.log(f'membro <@!{id}> è diventato oratore')
-                await role_channel.send(f'membro <@!{id}> è diventato oratore')
+                msg = ''
+                if item.orator:
+                    msg = f'<@!{id}>: rinnovato ruolo oratore'
+                else:
+                    msg = f'membro <@!{id}> è diventato oratore'
+                await self.logger.log(msg)
+                await role_channel.send(msg)
+                item.set_orator()
 
             # controllo sulla data dell'ultima violazione, ed eventuale reset
             item.reset_violations()
@@ -636,8 +641,13 @@ class EventCog(commands.Cog):
         role_channel = self.bot.get_channel(self.config.main_channel_id)
         dank_role = self.guild.get_role(self.config.dank_role_id)
         await self.guild.get_member(id).add_roles(dank_role)
-        await self.logger.log(f'membro <@!{id}> è diventato un cazzaro')
-        await role_channel.send(f'membro <@!{id}> è diventato un cazzaro')
+        msg = ''
+        if afler.dank:
+            msg = f'<@!{id}>: rinnovato ruolo cazzaro'
+        else:
+            msg = f'membro <@!{id}> è diventato un cazzaro'
+        await self.logger.log(msg)
+        await role_channel.send(msg)
         afler.set_dank()
 
     def is_command(self, message: discord.Message) -> bool:
