@@ -210,7 +210,9 @@ class UtilityCog(commands.Cog, name='Utility'):
         for id in self.archive.keys():
             afler = self.archive.get(id)
             mention = f'<@{id}>'
-            ranking.append((mention, afler.total_messages))
+            message_count = afler.total_messages
+            if message_count > 0:
+                ranking.append((mention, message_count))
         ranking = sorted(ranking, key=lambda i: i[1], reverse=True)
         leaderboard = ''
         for i in range(len(ranking)):
