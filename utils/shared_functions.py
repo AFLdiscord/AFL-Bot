@@ -622,6 +622,15 @@ class Archive():
                 cls._archive_instance.wrapped_archive[key] = Afler.from_archive(
                     archive[key])
 
+    @classmethod
+    def refresh(cls):
+        """Sovrascrive il contenuto dell'archivio con i dati presenti nel file
+        'aflers.json'.
+        Prima di fare ciò salva una copia dell'archivio corrente in 'aflers.json.old'.
+        """
+        cls._archive_instance.save(filename='aflers.json.old')
+        cls.load_archive()
+
     def get(self, id: int) -> Afler:
         """Recupera i dati dell'afler dato il suo id.
 
@@ -687,15 +696,18 @@ class Archive():
         """
         return self.wrapped_archive.values()
 
-    def save(self):
+    def save(self, filename: str='aflers.json') -> None:
         """Salva su disco le modifiche effettuate all'archivio.
+        Opzionalmente si può specificare il nome del file, ad esempio se occorre fare una copia
+
+        :param filename: il nome del file su cui salvare (default='aflers.json')
 
         NOTA: per ora non viene mai chiamato automaticamente dagli altri metodi
         ma deve essere esplicitamente usato quando si vogliono salvare le modifiche.
         L'idea è lasciare più flessibilità, consentendo di effettuare operazioni diverse
         e poi salvare tutto alla fine.
         """
-        update_json_file(self.archive, 'aflers.json')
+        update_json_file(self.archive, filename)
 
     def contains_nick(self, nick: str) -> bool:
         """Controlla se un nickname sia utilizzato correntemente da un afler.

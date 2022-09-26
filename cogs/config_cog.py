@@ -317,12 +317,14 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         await ctx.send(msg)
         self.config.save()
 
-    @commands.command(brief='permette di refreshare l\'archivio')
+    @commands.command(brief='permette di refreshare l\'archivio', aliases=['refresh'])
     async def refresharchive(self, ctx: commands.Context) -> None:
         """Aggiorna l'archivio del bot, rileggendolo dal disco.
         Utile quando si interviene manualmente sul file.
+        Prima di ricaricare i dati salva una copia dell'archivio corrente
+        in 'afler.json.old'.
         """
-        Archive.load_archive()
+        Archive.refresh()
         await ctx.send('Archivio ricaricato correttamente')
         await self.logger.log('Archivio ricaricato correttamente')
 
