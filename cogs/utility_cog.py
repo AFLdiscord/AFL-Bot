@@ -58,8 +58,11 @@ class UtilityCog(commands.Cog, name='Utility'):
             color=member.top_role.color
         )
         status.set_thumbnail(url=member.display_avatar)
-        msg_text = f'Oratore: {item.count_orator_messages()}\nCazzaro: {item.dank_messages_buffer}\nTotale: {item.total_messages}'
-        status.add_field(name='Messaggi inviati:',
+        msg_text = f'Oratore: {item.count_orator_messages()}\nCazzaro: {item.dank_messages_buffer}\nTotale: {item.count_orator_messages()+item.dank_messages_buffer}'
+        status.add_field(name='Messaggi ultimi 7 giorni:',
+                         value=msg_text, inline=False)
+        msg_text = f'Oratore: {item.orator_total_messages}\nCazzaro: {item.dank_total_messages}\nTotale: {item.total_messages}'
+        status.add_field(name='Messaggi totali:',
                          value=msg_text, inline=False)
         is_a_mod: bool = False
         for role in member.roles:
