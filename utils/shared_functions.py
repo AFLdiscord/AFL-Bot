@@ -467,13 +467,16 @@ class Afler():
 
     # METODI A SUPPORTO DELLA LOGICA DI CONTROLLO RUOLI E VIOLAZIONI
 
-    def reset_violations(self) -> None:
-        """Azzera le violazioni dell'afler se necessario."""
+    def reset_violations(self) -> int:
+        """Azzera le violazioni dell'afler se necessario.
+
+        :returns: il numero di violazioni rimosse
+        :rtype: int
+        """
         if self.data['last_violation_count'] is not None:
             expiration = datetime.date(datetime.strptime(
                 self.data['last_violation_count'], '%Y-%m-%d'))
             if (expiration + timedelta(days=Config.get_config().violations_reset_days)) <= (datetime.date(datetime.now())):
-                print(f'reset violazioni di  {self.data["nick"]}')
                 self.data['violations_count'] = 0
                 self.data['last_violation_count'] = None
 

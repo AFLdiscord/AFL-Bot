@@ -603,8 +603,11 @@ class EventCog(commands.Cog):
                 await role_channel.send(msg)
                 item.set_orator()
 
-            # controllo sulla data dell'ultima violazione, ed eventuale reset
-            item.reset_violations()
+            # controllo delle violazioni
+            violations_count = item.reset_violations()
+            if violations_count > 0:
+                msg = f'rimosse le {violations_count} violazioni di {item.nick}'
+                await self.logger.log(msg)
 
             # rimuovo i messaggi contati 7 giorni fa
             item.forget_last_week()
