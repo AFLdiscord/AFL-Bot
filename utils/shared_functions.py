@@ -58,7 +58,7 @@ class Afler():
     dank_expiration: Optional[date]         data di scadenza del ruolo cazzaro
     last_nick_change: date                  data dell'ultimo cambio nickname
     last_message_date: Optional[date]       data dell'ultimo messaggio valido per l'oratore
-    last_violations_count: Optional[date]   data di ultima violazione
+    last_violation_date: Optional[date]   data di ultima violazione
 
     Classmethods
     -------------
@@ -116,7 +116,7 @@ class Afler():
             'counter': 0,
             'last_message_date': None,
             'violations_count': 0,
-            'last_violation_count': None,
+            'last_violation_date': None,
             'orator': False,
             'orator_expiration': None,
             'orator_total_messages': 0,
@@ -277,14 +277,14 @@ class Afler():
             return None
 
     @property
-    def last_violations_count(self) -> Optional[date]:
+    def last_violation_date(self) -> Optional[date]:
         """Ritorna la data dell'ultima violazione.
 
         :returns: data ultima violazione
         :rtype: Optional[datetime.date]
         """
-        if self.data['last_violation_count'] is not None:
-            return datetime.date(datetime.strptime(self.data['last_violation_count'], '%Y-%m-%d'))
+        if self.data['last_violation_date'] is not None:
+            return datetime.date(datetime.strptime(self.data['last_violation_date'], '%Y-%m-%d'))
         else:
             return None
 
@@ -451,11 +451,11 @@ class Afler():
         self.data['violations_count'] += count
         if count > 0:
             # modifica la data solo se sono aggiunti
-            self.data['last_violation_count'] = datetime.date(
+            self.data['last_violation_date'] = datetime.date(
                 datetime.now()).__str__()
         if self.data['violations_count'] <= 0:
             self.data['violations_count'] = 0
-            self.data['last_violation_count'] = None
+            self.data['last_violation_date'] = None
 
     def warn_count(self) -> int:
         """Ritorna il numero di warn che l'afler ha accumulato.
@@ -473,12 +473,12 @@ class Afler():
         :returns: il numero di violazioni rimosse
         :rtype: int
         """
-        if self.data['last_violation_count'] is not None:
+        if self.data['last_violation_date'] is not None:
             expiration = datetime.date(datetime.strptime(
-                self.data['last_violation_count'], '%Y-%m-%d'))
+                self.data['last_violation_date'], '%Y-%m-%d'))
             if (expiration + timedelta(days=Config.get_config().violations_reset_days)) <= (datetime.date(datetime.now())):
                 self.data['violations_count'] = 0
-                self.data['last_violation_count'] = None
+                self.data['last_violation_date'] = None
 
     def forget_last_week(self) -> None:
         """Rimuove dal conteggio i messaggi risalenti a 7 giorni fa."""

@@ -11,7 +11,7 @@
     "counter",
     "last_message_date",
     "violations_count",
-    "last_violation_count",
+    "last_violation_date",
     "orator",
     "orator_expiration",
     "orator_total_messages",
