@@ -80,7 +80,8 @@ class UtilityCog(commands.Cog, name='Utility'):
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
             if item.last_violations_count != None:
-                violations_expiration = (item.last_violations_count + timedelta(days=self.config.violations_reset_days)).__str__()
+                violations_expiration = (
+                    item.last_violations_count + timedelta(days=self.config.violations_reset_days)).__str__()
                 status.add_field(
                     name='Violazioni:', value=f'{item.warn_count()} (scade il {violations_expiration})', inline=False)
         await ctx.send(embed=status)

@@ -26,6 +26,8 @@ BannedWords.load()
 Archive.load_archive()
 
 # bot
+
+
 class AFLBot(commands.Bot):
 
     # carico i moduli dei comandi
@@ -33,6 +35,7 @@ class AFLBot(commands.Bot):
         extensions = shared_functions.get_extensions()
         for ext in extensions:
             await bot.load_extension(ext)
+
 
 # per poter ricevere le notifiche sull'unione di nuovi membri e i ban
 intents = discord.Intents.default()

@@ -39,7 +39,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         """
         if (message.author == self.bot.user or
             message.author.bot or
-            message.guild is None):
+                message.guild is None):
             return
         if not BannedWords.contains_banned_words(message.content):
             return

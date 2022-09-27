@@ -108,7 +108,6 @@ class EventCog(commands.Cog):
             name='Presentazione:', value=f'età: {age}\nsesso: {sex.value}', inline=False)
         await channel.send(embed=welcomeMessage)
         return
-        
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

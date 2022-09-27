@@ -205,7 +205,7 @@ class Afler():
     def orator_total_messages(self) -> int:
         """Ritorna il numero totale di messaggi orator.
         I totali sono calcolati dalla versione 2.0 del bot.
-        
+
         :return: il totale dei messaggi orator
         :rtype: int
         """
@@ -215,7 +215,7 @@ class Afler():
     def dank_total_messages(self) -> int:
         """Ritorna il numero totale di messaggi dank.
         I totali sono calcolati dalla versione 2.0 del bot.
-        
+
         :return: il totale dei messaggi dank
         :rtype: int
         """
@@ -546,7 +546,6 @@ class Afler():
         return count
 
 
-
 # archivio con i dati
 class Archive():
     """Gestione dell'archivio con i dati riguardo i messaggi inviati.
@@ -699,7 +698,7 @@ class Archive():
         """
         return self.wrapped_archive.values()
 
-    def save(self, filename: str='aflers.json') -> None:
+    def save(self, filename: str = 'aflers.json') -> None:
         """Salva su disco le modifiche effettuate all'archivio.
         Opzionalmente si può specificare il nome del file, ad esempio se occorre fare una copia
 
@@ -866,7 +865,7 @@ class BotLogger():
         """
         self.channel = await bot.fetch_channel(Config.get_config().log_channel_id)
 
-    async def log(self,  msg: str, media: List[discord.Attachment]=None) -> None:
+    async def log(self,  msg: str, media: List[discord.Attachment] = None) -> None:
         """Compila il messaggio da inviare nel canale. Il formato
         è il seguente:
 

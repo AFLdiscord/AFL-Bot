@@ -96,11 +96,11 @@ class JsonManipulator():
         """Sovrascrive il vecchio file aflers.json con le modifiche fatte.
         Il vecchio archivio viene salvato in afler.json.old
         """
-        #with open(self.file_name, 'w') as file:
+        # with open(self.file_name, 'w') as file:
         update_json_file(self.new_archive, self.file_name)
-        #with open(self.backup_old, 'w') as file:
+        # with open(self.backup_old, 'w') as file:
         update_json_file(self.old_archive, self.backup_old)
-        #with open(self.fields, 'w') as file:
+        # with open(self.fields, 'w') as file:
         update_json_file(self.fields_list, self.fields)
 
     def discard(self) -> None:
@@ -175,7 +175,7 @@ def print_changes(archive: JsonManipulator) -> None:
 
 
 def check_integrity(archive: JsonManipulator) -> None:
-    if(archive.check_integrity()):
+    if (archive.check_integrity()):
         print('Non sono stati rilevati errori nell\'archivio.')
 
 
@@ -206,7 +206,7 @@ def main():
         7: save_and_exit,
         8: discard_and_exit
     }
-    while(True):
+    while (True):
         selection = input('''Inserisci il numero corrispondente
             1 : add  aggiunge un campo all'archivio
             2 : delete  cancella un campo dall'archivio
