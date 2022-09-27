@@ -605,7 +605,7 @@ class EventCog(commands.Cog):
             # controllo delle violazioni
             violations_count = item.reset_violations()
             if violations_count > 0:
-                msg = f'rimosse le {violations_count} violazioni di {item.nick}'
+                msg = f'rimosse le {violations_count} violazioni di <@!{id}>'
                 await self.logger.log(msg)
                 # rimozione del ruolo sotto sorveglianza
                 await self.guild.get_member(id).remove_roles(
