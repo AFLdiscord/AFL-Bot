@@ -473,12 +473,16 @@ class Afler():
         :returns: il numero di violazioni rimosse
         :rtype: int
         """
+        violations_count = 0
         if self.data['last_violation_date'] is not None:
             expiration = datetime.date(datetime.strptime(
                 self.data['last_violation_date'], '%Y-%m-%d'))
             if (expiration + timedelta(days=Config.get_config().violations_reset_days)) <= (datetime.date(datetime.now())):
+                violations_count = self.data['violations_count']
                 self.data['violations_count'] = 0
                 self.data['last_violation_date'] = None
+        return violations_count
+
 
     def forget_last_week(self) -> None:
         """Rimuove dal conteggio i messaggi risalenti a 7 giorni fa."""
