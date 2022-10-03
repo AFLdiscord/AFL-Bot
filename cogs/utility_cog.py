@@ -72,10 +72,10 @@ class UtilityCog(commands.Cog, name='Utility'):
                 break
         if not is_a_mod and item.orator:
             status.add_field(
-                name='Oratore:', value=f'scade il {item.orator_expiration}', inline=False)
+                name='Oratore:', value=f'scade il {datetime.strftime(item.orator_expiration, "%d/%m")}', inline=False)
         if item.dank:
             status.add_field(
-                name='Cazzaro:', value=f'scade il {item.dank_expiration}', inline=False)
+                name='Cazzaro:', value=f'scade il {datetime.strftime(item.dank_expiration, "%d/%m %H:%M")}', inline=False)
         if item.warn_count() == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
