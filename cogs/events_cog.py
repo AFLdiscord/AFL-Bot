@@ -355,6 +355,8 @@ class EventCog(commands.Cog):
         - coincidenza con il nickname di un altro membro nel server
         - coincidenza con l'username di un altro membro del server
         """
+        if before.bot:
+            return
         new_nick = after.display_name
         afl_role = self.guild.get_role(self.config.afl_role_id)
         dm = self.bot.get_user(before.id) if self.bot.get_user(
@@ -417,6 +419,8 @@ class EventCog(commands.Cog):
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
         """In caso di cambio di username, resetta il nickname a quello presente nel file."""
+        if before.bot:
+            return
         if (before.name == after.name) and (before.discriminator == after.discriminator):
             # non ci interessa, vuol dire che ha cambiato immagine
             return
