@@ -255,15 +255,19 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             if number < 0:  # non deve controllare il ban se è un unwarn
                 return
             if item.warn_count() == 3:
-                await member.add_roles(self.bot.get_guild(self.config.guild_id).get_role(self.config.under_surveillance_id))
+                role = self.bot.get_guild(self.config.guild_id).get_role(
+                    self.config.under_surveillance_id)
+                await member.add_roles(role)
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
                 channel = await member.create_dm()
                 await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
+                await self.logger.log(f'{member.mention} aggiunto a {role.mention}')
             elif item.warn_count() >= 4:
                 penalty = 'bannato dal server.'
                 channel = await member.create_dm()
                 await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
                 await member.ban(delete_message_days=0, reason=reason)
+                await self.logger.log(f'{member.mention} bannato automaticamente per aver superato i 3 warn')
             else:
                 channel = await member.create_dm()
                 await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
