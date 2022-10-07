@@ -3,7 +3,7 @@ from typing import Union
 
 import discord
 from discord.ext import commands
-from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
+from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config, relevant_message
 
 
 class ModerationCog(commands.Cog, name='Moderazione'):
@@ -37,13 +37,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         - canali di chat privata
         - canali ignorati (vedi config.template)
         """
-        if message.type not in (discord.MessageType.default, discord.MessageType.reply):
-            # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
-            # automaticamente ma vengono attribuiti all'utente che esegue l'azione
-            return
-        if (message.author == self.bot.user or
-            message.author.bot or
-                message.guild is None):
+        if not relevant_message(message):
             return
         if not BannedWords.contains_banned_words(message.content):
             return

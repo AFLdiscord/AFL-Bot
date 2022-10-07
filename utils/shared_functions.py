@@ -483,7 +483,6 @@ class Afler():
                 self.data['last_violation_date'] = None
         return violations_count
 
-
     def forget_last_week(self) -> None:
         """Rimuove dal conteggio i messaggi risalenti a 7 giorni fa."""
         self.data[weekdays.get(datetime.today().weekday())] = 0
@@ -1095,3 +1094,19 @@ def link_to_clean(message: str) -> Optional[str]:
             cleaned_link = re.findall(
                 'https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
     return cleaned_link
+
+
+def relevant_message(message: discord.Message) -> bool:
+    """Controlla se il messaggio è da processare o meno
+
+    :param message: messaggio da controllare
+    :returns: True se va processato, False altrimenti
+    :rtype: bool
+    """
+    if message.type not in (discord.MessageType.default, discord.MessageType.reply):
+        # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
+        # automaticamente ma vengono attribuiti all'utente che esegue l'azione
+        return False
+    if message.author.bot or message.guild.id != Config.get_config().guild_id:
+        return False
+    return True

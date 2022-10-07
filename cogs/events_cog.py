@@ -119,11 +119,7 @@ class EventCog(commands.Cog):
         Se il messaggio è nel canale di presentazione, ammette il membro automaticamente assegnandogli
         il ruolo AFL.
         """
-        if message.type not in (discord.MessageType.default, discord.MessageType.reply):
-            # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
-            # automaticamente ma vengono attribuiti all'utente che esegue l'azione
-            return
-        if message.author == self.bot.user or message.author.bot or message.guild != self.guild:
+        if not shared_functions.relevant_message(message):
             return
         if message.content.lower() == 'ping':
             response = f'pong in {round(self.bot.latency * 1000)} ms'
@@ -186,11 +182,7 @@ class EventCog(commands.Cog):
         il contatore dell'utente corrispondente di uno.
         Per cancellazioni in bulk vedi on_bulk_message_delete.
         """
-        if message.type not in (discord.MessageType.default, discord.MessageType.reply):
-            # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
-            # automaticamente ma vengono attribuiti all'utente che esegue l'azione
-            return
-        if message.author == self.bot.user or message.author.bot or message.guild != self.guild:
+        if not shared_functions.relevant_message(message):
             return
         if message.channel.id == self.config.poll_channel_id:
             await self.logger.log(f'rimuovo proposta\n{message.content}')
