@@ -435,23 +435,6 @@ class EventCog(commands.Cog):
             await member.edit(nick=old_nick)
 
     @commands.Cog.listener()
-    async def on_guild_channel_delete(self, channel: discord.abc.GuildChannel):
-        # Rimuove un canale dall'elenco attivi se questo viene cancellato dal server.
-        # Potrebbe essere esteso in futuro anche per aggiungere automaticamente canali all'elenco
-        # tramite qualche interazione.
-
-        if channel.id in self.config.active_channels_id:
-            # devo controllare se è una delete o una creazione
-            if channel in channel.guild.channels:
-                # è appena stato creato
-                return
-            else:
-                # da rimuovere
-                await self.logger.log(f'rimosso il canale: {channel.name} (id: {channel.id})')
-                self.config.active_channels_id.remove(channel.id)
-                self.config.save()
-
-    @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
         """Generica gestione errori per evitare crash del bot in caso di eccezioni nei comandi.
         Per ora si limita a avvisare che le menzioni possono dare problemi con certi prefissi e a
