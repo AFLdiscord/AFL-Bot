@@ -595,14 +595,15 @@ class EventCog(commands.Cog):
             item.clean()
             count = item.count_consolidated_messages()
             if count >= self.config.orator_threshold and self.guild.get_member(id).top_role.id not in self.config.moderation_roles_id:
-                await self.guild.get_member(id).add_roles(self.guild.get_role(self.config.orator_role_id))
+                orator_role = self.guild.get_role(self.config.orator_role_id)
+                await self.guild.get_member(id).add_roles(orator_role)
                 msg = ''
                 if item.orator:
-                    msg = f'<@!{id}>: rinnovato ruolo oratore'
+                    msg = f'<@!{id}>: rinnovato ruolo {orator_role.mention}'
                 else:
-                    msg = f'membro <@!{id}> è diventato oratore'
+                    msg = f'<@!{id}> è diventato {orator_role.mention}'
                 await self.logger.log(msg)
-                await role_channel.send(msg)
+                await role_channel.send(embed=discord.Embed(description=msg))
                 item.set_orator()
 
             # controllo delle violazioni
@@ -611,16 +612,20 @@ class EventCog(commands.Cog):
                 msg = f'rimosse le {violations_count} violazioni di <@!{id}>'
                 await self.logger.log(msg)
                 # rimozione del ruolo sotto sorveglianza
-                await self.guild.get_member(id).remove_roles(
-                    self.guild.get_role(self.config.under_surveillance_id))
+                surveillance_role = self.guild.get_role(
+                    self.config.under_surveillance_id)
+                await self.guild.get_member(id).remove_roles(surveillance_role)
+                await self.logger.log(f'<@!{id}> rimosso da <@!{surveillance_role.mention}')
 
             # rimuovo i messaggi contati 7 giorni fa
             item.forget_last_week()
 
             if item.is_orator_expired():
-                await self.guild.get_member(id).remove_roles(self.guild.get_role(self.config.orator_role_id))
-                await self.logger.log(f'membro <@!{id}> non è più un oratore')
-                await role_channel.send(f'membro <@!{id}> non è più un oratore :(')
+                orator_role = self.guild.get_role(self.config.orator_role_id)
+                await self.guild.get_member(id).remove_roles(orator_role)
+                msg = f'<@!{id}> non è più un {orator_role.mention}'
+                await self.logger.log(msg)
+                await role_channel.send(embed=discord.Embed(description=f'{msg} :('))
                 item.remove_orator()
             if item.is_dank_expired():
                 await self.remove_dank_from_afler(item, id)
@@ -636,8 +641,9 @@ class EventCog(commands.Cog):
         role_channel = self.bot.get_channel(self.config.main_channel_id)
         dank_role = self.guild.get_role(self.config.dank_role_id)
         await self.guild.get_member(id).remove_roles(dank_role)
-        await self.logger.log(f'membro <@!{id}> non è più un cazzaro')
-        await role_channel.send(f'membro <@!{id}> non è più un cazzaro :)')
+        msg = f'<@!{id}> non è più un {dank_role.mention}'
+        await self.logger.log(msg)
+        await role_channel.send(embed=discord.Embed(description=f'{msg} :)'))
         afler.remove_dank()
 
     async def set_dank(self, afler: Afler, id: int) -> None:
@@ -651,11 +657,11 @@ class EventCog(commands.Cog):
         await self.guild.get_member(id).add_roles(dank_role)
         msg = ''
         if afler.dank:
-            msg = f'<@!{id}>: rinnovato ruolo cazzaro'
+            msg = f'<@!{id}>: rinnovato ruolo {dank_role.mention}'
         else:
-            msg = f'membro <@!{id}> è diventato un cazzaro'
+            msg = f'<@!{id}> è diventato un {dank_role.mention}'
         await self.logger.log(msg)
-        await role_channel.send(msg)
+        await role_channel.send(embed=discord.Embed(description=msg))
         afler.set_dank()
 
     def is_command(self, message: discord.Message) -> bool:
