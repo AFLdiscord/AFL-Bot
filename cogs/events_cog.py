@@ -119,7 +119,10 @@ class EventCog(commands.Cog):
         Se il messaggio è nel canale di presentazione, ammette il membro automaticamente assegnandogli
         il ruolo AFL.
         """
-        # TODO accorciare la funzione
+        if message.type not in (discord.MessageType.default, discord.MessageType.reply):
+            # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
+            # automaticamente ma vengono attribuiti all'utente che esegue l'azione
+            return
         if message.author == self.bot.user or message.author.bot or message.guild != self.guild:
             return
         if message.content.lower() == 'ping':

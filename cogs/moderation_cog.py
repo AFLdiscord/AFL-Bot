@@ -37,6 +37,10 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         - canali di chat privata
         - canali ignorati (vedi config.template)
         """
+        if message.type not in (discord.MessageType.default, discord.MessageType.reply):
+            # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
+            # automaticamente ma vengono attribuiti all'utente che esegue l'azione
+            return
         if (message.author == self.bot.user or
             message.author.bot or
                 message.guild is None):
