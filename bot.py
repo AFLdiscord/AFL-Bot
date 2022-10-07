@@ -17,7 +17,7 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 # carica la configurazione, ricorda di modificare config.json seguendo indicazioni del template
-if not Config.get_config().load():
+if not Config.get_config():
     print('controlla di avere creato correttamente config.json')
     exit()
 # carica le parole bannate
