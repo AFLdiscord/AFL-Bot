@@ -53,7 +53,7 @@ class EventCog(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot: commands.Bot = bot
-        self.__version__ = 'v2.0beta'
+        self.bot.version: str = 'v2.0beta'
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
@@ -61,8 +61,8 @@ class EventCog(commands.Cog):
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
-        """Aggiorna lo stato del bot al contenuto di self.__version__"""
-        botstat = discord.Game(name=f'AFL {self.__version__}')
+        """Aggiorna lo stato del bot al contenuto di self.bot.version"""
+        botstat = discord.Game(name=f'AFL {self.bot.version}')
         await self.bot.change_presence(activity=botstat)
 
     class Sex(Enum):
@@ -473,8 +473,10 @@ class EventCog(commands.Cog):
         """
         await self.bot.tree.sync()
         self.guild = self.bot.get_guild(self.config.guild_id)
-        timestamp = datetime.time(datetime.now())
-        botstat = discord.Game(name=f'AFL {self.__version__}')
+        timestamp = datetime.now()
+        # salva il timestamp di avvio nel bot
+        self.bot.start_time: datetime = timestamp
+        botstat = discord.Game(name=f'AFL {self.bot.version}')
         await self.bot.change_presence(activity=botstat)
         # inizializzazione del logger degli eventi sul canale
         await self.logger.initialize(self.bot)
@@ -486,7 +488,7 @@ class EventCog(commands.Cog):
         if not self.periodic_checks.is_running():
             if self.config.main_channel_id is not None:
                 channel = self.bot.get_channel(self.config.main_channel_id)
-                await channel.send(f'AFL Bot `{self.__version__}` avviato alle `{timestamp}`. Il prefisso è: `{self.bot.command_prefix}`')
+                await channel.send(f'AFL Bot `{self.bot.version}` avviato alle {discord.utils.format_dt(timestamp, "T")}. Il prefisso è: `{self.bot.command_prefix}`')
             await self.logger.log('avvio task')
             self.periodic_checks.start()
         else:

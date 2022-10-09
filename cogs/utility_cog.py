@@ -232,7 +232,21 @@ class UtilityCog(commands.Cog, name='Utility'):
         Sintassi
         <info         # invia il link
         """
-        await ctx.send('https://github.com/AFLdiscord')
+        embed = discord.Embed(title='Informazioni sul bot')
+        embed.add_field(
+            name='Uptime',
+            value=f'{datetime.now() - self.bot.start_time}',
+            inline=False
+        ).add_field(
+            name='Link organizzazione',
+            value='https://github.com/AFLdiscord',
+            inline=False
+        ).set_thumbnail(
+            url=self.bot.user.display_avatar
+        ).set_footer(
+            text=f'AFL Bot versione {self.bot.version}'
+        )
+        await ctx.send(embed=embed)
 
 
 async def setup(bot: commands.Bot):
