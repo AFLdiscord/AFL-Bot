@@ -100,7 +100,7 @@ class EventCog(commands.Cog):
         await self.logger.log(msg)
         channel = self.bot.get_channel(self.config.welcome_channel_id)
         welcomeMessage = discord.Embed(
-            title=f'Diamo il benvenuto a {interaction.user.display_name}!',
+            title=f'Diamo il benvenuto a {discord.utils.escape_markdown(interaction.user.display_name)}!',
             colour=discord.Colour.dark_theme().value
         )
         welcomeMessage.set_thumbnail(url=interaction.user.display_avatar)
@@ -139,7 +139,7 @@ class EventCog(commands.Cog):
         link = shared_functions.link_to_clean(message.content)
         if link is not None:
             await message.delete()
-            await message.channel.send(f'Link da {message.author.display_name} :\n{link}')
+            await message.channel.send(f'Link da {discord.utils.escape_markdown(message.author.display_name)} :\n{link}')
             return
         if message.channel.id == self.config.poll_channel_id:
             await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
@@ -428,10 +428,10 @@ class EventCog(commands.Cog):
         except KeyError:
             await self.logger.log(f'utente {before.mention} non trovato nell\'archivio durante on_user_update (before:{before.name} after:{after.name}')
             return
-        old_nick: str = item.nick
+        old_nick: str = item.escaped_nick
         member = self.guild.get_member(after.id)
         if old_nick != member.nick:
-            await self.logger.log(f'ripristino nickname di {member.mention} da `{member.display_name}` a `{old_nick}`')
+            await self.logger.log(f'ripristino nickname di {member.mention} da `{discord.utils.escape_markdown(member.display_name)}` a `{old_nick}`')
             await member.edit(nick=old_nick)
 
     @commands.Cog.listener()

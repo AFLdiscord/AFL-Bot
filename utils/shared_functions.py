@@ -140,6 +140,17 @@ class Afler():
         return cls(afler_data)
 
     @property
+    def escaped_nick(self) -> str:
+        """Restituisce il nickname dell'afler facendo escape di eventuale markdown
+        presente. Se nono contiene markdown è equivalente al nick. Utile per stampare
+        il nickname in un messaggio evitando di formattare il markdown presente.
+
+        :returns: il nickname con le sequenze di markdown escapate
+        :rtype: str
+        """
+        return discord.utils.escape_markdown(self.data['nick'])
+
+    @property
     def nick(self) -> str:
         """Restituisce il nickname dell'afler.
 
@@ -880,10 +891,12 @@ class BotLogger():
         :param media: eventuali allegati del messaggio (immagini, video, etc)
         """
         timestamp = datetime.now()
-        msg = f'`{timestamp}`\n{msg}'
         if self.channel is None:
             # fallback sul terminale
-            print(msg)
+            print(f'[{timestamp}]:\n{msg}')
+            return
+        # se devo stampare su discord rimuovo eventuale markdown dal messaggio
+        msg = f'`{timestamp}`\n{discord.utils.escape_markdown(msg)}'
         log_message = discord.Embed(
             title='Log event',
             description=msg,

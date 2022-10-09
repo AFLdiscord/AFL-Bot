@@ -54,7 +54,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.message.delete(delay=5)
             return
         status = discord.Embed(
-            title=f'Status di {member.display_name}',
+            title=f'Status di {item.escaped_nick}',
             color=member.top_role.color
         )
         status.set_thumbnail(url=member.display_avatar)
@@ -102,7 +102,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if member is not None:
             user = member
         avatar = discord.Embed(
-            title=f'Avatar di {user.display_name}:'
+            title=f'Avatar di {discord.utils.escape_markdown(user.display_name)}:'
         )
         avatar.set_image(url=user.display_avatar)
         await ctx.send(embed=avatar)
@@ -142,12 +142,14 @@ class UtilityCog(commands.Cog, name='Utility'):
         elif any(ctx.author.id != afler and new_nick == self.bot.get_user(afler).name for afler in self.archive.keys()):
             await ctx.send('Questo nickname è l\'username di un utente, non puoi usarlo')
         else:
-            old_nick = ctx.author.display_name
+            old_nick = discord.utils.escape_markdown(ctx.author.display_name)
             item.nick = new_nick
             self.archive.save()
-            await ctx.author.edit(nick=new_nick)
-            await ctx.send(f'Nickname cambiato in {new_nick}')
-            await self.logger.log(f'Nickname di {ctx.author.mention} modificato in `{new_nick}` (era `{old_nick}`)')
+            escaped_nick = discord.utils.escape_markdown(
+                new_nick)   # serve per stampare
+            await ctx.author.edit(nick=escaped_nick)
+            await ctx.send(f'Nickname cambiato in {escaped_nick}')
+            await self.logger.log(f'Nickname di {ctx.author.mention} modificato in {escaped_nick} (era {old_nick})')
 
     @commands.hybrid_command(brief='imposta la propria bio')
     async def setbio(self, ctx: commands.Context, *, bio: str):
@@ -193,7 +195,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send('L\'utente selezionato non ha una bio.')
         else:
             bio = discord.Embed(
-                title=f'Bio di {member.display_name}',
+                title=f'Bio di {item.escaped_nick}',
                 description=item.bio,
                 color=member.top_role.color
             )
@@ -225,12 +227,12 @@ class UtilityCog(commands.Cog, name='Utility'):
         embed.description = leaderboard
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(brief='invia il link alla pagina GitHub di AFL')
+    @commands.hybrid_command(brief='uptime e link alla pagina GitHub di AFL')
     async def info(self, ctx: commands.Context):
-        """Invia il link alla pagina GitHub di AFL.
+        """Uptime e link alla pagina GitHub di AFL.
 
         Sintassi
-        <info         # invia il link
+        <info         # invia le info
         """
         embed = discord.Embed(title='Informazioni sul bot')
         embed.add_field(
