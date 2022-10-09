@@ -446,12 +446,15 @@ class EventCog(commands.Cog):
                 return
             await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
             await ctx.send_help()   # manda tutti i comandi, necessario se ci sono più pagine
+            return
         elif isinstance(error, commands.CheckFailure):
             await ctx.send('Non hai i permessi per usare questo comando.', delete_after=5)
-            await ctx.message.delete(delay=5)
+        elif isinstance(error, commands.BotMissingPermissions):
+            await ctx.send('Il bot non ha il permesso di eseguire l\'azione richiesta', delete_after=5)
         else:
             await ctx.send(f'Sintassi errata, controlla come usare il comando.\n```{ctx.command.help}```')
             # potrei fare la stessa cosa mettendo ctx.send_help(ctx.command.help) ma volevo un messaggio solo
+        await ctx.message.delete(delay=5)
         await self.logger.log(str(error))
 
     @commands.Cog.listener()
