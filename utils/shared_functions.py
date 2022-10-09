@@ -895,8 +895,7 @@ class BotLogger():
             # fallback sul terminale
             print(f'[{timestamp}]:\n{msg}')
             return
-        # se devo stampare su discord rimuovo eventuale markdown dal messaggio
-        msg = f'`{timestamp}`\n{discord.utils.escape_markdown(msg)}'
+        msg = f'`{timestamp}`\n{msg}'
         log_message = discord.Embed(
             title='Log event',
             description=msg,

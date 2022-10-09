@@ -49,7 +49,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         await message.delete()
         await self.logger.log(f'aggiunto warn a {message.author.mention} per \
-            linguaggio inappropriato: `{message.content}`')
+            linguaggio inappropriato:\n{message.content}')
         await self._add_warn(message.author, 'linguaggio inappropriato', 1)
 
     @commands.Cog.listener()
@@ -101,7 +101,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         item.nick = name
         self.archive.save()
         await member.edit(nick=name)
-        await self.logger.log(f'Nickname di {member.mention} ripristinato in {name} (era {old_nick})')
+        await self.logger.log(discord.utils.escape_markdown(f'Nickname di {member.mention} ripristinato in {name} (era {old_nick})'))
         await ctx.send(f'Nickname di {member.mention} ripristinato')
 
     @commands.command(brief='aggiunge un warn all\'utente citato')
