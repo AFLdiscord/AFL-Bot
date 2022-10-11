@@ -22,6 +22,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
     - removecog         rimuove una o più cog dal bot e dal file extensions.json
     - coglist           lista delle estensioni caricate all'avvio
     - setthresholds     permette di gestire le soglie per diversi parametri
+    - addexception      permette di escludere canali dal controllo parole bannate
+    - removeexception   riattiva il controllo delle parole bannate nel canale
     - refresharchive    rilegge l'archivio dal file
     """
 
@@ -316,6 +318,60 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         await self.logger.log(msg)
         await ctx.send(msg)
         self.config.save()
+
+    @commands.command(brief='permette di escludere canali dal controllo parole bannate', aliases=['addex'])
+    async def addexception(self, ctx: commands.Context, id: str):
+        """Aggiunge il canale all'elenco dei canali esclusi dal controllo sulle parole
+        bannate. Può essere usato con id del canale o menzione.
+
+        Sintassi:
+        <addexception id      # aggiunge il canale con id
+        <addexception #canale # aggiunge il canale con menzione
+
+        alias: addex
+        """
+        # strip dei caratteri per la menzione
+        id = id.strip('<#>')
+        # controlla che contenga solo numeri della lunghezza giusta
+        if len(id) in (18, 19) and id.isdigit():
+            int_id = int(id)
+        else:
+            await ctx.send('Id canale non valido')
+            return
+        if int_id not in self.config.exceptional_channels_id:
+            self.config.exceptional_channels_id.append(int_id)
+            await self.logger.log('canale <#' + id + '> aggiunto ai canali esclusi')
+            await ctx.send('Canale <#' + id + '> aggiunto ai canali esclusi')
+            self.config.save()
+        else:
+            await ctx.send('Canale già presente')
+
+    @commands.command(brief='riattiva il controllo delle parole bannate nel canale', aliases=['remex'])
+    async def removeexception(self, ctx: commands.Context, id: str):
+        """Rimuove il canale all'elenco dei canali esclusi dal controllo sulle parole
+        bannate. Può essere usato con id del canale o menzione.
+
+        Sintassi:
+        <removeexception id      # rimuove il canale con id
+        <removeexception #canale # rimuove il canale con menzione
+
+        alias: remex
+        """
+        # strip dei caratteri della menzione
+        id = id.strip('<#>')
+        # controlla che contenga solo numeri della lunghezza giusta
+        if len(id) in (18, 19) and id.isdigit():
+            int_id = int(id)
+        else:
+            await ctx.send('Id canale non valido')
+            return
+        if int_id in self.config.exceptional_channels_id:
+            self.config.exceptional_channels_id.remove(int_id)
+            await self.logger.log('canale <#' + id + '> rimosso dai canali esclusi')
+            await ctx.send('Canale <#' + id + '> rimosso dai canali esclusi')
+            self.config.save()
+        else:
+            await ctx.send('Canale non presente in lista')
 
     @commands.command(brief='permette di refreshare l\'archivio', aliases=['refresh'])
     async def refresharchive(self, ctx: commands.Context) -> None:
