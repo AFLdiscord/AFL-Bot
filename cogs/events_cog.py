@@ -426,7 +426,7 @@ class EventCog(commands.Cog):
         try:
             item: Afler = self.archive.get(before.id)
         except KeyError:
-            await self.logger.log(discord.utils.escape_markdown(f'utente {before.mention} non trovato nell\'archivio durante on_user_update (before:{before.name} after:{after.name}'))
+            await self.logger.log(discord.utils.escape_markdown(f'utente {before.mention} non trovato nell\'archivio durante on_user_update (before:{before.name} after:{after.name})'))
             return
         old_nick: str = item.escaped_nick
         member = self.guild.get_member(after.id)
