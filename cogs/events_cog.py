@@ -467,7 +467,7 @@ class EventCog(commands.Cog):
         fatto dentro on_ready.
         """
         await self.logger.log('evento on_resume')
-        coherency_check(self.archive, self.guild.members)
+        await self.coherency_check(self.guild.members)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -490,7 +490,7 @@ class EventCog(commands.Cog):
         # log dell'avvio
         await self.logger.log(f'{self.bot.user} connesso a discord')
         # controllo coerenza archivio
-        coherency_check(self.archive, self.guild.members)
+        await self.coherency_check(self.guild.members)
         # per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
         if not self.periodic_checks.is_running():
             if self.config.main_channel_id is not None:
@@ -655,6 +655,42 @@ class EventCog(commands.Cog):
         await self.logger.log(msg)
         await role_channel.send(embed=discord.Embed(description=msg))
         afler.set_dank()
+
+    async def coherency_check(self, members: List[discord.Member]) -> None:
+        """Controlla la coerenza tra l'elenco membri del server e l'elenco
+        degli id salvati nell'archivio aflers.json
+        Questo è per evitare incongruenze in caso di downtime del bot.
+
+        In particolare si occupa di:
+        - rimuovere membri usciti dal server
+        - aggiungere membri non presenti
+
+        :param members: l'elenco dei membri del server
+        """
+        archived_ids = list(self.archive.keys())
+        members_ids_and_nick: Dict[int, str] = {}
+        # salva tutti gli id dei membri presenti
+        for member in members:
+            if not member.bot:
+                members_ids_and_nick[member.id] = member.display_name
+                # controlla che tutti i membri presenti esistano nell'archivio
+                # quelli che mancano vengono aggiunti
+                try:
+                    self.archive.get(member.id)
+                except KeyError:
+                    self.archive.add(
+                        member.id, Afler.new_entry(member.display_name))
+                    await self.logger.log(f'membro {member.mention} aggiunto all\'archivio')
+
+        # controlla che tutti i membri archiviati siano ancora presenti
+        # in caso contrario rimuove l'entry corrispondente dall'archivio
+        for archived in archived_ids:
+            if archived not in members_ids_and_nick:
+                self.archive.remove(archived)
+                await self.logger.log(f'membro <@{archived}> rimosso dall\'archivio')
+
+        # salva i cambiamenti su file
+        self.archive.save()
 
     def is_command(self, message: discord.Message) -> bool:
         """Controlla se il messaggio è un comando testuale.
@@ -852,31 +888,6 @@ def discord_markdown(content: str) -> bool:
     """
     prefix = ['@', '#', ':', 'a', 't', '3']
     return content[1] in prefix
-
-
-def coherency_check(archive: Archive, members: List[discord.Member]) -> None:
-    """Controlla la coerenza tra l'elenco membri del server e l'elenco
-    degli id salvati nell'archivio aflers.json
-    Questo è per evitare incongruenze in caso di downtime del bot.
-
-    NOTA: ci interessa solo rimuovere i membri usciti, i membri entrati saranno
-    aggiunti in automatico al primo messaggio.
-    """
-    archived_ids = list(archive.keys())
-    members_ids = []
-    # salva tutti gli id dei membri presenti
-    for member in members:
-        if not member.bot:
-            members_ids.append(member.id)
-
-    # controlla che tutti i membri archiviati siano ancora presenti
-    # in caso contrario rimuove l'entry corrispondente dall'archivio
-    for archived in archived_ids:
-        if archived not in members_ids:
-            archive.remove(archived)
-
-    # save changes to file
-    archive.save()
 
 
 async def setup(bot: commands.Bot):
