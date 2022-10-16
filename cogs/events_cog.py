@@ -6,6 +6,8 @@ Contiene anche due comandi:
 - presentation  per consentire ai nuovi membri di presentarsi
 
 Sono inoltre presenti delle funzioni usiliarie alle funzioni del bot:
+Logging
+- evaluate_diff       trova le differenze tra un messaggio di discord e la sua modifica
 Proposte
 - add_proposal        aggiunge una nuova proposta al file che le traccia
 - remove_proposal     rimuove la proposta dal file
@@ -17,6 +19,7 @@ import re
 import json
 from enum import Enum
 from datetime import datetime, timedelta
+from difflib import SequenceMatcher
 from typing import Any, Dict, List
 
 import discord
@@ -313,7 +316,8 @@ class EventCog(commands.Cog):
         """Registra le modifiche dei messaggi nel log."""
         # prevent spurious activation (e.g. when embeds are loaded it counts as a modification when it shouldn't)
         if before.content != after.content:
-            await self.logger.log(f'messaggio di {before.author.mention} modificato in {before.channel.mention}\nBefore:\n    {before.content}\nAfter:\n    {after.content}')
+            diff = evaluate_diff(before.content, after.content)
+            await self.logger.log(f'messaggio di {before.author.mention} modificato in {before.channel.mention}:\n{diff}')
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
@@ -666,6 +670,32 @@ class EventCog(commands.Cog):
             if not discord_markdown(message.content):
                 return True
         return False
+
+
+def evaluate_diff(before: str, after: str) -> str:
+    """Confronta due stringhe e restituisce una stringa formattata
+    che evidenzia le differenze tra le due.
+
+    :param before: la stringa di partenza
+    :param after: la stringa modificata
+
+    :returns: una stringa formattata per evidenziare le modifiche
+    :rtype: str
+    """
+    diff: SequenceMatcher = SequenceMatcher(None, before, after)
+    output: list[str] = []
+    for opcode, a0, a1, b0, b1 in diff.get_opcodes():
+        if opcode == 'equal':
+            output.append(diff.a[a0:a1])
+        elif opcode == 'insert':
+            output.append(f'**{diff.b[b0:b1]}**')
+        elif opcode == 'delete':
+            output.append(f'**~~{diff.a[a0:a1]}~~**')
+        elif opcode == 'replace':
+            output.append(f'~~{diff.a[a0:a1]}~~**{diff.b[b0:b1]}**')
+        else:
+            return f'Before:\n    {before}\nAfter:\n    {after}'
+    return ''.join(output)
 
 
 def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
