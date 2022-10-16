@@ -1,8 +1,9 @@
 """:class: ConfigCog contiene i comandi di configurazione del bot."""
 import git
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
+import discord
 from discord.ext import commands
 from utils import shared_functions
 from utils.shared_functions import Archive, BannedWords, BotLogger, Config
@@ -34,6 +35,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""
+        if not isinstance(ctx.author, discord.Member):
+            return False
         return ctx.author.top_role.id in self.config.moderation_roles_id
 
     @commands.command(brief='aggiunge una parola bannata all\'elenco')

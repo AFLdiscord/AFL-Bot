@@ -19,6 +19,7 @@ from typing import Any, ClassVar, Dict, List, Optional, Union, TypedDict
 
 import discord
 from discord.ext import commands
+from discord.utils import MISSING
 
 # utile per passare dal giorno della settimana restituito da weekday() direttamente
 # al campo corrispondente nel dizionario del json
@@ -348,7 +349,7 @@ class Afler():
             datetime.now()
             + timedelta(days=Config.get_config().orator_duration)).__str__()
         for i in weekdays:
-            self.data[weekdays.get(i)] = 0
+            self.data[weekdays[i]] = 0
 
     def is_orator_expired(self) -> bool:
         """Controlla se l'assegnazione del ruolo oratore è scaduta.
@@ -496,7 +497,7 @@ class Afler():
 
     def forget_last_week(self) -> None:
         """Rimuove dal conteggio i messaggi risalenti a 7 giorni fa."""
-        self.data[weekdays.get(datetime.today().weekday())] = 0
+        self.data[weekdays[datetime.today().weekday()]] = 0
 
     def clean(self) -> None:
         """Si occupa di controllare il campo last_message_date e sistemare di conseguenza il
@@ -541,7 +542,7 @@ class Afler():
         count: int = 0
         for i in weekdays:
             if i != datetime.today().weekday():
-                count += self.data[weekdays.get(i)]
+                count += self.data[weekdays[i]]
         count += self.data['counter']
         return count
 
@@ -556,7 +557,7 @@ class Afler():
         """
         count: int = 0
         for i in weekdays:
-            count += self.data[weekdays.get(i)]
+            count += self.data[weekdays[i]]
         return count
 
 
@@ -590,17 +591,19 @@ class Archive():
     save()          salva le modifiche fatte all'archivio
     contains_nick() controlla se il nickname è già utilizzato da un afler
     """
-    _archive_instance: ClassVar[Archive] = None
+    _archive_instance: ClassVar[Archive] = MISSING
 
     def __init__(self) -> None:
         # è sbagliato creare un'istanza, è un singleton
+        self.archive: Dict[int, Any]
+        self.wrapped_archive: Dict[int, Afler]
         raise RuntimeError(
             'Non istanziare archivio, usa Archive.get_instance()')
 
     @classmethod
     def get_instance(cls) -> Archive:
         """Ritorna l'unica istanza dell'archivio."""
-        if cls._archive_instance is None:
+        if cls._archive_instance is MISSING:
             cls.load_archive()
         return cls._archive_instance
 
@@ -624,8 +627,8 @@ class Archive():
             # Serve creare un'istanza dell'archivio all'avvio.
             # Questo non è il caso invece quando si vuole fare il refresh
             # dell'archivio dopo aver modificato i campi manualmente.
-            if cls._archive_instance is None:
-                cls._archive_instance = cls.__new__(cls, archive)
+            if cls._archive_instance is MISSING:
+                cls._archive_instance = cls.__new__(cls)
             # cls._archive_instance.archive l'archivio in formato dizionario così da poterlo salvare agevolemente
             #
             # cls._archive_instance.wrapped_archive ogni entry dell'archivio è incapsulata nella classe Afler
@@ -701,7 +704,7 @@ class Archive():
         :returns: lista con tutti gli id
         :rtype: List[int]
         """
-        return self.archive.keys()
+        return list(self.archive.keys())
 
     def values(self) -> List[Afler]:
         """Ritorna una lista con tutti i dati degli aflers salvati nell'archivio.
@@ -710,7 +713,7 @@ class Archive():
         :returns: lista con tutti gli afler
         :rtype: List[Afler]
         """
-        return self.wrapped_archive.values()
+        return list(self.wrapped_archive.values())
 
     def save(self, filename: str = 'aflers.json') -> None:
         """Salva su disco le modifiche effettuate all'archivio.
@@ -820,7 +823,7 @@ class BannedWords():
         text_to_check = re.sub('7', 't', text_to_check)
         text_to_check = re.sub('9', 'g', text_to_check)
         for word in BannedWords.banned_words:
-            regex_word = '+ *\W*'.join(word)
+            regex_word = r'+ *\W*'.join(word)
             match = re.search(regex_word, text_to_check)
             if match is not None:
                 return True
@@ -846,11 +849,11 @@ class BotLogger():
     initialize()   coroutine, inizializza il canale su cui viene fatto il logging
     log()   coroutine, compila il messaggio e lo invia nel canale
     """
-    _logger: ClassVar[BotLogger] = None
+    _logger: ClassVar[BotLogger] = MISSING
 
     def __init__(self) -> None:
         # attributi sono qua solo per dichiararli
-        self.channel: discord.TextChannel
+        self.channel: Optional[discord.TextChannel]
         raise RuntimeError(
             'Usa BotLogger.create_instance per istanziare il logger')
 
@@ -860,7 +863,7 @@ class BotLogger():
 
         :param bot: il bot
         """
-        if cls._logger is None:
+        if cls._logger is MISSING:
             cls._logger = cls.__new__(cls)
             cls._logger.channel = None
         return cls._logger
@@ -879,7 +882,7 @@ class BotLogger():
         """
         self.channel = await bot.fetch_channel(Config.get_config().log_channel_id)
 
-    async def log(self,  msg: str, media: List[discord.Attachment] = None) -> None:
+    async def log(self,  msg: str, media: Optional[List[discord.Attachment]] = None) -> None:
         """Compila il messaggio da inviare nel canale. Il formato
         è il seguente:
 
@@ -902,7 +905,7 @@ class BotLogger():
             # Il timestamp dell'embed è regolato da discord, lo converto in UTC
             timestamp=timestamp.astimezone(timezone.utc)
         )
-        files: List[discord.File] = [await m.to_file() for m in media] if media else None
+        files: List[discord.File] = [await m.to_file() for m in media] if media else []
         await self.channel.send(embed=log_message, files=files)
 
 
@@ -972,7 +975,7 @@ class Config():
     -------------
     load()  carica i valori dal file config.json
     """
-    _instance: ClassVar[Config] = None
+    _instance: ClassVar[Config] = MISSING
 
     def __init__(self) -> None:
         raise RuntimeError('use Config.get_config() instead')
@@ -991,7 +994,7 @@ class Config():
 
     @classmethod
     def get_config(cls):
-        if cls._instance is None:
+        if cls._instance is MISSING:
             cls._instance = cls.__new__(cls)
             cls._instance.load()
         return cls._instance
@@ -1104,7 +1107,7 @@ def link_to_clean(message: str) -> Optional[str]:
             #     https://amazon.identificativo_nazione_o_com/nome_lungo_descrittivo/dp/10CARATTER
             # la regex effettua l'estrazione di questa porzione di link
             cleaned_link = re.findall(
-                'https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
+                r'https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
     return cleaned_link
 
 
@@ -1118,6 +1121,9 @@ def relevant_message(message: discord.Message) -> bool:
     if message.type not in (discord.MessageType.default, discord.MessageType.reply):
         # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
         # automaticamente ma vengono attribuiti all'utente che esegue l'azione
+        return False
+    if message.guild is None:
+        # ignora i messaggi al di fuori dal server
         return False
     if message.author.bot or message.guild.id != Config.get_config().guild_id:
         return False

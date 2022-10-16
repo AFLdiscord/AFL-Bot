@@ -15,6 +15,7 @@ logging.basicConfig(level=logging.INFO)
 # carico il token dal .env
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
+assert TOKEN is not None
 
 # carica la configurazione, ricorda di modificare config.json seguendo indicazioni del template
 if not Config.get_config():

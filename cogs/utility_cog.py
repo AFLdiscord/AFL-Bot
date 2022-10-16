@@ -1,6 +1,6 @@
 """:class: UtilityCog contiene comandi di uso generale."""
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands
@@ -27,6 +27,8 @@ class UtilityCog(commands.Cog, name='Utility'):
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
+        if not isinstance(ctx.author, discord.Member):
+            return False
         for role in ctx.author.roles:
             if self.config.afl_role_id == role.id:
                 return True
@@ -87,7 +89,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send(embed=status)
 
     @commands.hybrid_command(brief='invia la propic dell\'utente')
-    async def avatar(self, ctx: commands.Context, user: Optional[discord.User] = None):
+    async def avatar(self, ctx: commands.Context, user: Optional[Union[discord.User, discord.Member]] = None):
         """Invia la propria propic o quella dell'utente menzionato. Non è necessario che l'utente
         faccia parte del server, basta che la menzione sia valida.
 

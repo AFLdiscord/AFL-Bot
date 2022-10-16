@@ -20,7 +20,7 @@ import json
 from enum import Enum
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 
 import discord
 from discord.ext import commands, tasks
@@ -60,7 +60,7 @@ class EventCog(commands.Cog):
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
-        self.guild = self.bot.get_guild(self.config.guild_id)
+        self.guild: discord.Guild
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
@@ -128,7 +128,7 @@ class EventCog(commands.Cog):
             response = f'pong in {round(self.bot.latency * 1000)} ms'
             await message.channel.send(response)
             return
-        if re.match('^(420|69|\s)+$', message.content.lower()):
+        if re.match(r'^(420|69|\s)+$', message.content.lower()):
             response = 'nice'
             await message.channel.send(response)
             return
@@ -300,6 +300,7 @@ class EventCog(commands.Cog):
         :rtype: bool
         """
         is_good = False
+        assert payload.member is not None
         orator = self.guild.get_role(self.config.orator_role_id)
         if payload.event_type == 'REACTION_ADD' and orator not in payload.member.roles:
             # se non è oratore, l'altra condizione è essere moderatore
@@ -434,6 +435,9 @@ class EventCog(commands.Cog):
             return
         old_nick: str = item.escaped_nick
         member = self.guild.get_member(after.id)
+        if member is None:
+            await self.logger.log('errore imprevisto nel recuperare il membro durante on_user_update')
+            return
         if old_nick != member.nick:
             await self.logger.log(f'ripristino nickname di {member.mention} da `{discord.utils.escape_markdown(member.display_name)}` a `{old_nick}`')
             await member.edit(nick=old_nick)
@@ -452,10 +456,15 @@ class EventCog(commands.Cog):
             await ctx.send_help()   # manda tutti i comandi, necessario se ci sono più pagine
             return
         elif isinstance(error, commands.CheckFailure):
-            await ctx.send('Non hai i permessi per usare questo comando.', delete_after=5)
+            if ctx.channel.guild is None:
+                await ctx.send('I comandi possono essere usati solo nel server')
+            else:
+                await ctx.send('Non hai i permessi per usare questo comando.', delete_after=5)
         elif isinstance(error, commands.BotMissingPermissions):
             await ctx.send('Il bot non ha il permesso di eseguire l\'azione richiesta', delete_after=5)
         else:
+            # a questo punto è solo un errore di sintassi, il comando inesistente è gestito sopra
+            assert ctx.command is not None
             await ctx.send(f'Sintassi errata, controlla come usare il comando.\n```{ctx.command.help}```')
             # potrei fare la stessa cosa mettendo ctx.send_help(ctx.command.help) ma volevo un messaggio solo
         await ctx.message.delete(delay=5)
@@ -479,7 +488,9 @@ class EventCog(commands.Cog):
         - controllare la coerenza dell'archivio
         """
         await self.bot.tree.sync()
-        self.guild = self.bot.get_guild(self.config.guild_id)
+        _guild = self.bot.get_guild(self.config.guild_id)
+        assert _guild is not None
+        self.guild = _guild
         timestamp = datetime.now()
         # salva il timestamp di avvio nel bot
         self.bot.start_time: datetime = timestamp
@@ -656,7 +667,7 @@ class EventCog(commands.Cog):
         await role_channel.send(embed=discord.Embed(description=msg))
         afler.set_dank()
 
-    async def coherency_check(self, members: List[discord.Member]) -> None:
+    async def coherency_check(self, members: Sequence[discord.Member]) -> None:
         """Controlla la coerenza tra l'elenco membri del server e l'elenco
         degli id salvati nell'archivio aflers.json
         Questo è per evitare incongruenze in caso di downtime del bot.

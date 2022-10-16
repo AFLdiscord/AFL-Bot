@@ -3,6 +3,7 @@ from typing import Union
 
 import discord
 from discord.ext import commands
+from discord.utils import MISSING
 from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config, relevant_message
 
 
@@ -25,6 +26,8 @@ class ModerationCog(commands.Cog, name='Moderazione'):
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo ai moderatori."""
+        if not isinstance(ctx.author, discord.Member):
+            return False
         return ctx.author.top_role.id in self.config.moderation_roles_id
 
     @commands.Cog.listener()
@@ -61,7 +64,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             await self.on_message(after)
 
     @commands.command(brief='reimposta il nickname dell\'utente citato')
-    async def resetnick(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = None, *, name: str = None):
+    async def resetnick(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = MISSING, *, name: str = MISSING):
         """Reimposta il nickname di un membro se questo non è opportuno per il server
         e i controlli automatici non sono bastati a filtrarlo. Questo permette di mantenere
         il reset automatico per i nickname in caso di cambiamento impedendo i reset manuali.
@@ -71,7 +74,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
           @someone messaggio citato
         <resetnick nuovo_nome           # si può anche citare un messaggio dell'interessato
         """
-        if attempted_member is None:
+        if attempted_member is MISSING:
             raise commands.CommandError   # il messaggio di errore adesso è centralizzato
         else:
             # recupero il membro e resetto il nick
@@ -86,8 +89,8 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 # tramite messaggio citato
                 msg = await ctx.fetch_message(ctx.message.reference.message_id)
                 member = msg.author
-                if name is None:
-                    name = attempted_member
+                if name is MISSING:
+                    name = f'{attempted_member}'
                 else:
                     name = f'{attempted_member} {name}'
         if member.bot:
@@ -105,7 +108,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await ctx.send(f'Nickname di {member.mention} ripristinato')
 
     @commands.command(brief='aggiunge un warn all\'utente citato')
-    async def warn(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = None, *, reason: str = 'un moderatore ha ritenuto inopportuno il tuo comportamento'):
+    async def warn(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = MISSING, *, reason: str = 'un moderatore ha ritenuto inopportuno il tuo comportamento'):
         """Aggiunge un warn all'utente menzionato nel messaggio. Si può menzionare in diversi modi.
         L'effetto è il seguente:
         - aggiunge un warn all'autore del messaggio a cui si risponde/utente menzionato
@@ -125,7 +128,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
           @someone messaggio citato
         <warn reason                   # aggiunge warn a 'someone' con ragione 'reason'
         """
-        if attempted_member is None:   # nessun argomento passato al warn
+        if attempted_member is MISSING:   # nessun argomento passato al warn
             if ctx.message.reference is None:
                 # sono in questo caso quando mando <warn da solo
                 await ctx.send('Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando', delete_after=5)
@@ -149,7 +152,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 # solo se vado per reference devo sistemare la reason perchè la prima parola va in attempted_member
                 if reason == 'un moderatore ha ritenuto inopportuno il tuo comportamento':
                     # ragione di una sola parola, altrimenti poi concatena tutto
-                    reason = attempted_member
+                    reason = f'{attempted_member}'
                 else:
                     # devo inserire uno spazio altrimenti scrive tutto appicciato
                     reason = f'{attempted_member} {reason}'
@@ -218,7 +221,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await ctx.send(response)
 
     @commands.command(brief='banna il membro citato')
-    async def ban(self, ctx: commands.Context, member: discord.Member = None, *, reason: str = 'un moderatore ha ritenuto inopportuno il tuo comportamento'):
+    async def ban(self, ctx: commands.Context, member: discord.Member = MISSING, *, reason: str = 'un moderatore ha ritenuto inopportuno il tuo comportamento'):
         """Banna un membro dal server.
 
         Sintassi:
