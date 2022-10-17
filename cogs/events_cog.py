@@ -737,7 +737,7 @@ def evaluate_diff(before: str, after: str) -> str:
         elif opcode == 'insert':
             output.append(f'**{diff.b[b0:b1]}**')
         elif opcode == 'delete':
-            output.append(f'**~~{diff.a[a0:a1]}~~**')
+            output.append(f'~~{diff.a[a0:a1]}~~')
         elif opcode == 'replace':
             output.append(f'~~{diff.a[a0:a1]}~~**{diff.b[b0:b1]}**')
         else:
