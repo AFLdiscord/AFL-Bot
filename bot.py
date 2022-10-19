@@ -1,6 +1,5 @@
 """bot.py"""
 import os
-import asyncio
 import logging
 
 import discord
@@ -30,6 +29,10 @@ Archive.load_archive()
 
 
 class AFLBot(commands.Bot):
+    """Istanza del bot. Identico a commands.Bot eccetto l'aggiunta di due attributi
+    - version: str           tiene traccia della versione
+    - start_time: datetime   timestamp di avvio del bot
+    """
 
     # carico i moduli dei comandi
     async def setup_hook(self) -> None:
