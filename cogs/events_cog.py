@@ -338,7 +338,8 @@ class EventCog(commands.Cog):
             await member.kick(reason="ForbiddenUsername")
             await channel.send('Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
         elif self.archive.contains_nick(member.display_name):
-            await self.bot.get_channel(self.config.presentation_channel_id).send(f'Il tuo nickname attuale è già utilizzato, modificalo dalle impostazioni del server per poter essere ammesso')
+            await self.bot.get_channel(self.config.presentation_channel_id).send('Il tuo nickname attuale è già utilizzato, modificalo dalle impostazioni del server per poter essere ammesso')
+        await self.bot.get_channel(self.config.presentation_channel_id).send('Benvenuto su AFL! Presentati usando il comando `/presentation`')
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
