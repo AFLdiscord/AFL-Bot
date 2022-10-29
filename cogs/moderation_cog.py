@@ -1,4 +1,5 @@
 """:class: ModerationCog contiene tutti i comandi per la moderazione."""
+from datetime import datetime, timedelta, timezone
 from typing import Union
 
 import discord
@@ -9,6 +10,7 @@ from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Confi
 
 class ModerationCog(commands.Cog, name='Moderazione'):
     """Contiene i comandi relativi alla moderazione:
+    - delete     elimina un certo numero di messaggi
     - resetnick  reimposta il nickname dell'utente citato
     - warn       aggiunge un warn all'utente citato
     - unwarn     rimuove un warn all'utente citato
@@ -62,6 +64,30 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         """
         if before.content != after.content:
             await self.on_message(after)
+
+    @commands.command(brief='reimposta il nickname dell\'utente citato')
+    async def delete(self, ctx: commands.Context, amount: int = MISSING, *, reason: str = 'messaggi non idonei'):
+        """Elimina una certa quantità di messaggi da un canale.
+
+        Sintassi:
+        <delete amount          # elimina la quantità di messaggi indicata
+        <delete amount reason   # allega un motivo al log della delete
+        """
+        if amount is MISSING or amount <= 0:
+            raise commands.CommandError
+        # senza il + 1 l'amount non considererebbe il comando ed
+        # eliminerebbe un messaggio in meno rispetto alla quantità prevista
+        to_delete = set([m async for m in ctx.channel.history(limit=amount + 1)])
+        # non è possibile usare la bulk delete su messaggi mandati 14
+        # giorni fa o prima, per cui questi vanno eliminati a parte
+        to_delete_old = set(m for m in to_delete if datetime.now(
+            timezone.utc) - m.created_at >= timedelta(days=14))
+        to_delete.difference_update(to_delete_old)
+        await ctx.channel.delete_messages(to_delete, reason=reason)
+        for m in to_delete_old:
+            await m.delete()
+        await self.logger.log(discord.utils.escape_markdown(
+            f'<@{ctx.author.id}> ha eliminato {amount} messaggi in <#{ctx.channel.id}>.\nMotivo:\n{reason}'))
 
     @commands.command(brief='reimposta il nickname dell\'utente citato')
     async def resetnick(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = MISSING, *, name: str = MISSING):
