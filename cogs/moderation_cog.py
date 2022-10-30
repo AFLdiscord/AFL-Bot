@@ -65,7 +65,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         if before.content != after.content:
             await self.on_message(after)
 
-    @commands.command(brief='reimposta il nickname dell\'utente citato')
+    @commands.command(brief='elimina dei messaggi da un canale', aliases=['del', 'd'])
     async def delete(self, ctx: commands.Context, amount: int = MISSING, *, reason: str = 'messaggi non idonei'):
         """Elimina una certa quantità di messaggi da un canale.
 
