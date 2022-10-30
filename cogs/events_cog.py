@@ -898,8 +898,7 @@ def discord_markdown(content: str) -> bool:
     :returns: se rappresenta un markdown
     :rtype: bool
     """
-    prefix = ['@', '#', ':', 'a', 't', '3']
-    return content[1] in prefix
+    return content[1] in ('@', '#', ':', 'a', 't', '3')
 
 
 async def setup(bot: commands.Bot):
