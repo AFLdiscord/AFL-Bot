@@ -142,7 +142,7 @@ class EventCog(commands.Cog):
         link = shared_functions.link_to_clean(message.content)
         if link is not None:
             await message.delete()
-            await message.channel.send(f'Link da {discord.utils.escape_markdown(message.author.display_name)} :\n{link}')
+            await message.channel.send(f'Link da <@{message.author.id}>:\n{link}')
             return
         if message.channel.id == self.config.poll_channel_id:
             await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
