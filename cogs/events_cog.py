@@ -528,70 +528,8 @@ class EventCog(commands.Cog):
         """
         # TODO accorciare la funzione
         role_channel = self.bot.get_channel(self.config.main_channel_id)
-        proposal_channel = self.bot.get_channel(self.config.poll_channel_id)
         await self.logger.log('controllo proposte...')
-        try:
-            with open('proposals.json', 'r') as file:
-                proposals = json.load(file)
-        except FileNotFoundError:
-            await self.logger.log('nessun file di proposte trovato')
-        else:
-            to_delete = []
-            for key in proposals:
-                proposal = proposals[key]
-                if proposal['passed']:
-                    to_delete.append(key)
-                    await self.logger.log(f'proposta passata: {proposal["content"]}')
-                    content = discord.Embed(
-                        title='Raggiunta soglia per la proposta',
-                        description='La soglia per la proposta è stata raggiunta, in attesa di approvazione dai mod',
-                        colour=discord.Color.green()
-                    )
-                    content.add_field(
-                        name='Contenuto',
-                        value=proposal['content'],
-                        inline=False
-                    )
-                    await proposal_channel.send(embed=content)
-                elif proposal['rejected']:
-                    await self.logger.log(f'proposta bocciata: {proposal["content"]}')
-                    content = discord.Embed(
-                        title='Proposta bocciata',
-                        description='La proposta è stata bocciata dalla maggioranza',
-                        colour=discord.Color.red()
-                    )
-                    content.add_field(
-                        name='Contenuto',
-                        value=proposal['content'],
-                        inline=False
-                    )
-                    await proposal_channel.send(embed=content)
-                    to_delete.append(key)
-                    # TODO mettere durata proposte nella config
-                elif datetime.date(datetime.now() - timedelta(days=3)).__str__() >= proposal['timestamp']:
-                    await self.logger.log(f'proposta scaduta: {proposal["content"]}')
-                    content = discord.Embed(
-                        title='Proposta scaduta',
-                        description='La proposta è scaduta senza avere voti sufficienti ad essere approvata',
-                        colour=discord.Color.gold()
-                    )
-                    content.add_field(
-                        name='Contenuto',
-                        value=proposal['content'],
-                        inline=False
-                    )
-                    await proposal_channel.send(embed=content)
-                    to_delete.append(key)
-            for key in to_delete:
-                try:
-                    message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(key)
-                except discord.NotFound:
-                    # capita se viene cancellata dopo un riavvio o mentre è offline
-                    await self.logger.log('proposta già cancellata, ignoro')
-                else:
-                    await message.delete()
-                del proposals[key]
-            shared_functions.update_json_file(proposals, 'proposals.json')
+        await self.handle_proposals()
         await self.logger.log('controllo proposte terminato')
         await self.logger.log('controllo conteggio messaggi...')
         for id in self.archive.keys():
@@ -635,6 +573,66 @@ class EventCog(commands.Cog):
                 await self.remove_dank_from_afler(item, id)
         await self.logger.log('controllo conteggio messaggi terminato')
         self.archive.save()
+
+    async def handle_proposals(self) -> None:
+        """Gestisce le proposte, verificando se hanno raggiunto un termine."""
+        proposal_channel = self.bot.get_channel(self.config.poll_channel_id)
+        try:
+            with open('proposals.json', 'r') as file:
+                proposals = json.load(file)
+        except FileNotFoundError:
+            await self.logger.log('nessun file di proposte trovato')
+            return
+        to_delete = set()
+        report = {
+            'result': '',
+            'title': '',
+            'description': '',
+            'colour': discord.Color
+        }
+        for key in proposals:
+            proposal = proposals[key]
+            if proposal['passed']:
+                report['result'] = 'passata'
+                report['title'] = 'Raggiunta soglia per la proposta'
+                report['description'] = 'La soglia per la proposta è stata raggiunta.'
+                report['colour'] = discord.Color.green()
+            elif proposal['rejected']:
+                report['result'] = 'bocciata'
+                report['title'] = 'Proposta bocciata'
+                report['description'] = 'La proposta è stata bocciata dalla maggioranza.',
+                report['colour'] = discord.Color.red()
+            # TODO mettere durata proposte nella config
+            elif datetime.now() - datetime.fromisoformat(proposal['timestamp']) >= timedelta(days=3):
+                report['result'] = 'scaduta'
+                report['title'] = 'Proposta scaduta'
+                report['description'] = 'La proposta non ha ricevuto abbastanza voti.'
+                report['colour'] = discord.Color.gold()
+            else:
+                continue
+            content = discord.Embed(
+                title=report['title'],
+                description=report['description'],
+                colour=report['colour']
+            )
+            content.add_field(
+                name='Contenuto',
+                value=proposal['content'],
+                inline=False
+            )
+            await proposal_channel.send(embed=content)
+            await self.logger.log(f'proposta {report["result"]}:\n\n{proposal["content"]}')
+            to_delete.add(key)
+        for key in to_delete:
+            try:
+                message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(key)
+            except discord.NotFound:
+                # capita se viene cancellata dopo un riavvio o mentre è offline
+                await self.logger.log('proposta già cancellata, ignoro')
+            else:
+                await message.delete()
+            del proposals[key]
+        shared_functions.update_json_file(proposals, 'proposals.json')
 
     async def remove_dank_from_afler(self, afler: Afler, id: int) -> None:
         """Rimuove il ruolo cazzaro dall'afler.
@@ -771,7 +769,7 @@ def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
                 orator_count += 1
     # TODO valutare di spostare l'inizializzazione di proposal altrove
     proposal = {
-        'timestamp': datetime.date(message.created_at).__str__(),
+        'timestamp': message.created_at.date().isoformat(),
         'total_voters': orator_count,
         'threshold': calculate_threshold(orator_count),
         'passed': False,
