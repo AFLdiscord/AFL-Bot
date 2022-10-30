@@ -583,14 +583,21 @@ class EventCog(commands.Cog):
         except FileNotFoundError:
             await self.logger.log('nessun file di proposte trovato')
             return
-        to_delete = set()
         report = {
             'result': '',
             'title': '',
             'description': '',
             'colour': discord.Color
         }
+        to_delete = set()
         for key in proposals:
+            try:
+                message: discord.Message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(key)
+            except discord.NotFound:
+                # capita se viene cancellata dopo un riavvio o mentre è offline
+                await self.logger.log('proposta già cancellata, ignoro')
+                to_delete.add(key)
+                continue
             proposal = proposals[key]
             if proposal['passed']:
                 report['result'] = 'passata'
@@ -622,15 +629,9 @@ class EventCog(commands.Cog):
             )
             await proposal_channel.send(embed=content)
             await self.logger.log(f'proposta {report["result"]}:\n\n{proposal["content"]}')
+            await message.delete()
             to_delete.add(key)
         for key in to_delete:
-            try:
-                message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(key)
-            except discord.NotFound:
-                # capita se viene cancellata dopo un riavvio o mentre è offline
-                await self.logger.log('proposta già cancellata, ignoro')
-            else:
-                await message.delete()
             del proposals[key]
         shared_functions.update_json_file(proposals, 'proposals.json')
 
