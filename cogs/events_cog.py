@@ -623,12 +623,17 @@ class EventCog(commands.Cog):
                 colour=report['colour']
             )
             content.add_field(
+                name='Autore',
+                value=f'<@!{message.author.id}>',
+                inline=False
+            )
+            content.add_field(
                 name='Contenuto',
                 value=proposal['content'],
                 inline=False
             )
             await proposal_channel.send(embed=content)
-            await self.logger.log(f'proposta {report["result"]}:\n\n{proposal["content"]}')
+            await self.logger.log(f'proposta di <@{message.author.id}> {report["result"]}:\n\n{proposal["content"]}')
             await message.delete()
             to_delete.add(key)
         for key in to_delete:
