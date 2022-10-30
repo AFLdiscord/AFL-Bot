@@ -20,7 +20,7 @@ import json
 from enum import Enum
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, List, Sequence, Union
 
 import discord
 from discord.ext import commands, tasks
@@ -60,7 +60,13 @@ class EventCog(commands.Cog):
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
-        self.guild: discord.Guild
+        """guild deve essere assegnato sia qui che in on_ready:
+        - all'avvio del bot, questo assegnamento restituisce None e
+          l'assegnamento effettivo è lasciato a on_ready;
+        - dopo ogni reload viene chiamato solo l'init, che però ora può
+          assegnare la guild con successo.
+        """
+        self.guild: Union[discord.Guild, None] = self.bot.get_guild(self.config.guild_id)
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
