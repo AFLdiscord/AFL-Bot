@@ -15,7 +15,7 @@ Funzioni:
 import json
 import re
 from datetime import date, datetime, timedelta, timezone
-from typing import Any, ClassVar, Dict, List, Optional, Union, TypedDict
+from typing import Any, ClassVar, Dict, List, Optional, TypedDict
 
 import discord
 from discord.ext import commands
