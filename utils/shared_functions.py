@@ -168,7 +168,7 @@ class Afler():
         :param new_nick: nuovo nickname
         """
         self.data['nick'] = new_nick
-        self.data['last_nick_change'] = datetime.date(datetime.now()).__str__()
+        self.data['last_nick_change'] = date.today().isoformat()
 
     @property
     def bio(self) -> str:
@@ -249,7 +249,7 @@ class Afler():
         """Ritorna la data di scadenza del ruolo oratore.
 
         :returns: data di scadenza oratore
-        :rtype: Optional[datetime.date]
+        :rtype: Optional[date]
         """
         if self.data['orator_expiration'] is not None:
             return date.fromisoformat(self.data['orator_expiration'])
@@ -257,11 +257,11 @@ class Afler():
             return None
 
     @property
-    def dank_expiration(self) -> Optional[date]:
+    def dank_expiration(self) -> Optional[datetime]:
         """Ritorna la data di scadenza del ruolo cazzaro.
 
         :returns: data di scadenza cazzaro
-        :rtype: Optional[datetime.date]
+        :rtype: Optional[datetime]
         """
         if self.data['dank_expiration'] is not None:
             return datetime.fromisoformat(self.data['dank_expiration'])
@@ -273,19 +273,19 @@ class Afler():
         """Ritorna la data dell'utlimo cambio di nickname
 
         :returns: data ultimo cambio
-        :rtype: datetime.date
+        :rtype: date
         """
-        return datetime.date(datetime.strptime(self.data['last_nick_change'], '%Y-%m-%d'))
+        return date.fromisoformat(self.data['last_nick_change'])
 
     @property
     def last_message_date(self) -> Optional[date]:
         """Ritorna la data dell'ultimo messaggio valido per il conteggio dell'oratore.
 
         :returns: data ultimo messaggio
-        :rtype: Optional[datetime.date]
+        :rtype: Optional[date]
         """
         if self.data['last_message_date'] is not None:
-            return datetime.date(datetime.strptime(self.data['last_message_date'], '%Y-%m-%d'))
+            return date.fromisoformat(self.data['last_message_date'])
         else:
             return None
 
@@ -294,10 +294,10 @@ class Afler():
         """Ritorna la data dell'ultima violazione.
 
         :returns: data ultima violazione
-        :rtype: Optional[datetime.date]
+        :rtype: Optional[date]
         """
         if self.data['last_violation_date'] is not None:
-            return datetime.date(datetime.strptime(self.data['last_violation_date'], '%Y-%m-%d'))
+            return date.fromisoformat(self.data['last_violation_date'])
         else:
             return None
 
@@ -306,24 +306,23 @@ class Afler():
         presente nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
         Si occupa anche di aggiornare il campo 'last_message_date'.
         """
-        if self.data['last_message_date'] == datetime.date(datetime.now()).__str__():
+        today = date.today()
+        if self.data['last_message_date'] == today:
             # messaggi dello stesso giorno, continuo a contare
             self.data['counter'] += 1
         elif self.data['last_message_date'] is None:
             # primo messaggio della persona
             self.data['counter'] = 1
-            self.data['last_message_date'] = datetime.date(
-                datetime.now()).__str__()
+            self.data['last_message_date'] = today
         else:
             # è finito il giorno, salva i messaggi di 'counter' nel
             # giorno corrispondente e aggiorna data ultimo messaggio
             if self.data['counter'] != 0:
-                day = weekdays[datetime.date(datetime.strptime(
-                    self.data['last_message_date'], '%Y-%m-%d')).weekday()]
+                day = weekdays[date.fromisoformat(
+                    self.data['last_message_date']).weekday()]
                 self.data[day] = self.data['counter']
             self.data['counter'] = 1
-            self.data['last_message_date'] = datetime.date(
-                datetime.now()).__str__()
+            self.data['last_message_date'] = today.isoformat()
         self.data['orator_total_messages'] += 1
 
     def decrease_orator_counter(self, amount: int = 1) -> None:
@@ -348,7 +347,7 @@ class Afler():
         self.data['orator'] = True
         self.data['orator_expiration'] = datetime.date(
             datetime.now()
-            + timedelta(days=Config.get_config().orator_duration)).__str__()
+            + timedelta(days=Config.get_config().orator_duration)).isoformat()
         for i in weekdays:
             self.data[weekdays[i]] = 0
 
@@ -361,9 +360,9 @@ class Afler():
         """
         if not self.data['orator']:
             return False
-        orator_expiration = datetime.date(datetime.strptime(
-            self.data['orator_expiration'], '%Y-%m-%d'))
-        if orator_expiration <= datetime.date(datetime.now()):
+        orator_expiration = date.fromisoformat(
+            self.data['orator_expiration'])
+        if orator_expiration <= date.today():
             return True
         else:
             return False
@@ -464,8 +463,7 @@ class Afler():
         self.data['violations_count'] += count
         if count > 0:
             # modifica la data solo se sono aggiunti
-            self.data['last_violation_date'] = datetime.date(
-                datetime.now()).__str__()
+            self.data['last_violation_date'] = date.today().isoformat()
         if self.data['violations_count'] <= 0:
             self.data['violations_count'] = 0
             self.data['last_violation_date'] = None
@@ -488,9 +486,9 @@ class Afler():
         """
         violations_count = 0
         if self.data['last_violation_date'] is not None:
-            expiration = datetime.date(datetime.strptime(
-                self.data['last_violation_date'], '%Y-%m-%d'))
-            if (expiration + timedelta(days=Config.get_config().violations_reset_days)) <= (datetime.date(datetime.now())):
+            expiration = date.fromisoformat(
+                self.data['last_violation_date'])
+            if (expiration + timedelta(days=Config.get_config().violations_reset_days)) <= date.today():
                 violations_count = self.data['violations_count']
                 self.data['violations_count'] = 0
                 self.data['last_violation_date'] = None
@@ -498,17 +496,17 @@ class Afler():
 
     def forget_last_week(self) -> None:
         """Rimuove dal conteggio i messaggi risalenti a 7 giorni fa."""
-        self.data[weekdays[datetime.today().weekday()]] = 0
+        self.data[weekdays[date.today().weekday()]] = 0
 
     def clean(self) -> None:
         """Si occupa di controllare il campo last_message_date e sistemare di conseguenza il
         conteggio dei singoli giorni.
         """
-        if (self.data['last_message_date'] is None) or (self.data['last_message_date'] == datetime.date(datetime.now()).__str__()):
+        if (self.data['last_message_date'] is None) or (self.data['last_message_date'] == date.today().isoformat()):
             # (None) tecnicamente previsto da add_warn se uno viene warnato senza aver mai scritto
             # (Oggi) vuol dire che il bot è stato riavviato a metà giornata non devo toccare i contatori
             return
-        elif self.data['last_message_date'] == datetime.date(datetime.today() - timedelta(days=1)).__str__():
+        elif self.data['last_message_date'] == datetime.date(datetime.today() - timedelta(days=1)).isoformat():
             # messaggio di ieri, devo salvare il counter nel giorno corrispondente
             if self.data['counter'] != 0:
                 day = weekdays[datetime.date(
@@ -520,13 +518,13 @@ class Afler():
             # in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga
             # eseguito tutti i giorni ma preferisco azzerare tutti in caso di downtime di qualche giorno
             if self.data['counter'] != 0:
-                day = weekdays[datetime.date(datetime.strptime(
-                    self.data['last_message_date'], '%Y-%m-%d')).weekday()]
+                day = weekdays[date.fromisoformat(
+                    self.data['last_message_date']).weekday()]
                 self.data[day] = self.data['counter']
                 self.data['counter'] = 0
-            last_day = datetime.date(datetime.strptime(
-                self.data['last_message_date'], '%Y-%m-%d')).weekday()
-            today = datetime.today().weekday()
+            last_day = date.fromisoformat(
+                self.data['last_message_date']).weekday()
+            today = date.today().weekday()
             while last_day != today:
                 last_day += 1
                 if last_day > 6:
@@ -542,7 +540,7 @@ class Afler():
         """
         count: int = 0
         for i in weekdays:
-            if i != datetime.today().weekday():
+            if i != date.today().weekday():
                 count += self.data[weekdays[i]]
         count += self.data['counter']
         return count
