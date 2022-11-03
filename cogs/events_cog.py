@@ -148,7 +148,7 @@ class EventCog(commands.Cog):
         link = shared_functions.link_to_clean(message.content)
         if link is not None:
             await message.delete()
-            await message.channel.send(f'Link da <@{message.author.id}>:\n{link}')
+            await message.channel.send(f'Link da {message.author.mention}>:\n{link}')
             return
         if message.channel.id == self.config.poll_channel_id:
             await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
@@ -630,7 +630,7 @@ class EventCog(commands.Cog):
             )
             content.add_field(
                 name='Autore',
-                value=f'<@!{message.author.id}>',
+                value=f'{message.author.mention}>',
                 inline=False
             )
             content.add_field(
@@ -639,7 +639,7 @@ class EventCog(commands.Cog):
                 inline=False
             )
             await proposal_channel.send(embed=content)
-            await self.logger.log(f'proposta di <@{message.author.id}> {report["result"]}:\n\n{proposal["content"]}')
+            await self.logger.log(f'proposta di {message.author.mention} {report["result"]}:\n\n{proposal["content"]}')
             await message.delete()
             to_delete.add(key)
         for key in to_delete:
