@@ -163,6 +163,7 @@ class Afler():
     @nick.setter
     def nick(self, new_nick: str) -> None:
         """Modifica il nome dell'afler.
+        Aggiorna la data dell'ultimo cambiamento del nick ad oggi.
 
         :param new_nick: nuovo nickname
         """
