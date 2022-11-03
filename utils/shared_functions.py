@@ -143,7 +143,7 @@ class Afler():
     @property
     def escaped_nick(self) -> str:
         """Restituisce il nickname dell'afler facendo escape di eventuale markdown
-        presente. Se nono contiene markdown è equivalente al nick. Utile per stampare
+        presente. Se non contiene markdown è equivalente al nick. Utile per stampare
         il nickname in un messaggio evitando di formattare il markdown presente.
 
         :returns: il nickname con le sequenze di markdown escapate
