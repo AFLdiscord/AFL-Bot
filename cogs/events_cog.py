@@ -18,12 +18,13 @@ Proposte
 import re
 import json
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Sequence, Union
+from typing import Any, Dict, List, Sequence, Tuple, Union
 
 import discord
 from discord.ext import commands, tasks
+from discord.utils import escape_markdown
 from utils import shared_functions
 from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
 
@@ -66,7 +67,8 @@ class EventCog(commands.Cog):
         - dopo ogni reload viene chiamato solo l'init, che però ora può
           assegnare la guild con successo.
         """
-        self.guild: Union[discord.Guild, None] = self.bot.get_guild(self.config.guild_id)
+        self.guild: Union[discord.Guild, None] = self.bot.get_guild(
+            self.config.guild_id)
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
@@ -328,24 +330,26 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        """Invia il messaggio di benvenuto all'utente entrato nel server e controlla che l'username
-        sia adeguato. Se l'username contiene parole offensive l'utente viene kickato dal server con
-        un messaggio che lo invita a modificare il proprio nome prima di unirsi nuovamente. Se il
-        nickname è già utilizzato da un altro membro, invece, viene soltanto chiesto di modificarlo.
+        """Invia il messaggio di benvenuto all'utente entrato nel server
+        e controlla che l'username sia adeguato.
+        Se l'utente contiene parole offensive, viene kickato dal server.
+        In generale, se l'username non è valido, viene mandato un messaggio
+        via canale privato.
         """
         if member.bot:
             return
+        await self.bot.get_channel(self.config.presentation_channel_id).send(
+            'Benvenuto su AFL! Presentati usando il comando `/presentation`')
         await self.logger.log(f'nuovo membro: {member.mention}')
         channel = await member.create_dm()
         await channel.send(self.config.greetings)
         # controlla se il nome dell'utente è valido
-        if BannedWords.contains_banned_words(member.display_name):
-            await self.logger.log(f'nuovo membro {member.mention} kickato per username improprio')
-            await member.kick(reason="ForbiddenUsername")
-            await channel.send('Il tuo username non è consentito, ritenta l\'accesso dopo averlo modificato')
-        elif self.archive.contains_nick(member.display_name):
-            await self.bot.get_channel(self.config.presentation_channel_id).send('Il tuo nickname attuale è già utilizzato, modificalo dalle impostazioni del server per poter essere ammesso')
-        await self.bot.get_channel(self.config.presentation_channel_id).send('Benvenuto su AFL! Presentati usando il comando `/presentation`')
+        check_nick = self.check_new_nickname(member.name, member.id)
+        if not check_nick[0]:
+            await channel.send(f'Il tuo nickname {check_nick[1]}, prima di essere accettato dovrai cambiarlo.')
+            if check_nick[1] == 'contiene parole offensive':
+                await member.kick(reason="ForbiddenUsername")
+                await self.logger.log(f'nuovo membro {member.mention} kickato per username improprio')
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -358,74 +362,63 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        """Salva nell'archivio il nickname e la data del nuovo membro di AFL.
-        Principalmente, controlla se il cambio di nick è valido. Il nickname non è valido
-        in caso di:
-        - modifica avvenuta prima del cooldown (solo per AFL)
-        - parola vietata al suo interno
-        - coincidenza con il nickname di un altro membro nel server
-        - coincidenza con l'username di un altro membro del server
+        """Aggiunge un nuovo membro di AFL all'archivio dopo aver ricevuto
+        il ruolo afl.
+        Controlla altrimenti se il cambio di nickname sia valido, resettandolo
+        in caso di non validità del nickname o per modifica avvenuta prima
+        del cooldown (solo per AFL)
         """
         if before.bot:
             return
         new_nick = after.display_name
         afl_role = self.guild.get_role(self.config.afl_role_id)
-        dm = self.bot.get_user(before.id) if self.bot.get_user(
-            before.id) is not None else self.bot.get_user(before.id).create_dm()
-        if afl_role not in before.roles:
-            if afl_role in after.roles:
-                # appena diventato AFL, crea entry e salva nickname
-                await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
-                afler = Afler.new_entry(new_nick)
-                self.archive.add(after.id, afler)
-                self.archive.save()
-            else:
-                # non è ancora AFL, libero di cambiare nick secondo le altre regole
-                if BannedWords.contains_banned_words(new_nick):
-                    await dm.send(f'Il tuo nickname contiene parole vietate ed è stato ripristino')
-                elif self.archive.contains_nick(new_nick):
-                    await dm.send('Questo nickname è già in uso')
-                elif any(new_nick == self.bot.get_user(afler).name for afler in self.archive.keys()):
-                    await dm.send('Questo nickname è l\'username di un utente, non puoi usarlo')
-                else:
-                    return
-                await after.edit(nick=before.display_name)
+
+        # nuovo membro AFL
+        if afl_role not in before.roles and afl_role in after.roles:
+            await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
+            afler = Afler.new_entry(new_nick)
+            self.archive.add(after.id, afler)
+            self.archive.save()
+            return
+
+        # altri update che non serve gestire (per ora)
+        if before.display_name != new_nick:
+            return
+
+        # cambio di nickname
+        dm = before.dm_channel if before.dm_channel is not None else before.create_dm()
+        report = self.check_new_nickname(new_nick, before.id)
+        if not report[0]:
+            # nickname non disponibile in ogni caso: invia motivo in dm
+            await dm.send(f'Cambio di nickname rifiutato. Motivo: {report[1]}')
+            await after.edit(nick=before.display_name)
+            return
+        if afl_role not in after.roles:
+            # l'utente non è AFL ed il cambio è lecito -> non fare niente
+            return
+        # l'utente è AFL: leggo la sua entry nell'archivio
+        try:
+            afler: Afler = self.archive.get(before.id)
+        except KeyError:
+            await self.logger.log(escape_markdown(f'membro {before.mention} ha cambiato nickname, ma non risulta nell\'archivio (before:{before.display_name} after:{after.display_name})'))
+            return
+        if after.display_name == afler.nick:
+            # consenti il cambio forzato del nick da parte dei moderatori
+            # o per ripristino che non necessita alcun aggiornamento dell'archivio
+            return
+        # controllo il tempo passato dall'ultimo cambio
+        today = date.today()
+        min_delta = timedelta(days=self.config.nick_change_days)
+        if today - afler.last_nick_change < min_delta:
+            days_until_renewal = afler.last_nick_change + min_delta - today
+            await dm.send(f'Potrai cambiare nickname nuovamente tra {days_until_renewal.days} giorni')
+            await after.edit(nick=afler.nick)
         else:
-            # era già AFL, controllo se il cambiamento sia legittimo
-            if before.display_name != new_nick:
-                try:
-                    item: Afler = self.archive.get(before.id)
-                except KeyError:
-                    await self.logger.log(f'{before.mention} ha cambiato nickname, ma non risulta nell\'archivio')
-                    return
-                # se il cambio del nickname avviene per ripristino o per moderazione, non bisogna fare nulla
-                if item.nick == new_nick:
-                    return
-                # altrimenti procedo come `setnick`, usando come contesto il canale dm
-                last_change = item.last_nick_change
-                difference = datetime.date(datetime.now()) - last_change
-                if difference.days < self.config.nick_change_days:
-                    renewal = last_change + \
-                        timedelta(days=self.config.nick_change_days)
-                    days_until_renewal = renewal - \
-                        datetime.date(datetime.now())
-                    await dm.send(f'Potrai cambiare nickname nuovamente tra {days_until_renewal.days} giorni')
-                elif BannedWords.contains_banned_words(new_nick):
-                    await dm.send('Il nickname non può contenere parole offensive')
-                elif self.archive.contains_nick(new_nick):
-                    await dm.send('Questo nickname è già in uso')
-                elif any(before.id != afler and new_nick == self.bot.get_user(afler).name for afler in self.archive.keys()):
-                    await dm.send('Questo nickname è l\'username di un utente, non puoi usarlo')
-                else:
-                    # aggiorno il nickname nell'archivio
-                    item.nick = new_nick
-                    self.archive.save()
-                    await dm.send(f'Nickname cambiato con successo')
-                    await self.logger.log(discord.utils.escape_markdown(f'Nickname di {before.mention} modificato in {new_nick} (era {before.display_name})'))
-                    return
-                # se il nickname non va bene, ripristino il vecchio nickname valido
-                old_nick = item.nick
-                await after.edit(nick=old_nick)
+            # aggiorno il nickname nell'archivio
+            afler.nick = new_nick
+            self.archive.save()
+            await dm.send(f'Nickname cambiato con successo')
+            await self.logger.log(escape_markdown(f'nickname di {before.mention} modificato in {new_nick} (era {before.display_name})'))
 
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
@@ -438,7 +431,7 @@ class EventCog(commands.Cog):
         try:
             item: Afler = self.archive.get(before.id)
         except KeyError:
-            await self.logger.log(discord.utils.escape_markdown(f'utente {before.mention} non trovato nell\'archivio durante on_user_update (before:{before.name} after:{after.name})'))
+            await self.logger.log(escape_markdown(f'utente {before.mention} non trovato nell\'archivio durante on_user_update (before:{before.name} after:{after.name})'))
             return
         old_nick: str = item.escaped_nick
         member = self.guild.get_member(after.id)
@@ -446,8 +439,30 @@ class EventCog(commands.Cog):
             await self.logger.log('errore imprevisto nel recuperare il membro durante on_user_update')
             return
         if old_nick != member.nick:
-            await self.logger.log(f'ripristino nickname di {member.mention} da `{discord.utils.escape_markdown(member.display_name)}` a `{old_nick}`')
+            await self.logger.log(f'ripristino nickname di {member.mention} da `{escape_markdown(member.display_name)}` a `{old_nick}`')
             await member.edit(nick=old_nick)
+
+    def check_new_nickname(self, new_nick: str, afler_id: int) -> Tuple[bool, str]:
+        """Controlla se il nuovo nickname di un afler sia valido.
+        Questo accade in caso di:
+        - parola vietata al suo interno
+        - coincidenza con il nickname di un altro membro nel server
+        - coincidenza con l'username di un altro membro del server
+
+        :param new_nick: il nickname che l'afler ha inserito
+        :param afler_id: l'id dell'afler
+
+        :returns: una tupla che indica se il nick nuovo è accettabile, e
+        in caso contrario una stringa non vuota che ne indichi la ragione
+        :rtype: Tuple[bool, str]
+        """
+        if BannedWords.contains_banned_words(new_nick):
+            return (False, 'contiene parole offensive')
+        elif self.archive.contains_nick(new_nick):
+            return (False, 'è già in uso')
+        elif any(new_nick == afler.name for afler in self.guild.members if afler.id != afler_id):
+            return (False, 'è l\'username di un utente')
+        return (True, '')
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
