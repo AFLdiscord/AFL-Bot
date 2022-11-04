@@ -1,12 +1,15 @@
 """:class: ConfigCog contiene i comandi di configurazione del bot."""
-import git
+from git.cmd import Git
 import json
 from typing import Any, Dict, List
 
 import discord
 from discord.ext import commands
 from utils import shared_functions
-from utils.shared_functions import Archive, BannedWords, BotLogger, Config
+from utils.archive import Archive
+from utils.banned_words import BannedWords
+from utils.bot_logger import BotLogger
+from utils.config import Config
 
 
 class ConfigCog(commands.Cog, name='Configurazione'):
@@ -114,7 +117,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         Sintassi:
         <updateconfig     # ricarica tutti i parametri dal file
         """
-        if Config.load():
+        if Config.get_config().load():
             await self.logger.log('aggiornata configurazione')
             await ctx.send('Configurazione ricaricata correttamente')
         else:
@@ -131,9 +134,9 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         Sintassi:
         <pull         # aggiorna il bot
         """
-        repo = git.cmd.Git('.')
+        repo = Git('.')
         await ctx.send(repo.pull())
-        await ctx.invoke(self.bot.get_command('reload'))
+        await ctx.invoke(self.reload)
         await self.logger.log('aggiornato bot tramite comando pull')
 
     @commands.command(brief='ricarica una o più cogs')

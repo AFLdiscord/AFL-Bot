@@ -6,27 +6,29 @@ Contiene anche due comandi:
 - presentation  per consentire ai nuovi membri di presentarsi
 
 Sono inoltre presenti delle funzioni usiliarie alle funzioni del bot:
-Logging
-- evaluate_diff       trova le differenze tra un messaggio di discord e la sua modifica
 Proposte
-- add_proposal        aggiunge una nuova proposta al file che le traccia
-- remove_proposal     rimuove la proposta dal file
-- adjust_vote_count   aggiorna i contatori relativi a una proposta
-- calculate_threshold logica per stabilire la sogli affinchè una proposta passi
+- add_proposal          aggiunge una nuova proposta al file che le traccia
+- remove_proposal       rimuove la proposta dal file
+- adjust_vote_count     aggiorna i contatori relativi a una proposta
+- calculate_threshold   logica per stabilire la sogli affinchè una proposta passi
 """
 
 import re
 import json
 from enum import Enum
 from datetime import datetime, date, timedelta
-from difflib import SequenceMatcher
-from typing import Any, Dict, List, Sequence, Tuple, Union
+from typing import Any, Dict, List, Sequence, Tuple
 
 import discord
 from discord.ext import commands, tasks
 from discord.utils import escape_markdown
-from utils import shared_functions
-from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
+from utils import shared_functions as sf
+from utils.afler import Afler
+from utils.archive import Archive
+from utils.banned_words import BannedWords
+from utils.bot_logger import BotLogger
+from utils.config import Config
+from aflbot import AFLBot
 
 
 class EventCog(commands.Cog):
@@ -55,20 +57,12 @@ class EventCog(commands.Cog):
     Inoltre è presente un comando per aggiornare lo status del bot
     """
 
-    def __init__(self, bot: commands.Bot):
-        self.bot: commands.Bot = bot
-        self.bot.version: str = 'v2.0'
+    def __init__(self, bot: AFLBot):
+        self.bot: AFLBot = bot
+        self.bot.version = 'v2.0'
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
-        """guild deve essere assegnato sia qui che in on_ready:
-        - all'avvio del bot, questo assegnamento restituisce None e
-          l'assegnamento effettivo è lasciato a on_ready;
-        - dopo ogni reload viene chiamato solo l'init, che però ora può
-          assegnare la guild con successo.
-        """
-        self.guild: Union[discord.Guild, None] = self.bot.get_guild(
-            self.config.guild_id)
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
@@ -92,7 +86,7 @@ class EventCog(commands.Cog):
         sex='il tuo sesso'
     )
     async def presentation(self, interaction: discord.Interaction, age: discord.app_commands.Range[int, 0, 100], sex: Sex):
-        """Consente ai nuovi membri di presentarsi fornendo le informazioni richieste
+        """Consente ai nuovi membri di presentarsi fornendo le informazioni richieste.
         Questo comando è disponibile solo come slash command.
         I parametri sono validati automaticamente, in particolare
         - età deve essere un intero positivo
@@ -105,11 +99,11 @@ class EventCog(commands.Cog):
             # si può usare solo per presentarsi
             await interaction.response.send_message('Questo comando è riservato per la presentazione dei nuovi membri', ephemeral=True)
             return
-        await interaction.user.add_roles(self.guild.get_role(self.config.afl_role_id))
+        assert isinstance(interaction.user, discord.Member)
+        await interaction.user.add_roles(self.config.afl_role)
         msg = f'{interaction.user.mention} si è presentato con età={age} e sesso={sex.value}'
         await interaction.response.send_message(msg)
         await self.logger.log(msg)
-        channel = self.bot.get_channel(self.config.welcome_channel_id)
         welcomeMessage = discord.Embed(
             title=f'Diamo il benvenuto a {discord.utils.escape_markdown(interaction.user.display_name)}!',
             colour=discord.Colour.dark_theme().value
@@ -117,7 +111,7 @@ class EventCog(commands.Cog):
         welcomeMessage.set_thumbnail(url=interaction.user.display_avatar)
         welcomeMessage.add_field(
             name='Presentazione:', value=f'età: {age}\nsesso: {sex.value}', inline=False)
-        await channel.send(embed=welcomeMessage)
+        await self.config.welcome_channel.send(embed=welcomeMessage)
         return
 
     @commands.Cog.listener()
@@ -130,7 +124,8 @@ class EventCog(commands.Cog):
         Se il messaggio è nel canale di presentazione, ammette il membro automaticamente assegnandogli
         il ruolo AFL.
         """
-        if not shared_functions.relevant_message(message):
+        # TODO accorciare
+        if not sf.relevant_message(message):
             return
         if message.content.lower() == 'ping':
             response = f'pong in {round(self.bot.latency * 1000)} ms'
@@ -140,21 +135,21 @@ class EventCog(commands.Cog):
             response = 'nice'
             await message.channel.send(response)
             return
-        if message.channel.id == self.config.presentation_channel_id:
+        if message.channel == self.config.presentation_channel:
             # non deve rispondere a eventuali messaggi di moderatori nel canale, solo a nuovi membri
-            for role in message.author.roles:
-                if role.id in self.config.moderation_roles_id:
-                    return
+            assert isinstance(message.author, discord.Member)
+            if any(x in self.config.moderation_roles for x in message.author.roles):
+                return
             # a tutti gli altri dice di presentarsi
             await message.reply('Presentati usando il comando `/presentation`')
-        link = shared_functions.link_to_clean(message.content)
+        link = sf.link_to_clean(message.content)
         if link is not None:
             await message.delete()
             await message.channel.send(f'Link da {message.author.mention}>:\n{link}')
             return
-        if message.channel.id == self.config.poll_channel_id:
+        if message.channel == self.config.poll_channel:
             await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
-            add_proposal(message, self.guild)
+            self.add_proposal(message)
             await self.logger.log(f'proposta aggiunta al file:\n{message.content}')
             return
         # se è un comando non verifico i contatori (come per gli slash command)
@@ -162,7 +157,7 @@ class EventCog(commands.Cog):
             return
         # TODO migliorare accesso a oggetto afler, magari spostandolo all'inizio o in un'altra funzione
         # controlla se il messaggio è valido
-        if valid_for_orator(message):
+        if self.valid_for_orator(message):
             # controlla se il membro è già registrato nell'archivio, in caso contrario lo aggiunge
             if message.author.id in self.archive.keys():
                 afler = self.archive.get(message.author.id)
@@ -172,7 +167,7 @@ class EventCog(commands.Cog):
             # incrementa il conteggio
             afler.increase_orator_counter()
             self.archive.save()
-        elif valid_for_dank(message):
+        elif self.valid_for_dank(message):
             if message.author.id in self.archive.keys():
                 afler = self.archive.get(message.author.id)
             else:
@@ -193,11 +188,12 @@ class EventCog(commands.Cog):
         il contatore dell'utente corrispondente di uno.
         Per cancellazioni in bulk vedi on_bulk_message_delete.
         """
-        if not shared_functions.relevant_message(message):
+        if not sf.relevant_message(message):
             return
-        if message.channel.id == self.config.poll_channel_id:
+        assert isinstance(message.channel, discord.TextChannel)
+        if message.channel == self.config.poll_channel:
             await self.logger.log(f'rimuovo proposta\n{message.content}')
-            remove_proposal(message)
+            self.remove_proposal(message)
             return
         try:
             item = self.archive.get(message.author.id)
@@ -209,10 +205,10 @@ class EventCog(commands.Cog):
             if self.is_command(message):
                 # non devo decrementare nulla perchè i messaggi non contano
                 return
-            elif valid_for_orator(message):
+            elif self.valid_for_orator(message):
                 item.decrease_orator_counter()
                 counter = f'decrementato contatore orator di {message.author.mention}'
-            elif valid_for_dank(message):
+            elif self.valid_for_dank(message):
                 item.decrease_dank_counter()
                 counter = f'decrementato contatore dank di {message.author.mention}'
             self.archive.save()
@@ -229,6 +225,7 @@ class EventCog(commands.Cog):
             # logga tutti i messaggi
             await self.on_message_delete(message)
         channel = messages[0].channel
+        assert isinstance(channel, discord.TextChannel)
         await self.logger.log(f'rimossi {len(messages)} messaggi da {channel.mention}')
 
     @commands.Cog.listener()
@@ -241,21 +238,23 @@ class EventCog(commands.Cog):
         - la reaction non è valida per la proposta;
         - la reaction viene messa a un messaggio del bot.
         """
-        if not payload.channel_id == self.config.poll_channel_id:
+        if payload.channel_id != self.config.poll_channel_id:
             return
+        assert payload.member is not None
         # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
-        message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(payload.message_id)
+        message = await self.config.poll_channel.fetch_message(payload.message_id)
         if message.author == self.bot.user or payload.emoji.name not in ('🟢', '🔴'):
             await message.remove_reaction(payload.emoji, payload.member)
             return
-        # aggiorna il contatore proposte, devo aggiornarlo sempre perchè altrimenti la remove rimuove
-        # un voto dal conteggio quando il bot la rimuove
+        # aggiorna il contatore proposte, devo aggiornarlo sempre perchè
+        # altrimenti la remove rimuove un voto dal conteggio quando il
+        # bot la rimuove
         await self.logger.log(f'aggiunta reazione sulla proposta\n{message.content}')
         is_good = self._check_reaction_permissions(payload)
         if not is_good:
             # devo rimuovere la reaction perchè il membro non ha i requisiti
             try:
-                message = await self.bot.get_channel(payload.channel_id).fetch_message(payload.message_id)
+                message = await self.config.poll_channel.fetch_message(payload.message_id)
                 await message.remove_reaction(payload.emoji, payload.member)
             except discord.NotFound:
                 await self.logger.log('impossibile trovare il messaggio o la reaction cercate')
@@ -282,13 +281,13 @@ class EventCog(commands.Cog):
         tale messaggio è stato postato dal bot stesso o se la reaction
         non era valida per la votazione.
         """
-        if not payload.channel_id == self.config.poll_channel_id:
+        if payload.channel_id != self.config.poll_channel_id:
             return
         # ignora le reaction non valide per il voto
         if payload.emoji.name not in ('🟢', '🔴'):
             return
         # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
-        message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(payload.message_id)
+        message = await self.config.poll_channel.fetch_message(payload.message_id)
         if message.author == self.bot.user:
             return
         await self.logger.log(f'rimossa reazione sulla proposta\n{message.content}')
@@ -307,25 +306,22 @@ class EventCog(commands.Cog):
         :returns: se ci interessa gestire questa reaction
         :rtype: bool
         """
-        is_good = False
         assert payload.member is not None
-        orator = self.guild.get_role(self.config.orator_role_id)
-        if payload.event_type == 'REACTION_ADD' and orator not in payload.member.roles:
-            # se non è oratore, l'altra condizione è essere moderatore
-            for role in payload.member.roles:
-                if role.id in self.config.moderation_roles_id:
-                    is_good = True
-        else:
-            # è oratore
-            is_good = True
-        return is_good
+        return (payload.event_type == 'REACTION_ADD' and (
+            self.config.orator_role in payload.member.roles or
+            any(role in self.config.moderation_roles for role in payload.member.roles)))
 
     @commands.Cog.listener()
     async def on_message_edit(self, before: discord.Message, after: discord.Message):
         """Registra le modifiche dei messaggi nel log."""
-        # prevent spurious activation (e.g. when embeds are loaded it counts as a modification when it shouldn't)
+        if not sf.relevant_message(before):
+            return
+        assert isinstance(before.channel, discord.TextChannel)
+        # va esplicitato il controllo affinché si considerino solamente
+        # le modifiche effettive (ad esempio non l'aggiunta di un embed
+        # che essendo vista come una modifica triggererebbe il metodo)
         if before.content != after.content:
-            diff = evaluate_diff(before.content, after.content)
+            diff = sf.evaluate_diff(before.content, after.content)
             await self.logger.log(f'messaggio di {before.author.mention} modificato in {before.channel.mention}:\n{diff}')
 
     @commands.Cog.listener()
@@ -338,15 +334,15 @@ class EventCog(commands.Cog):
         """
         if member.bot:
             return
-        await self.bot.get_channel(self.config.presentation_channel_id).send(
+        await self.config.presentation_channel.send(
             'Benvenuto su AFL! Presentati usando il comando `/presentation`')
         await self.logger.log(f'nuovo membro: {member.mention}')
-        channel = await member.create_dm()
-        await channel.send(self.config.greetings)
+        dm = member.dm_channel if member.dm_channel is not None else await member.create_dm()
+        await dm.send(self.config.greetings)
         # controlla se il nome dell'utente è valido
         check_nick = self.check_new_nickname(member.name, member.id)
         if not check_nick[0]:
-            await channel.send(f'Il tuo nickname {check_nick[1]}, prima di essere accettato dovrai cambiarlo.')
+            await dm.send(f'Il tuo nickname {check_nick[1]}, prima di essere accettato dovrai cambiarlo.')
             if check_nick[1] == 'contiene parole offensive':
                 await member.kick(reason="ForbiddenUsername")
                 await self.logger.log(f'nuovo membro {member.mention} kickato per username improprio')
@@ -371,10 +367,9 @@ class EventCog(commands.Cog):
         if before.bot:
             return
         new_nick = after.display_name
-        afl_role = self.guild.get_role(self.config.afl_role_id)
 
         # nuovo membro AFL
-        if afl_role not in before.roles and afl_role in after.roles:
+        if self.config.afl_role not in before.roles and self.config.afl_role in after.roles:
             await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
             afler = Afler.new_entry(new_nick)
             self.archive.add(after.id, afler)
@@ -386,14 +381,14 @@ class EventCog(commands.Cog):
             return
 
         # cambio di nickname
-        dm = before.dm_channel if before.dm_channel is not None else before.create_dm()
+        dm = before.dm_channel if before.dm_channel is not None else await before.create_dm()
         report = self.check_new_nickname(new_nick, before.id)
         if not report[0]:
             # nickname non disponibile in ogni caso: invia motivo in dm
             await dm.send(f'Cambio di nickname rifiutato. Motivo: {report[1]}')
             await after.edit(nick=before.display_name)
             return
-        if afl_role not in after.roles:
+        if self.config.afl_role not in after.roles:
             # l'utente non è AFL ed il cambio è lecito -> non fare niente
             return
         # l'utente è AFL: leggo la sua entry nell'archivio
@@ -434,7 +429,7 @@ class EventCog(commands.Cog):
             await self.logger.log(escape_markdown(f'utente {before.mention} non trovato nell\'archivio durante on_user_update (before:{before.name} after:{after.name})'))
             return
         old_nick: str = item.escaped_nick
-        member = self.guild.get_member(after.id)
+        member = self.config.guild.get_member(after.id)
         if member is None:
             await self.logger.log('errore imprevisto nel recuperare il membro durante on_user_update')
             return
@@ -460,7 +455,7 @@ class EventCog(commands.Cog):
             return (False, 'contiene parole offensive')
         elif self.archive.contains_nick(new_nick):
             return (False, 'è già in uso')
-        elif any(new_nick == afler.name for afler in self.guild.members if afler.id != afler_id):
+        elif any(new_nick == afler.name for afler in self.config.guild.members if afler.id != afler_id):
             return (False, 'è l\'username di un utente')
         return (True, '')
 
@@ -472,7 +467,7 @@ class EventCog(commands.Cog):
         """
         if isinstance(error, commands.CommandNotFound):
             #  non triggero l'invio dell'help su markdown (menzioni, emoji personalizzate ecc.) se il prefisso è '<'
-            if discord_markdown(ctx.message.content):
+            if sf.discord_tag(ctx.message.content):
                 return
             await ctx.send('Comando inesistente. Ecco l\'elenco dei comandi che puoi usare.')
             await ctx.send_help()   # manda tutti i comandi, necessario se ci sono più pagine
@@ -498,7 +493,7 @@ class EventCog(commands.Cog):
         fatto dentro on_ready.
         """
         await self.logger.log('evento on_resume')
-        await self.coherency_check(self.guild.members)
+        await self.coherency_check(self.config.guild.members)
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -506,29 +501,33 @@ class EventCog(commands.Cog):
         main_channel_id nel file config.json.
         Si occupa anche di:
         - avviare la task periodica per il controllo dei contatori
+        - avviare il caricamento dei modelli nella classe Config (se dei
+          parametri non dovessero essere validi spegne il bot)
         - impostare lo stato del bot con le informazioni di versione.
         - controllare la coerenza dell'archivio
         """
+        self.config.set_bot(self.bot)
+        try:
+            self.config.load_models()
+        except AssertionError as e:
+            print('Errore nel caricamento dei parametri del bot:', e)
+            await self.bot.close()
+            exit()
         await self.bot.tree.sync()
-        _guild = self.bot.get_guild(self.config.guild_id)
-        assert _guild is not None
-        self.guild = _guild
-        timestamp = datetime.now()
         # salva il timestamp di avvio nel bot
-        self.bot.start_time: datetime = timestamp
+        self.bot.start_time = datetime.now()
         botstat = discord.Game(name=f'AFL {self.bot.version}')
         await self.bot.change_presence(activity=botstat)
         # inizializzazione del logger degli eventi sul canale
-        await self.logger.initialize(self.bot)
+        await self.logger.initialize()
         # log dell'avvio
         await self.logger.log(f'{self.bot.user} connesso a discord')
         # controllo coerenza archivio
-        await self.coherency_check(self.guild.members)
+        await self.coherency_check(self.config.guild.members)
         # per evitare RuntimeExceptions se il bot si disconnette per un periodo prolungato
         if not self.periodic_checks.is_running():
             if self.config.main_channel_id is not None:
-                channel = self.bot.get_channel(self.config.main_channel_id)
-                await channel.send(f'AFL Bot `{self.bot.version}` avviato alle {discord.utils.format_dt(timestamp, "T")}. Il prefisso è: `{self.bot.command_prefix}`')
+                await self.config.main_channel.send(f'AFL Bot `{self.bot.version}` avviato alle {discord.utils.format_dt(self.bot.start_time, "T")}. Il prefisso è: `{self.bot.command_prefix}`')
             await self.logger.log('avvio task')
             self.periodic_checks.start()
         else:
@@ -548,7 +547,6 @@ class EventCog(commands.Cog):
         programmata per essere eseguita ogni 24 ore da quel momento.
         """
         # TODO accorciare la funzione
-        role_channel = self.bot.get_channel(self.config.main_channel_id)
         await self.logger.log('controllo proposte...')
         await self.handle_proposals()
         await self.logger.log('controllo proposte terminato')
@@ -557,47 +555,50 @@ class EventCog(commands.Cog):
             item = self.archive.get(id)
             item.clean()
             count = item.count_consolidated_messages()
-            if count >= self.config.orator_threshold and self.guild.get_member(id).top_role.id not in self.config.moderation_roles_id:
-                orator_role = self.guild.get_role(self.config.orator_role_id)
-                await self.guild.get_member(id).add_roles(orator_role)
-                msg = ''
+            member = self.config.guild.get_member(id)
+            assert member is not None
+
+            # controllo messaggi per ruolo attivo
+            if (count >= self.config.orator_threshold and
+                    not any(role in self.config.moderation_roles for role in member.roles)):
+                await member.add_roles(self.config.orator_role)
                 if item.orator:
-                    msg = f'<@!{id}>: rinnovato ruolo {orator_role.mention}'
+                    msg = f'{member.mention}: rinnovato ruolo {self.config.orator_role.mention}'
                 else:
-                    msg = f'<@!{id}> è diventato {orator_role.mention}'
+                    msg = f'{member.mention} è diventato {self.config.orator_role.mention}'
                 await self.logger.log(msg)
-                await role_channel.send(embed=discord.Embed(description=msg))
+                await self.config.main_channel.send(embed=discord.Embed(description=msg))
                 item.set_orator()
 
             # controllo delle violazioni
             violations_count = item.reset_violations()
             if violations_count > 0:
-                msg = f'rimosse le {violations_count} violazioni di <@!{id}>'
+                msg = f'rimosse le {violations_count} violazioni di {member.mention}'
                 await self.logger.log(msg)
                 # rimozione del ruolo sotto sorveglianza
-                surveillance_role = self.guild.get_role(
-                    self.config.under_surveillance_id)
-                await self.guild.get_member(id).remove_roles(surveillance_role)
-                await self.logger.log(f'<@!{id}> rimosso da <@!{surveillance_role.mention}')
+                await member.remove_roles(self.config.surveillance_role)
+                await self.logger.log(f'{member.mention} rimosso da <@!{self.config.surveillance_role.mention}')
 
             # rimuovo i messaggi contati 7 giorni fa
             item.forget_last_week()
 
+            # controllo scadenza ruolo attivo
             if item.is_orator_expired():
-                orator_role = self.guild.get_role(self.config.orator_role_id)
-                await self.guild.get_member(id).remove_roles(orator_role)
-                msg = f'<@!{id}> non è più un {orator_role.mention}'
+                await member.remove_roles(self.config.orator_role)
+                msg = f'<@!{id}> non è più un {self.config.orator_role.mention}'
                 await self.logger.log(msg)
-                await role_channel.send(embed=discord.Embed(description=f'{msg} :('))
+                await self.config.main_channel.send(embed=discord.Embed(description=f'{msg} :('))
                 item.remove_orator()
+
+            # controllo scadenza ruolo cazzaro
             if item.is_dank_expired():
                 await self.remove_dank_from_afler(item, id)
+
         await self.logger.log('controllo conteggio messaggi terminato')
         self.archive.save()
 
     async def handle_proposals(self) -> None:
         """Gestisce le proposte, verificando se hanno raggiunto un termine."""
-        proposal_channel = self.bot.get_channel(self.config.poll_channel_id)
         try:
             with open('proposals.json', 'r') as file:
                 proposals = json.load(file)
@@ -613,7 +614,7 @@ class EventCog(commands.Cog):
         to_delete = set()
         for key in proposals:
             try:
-                message: discord.Message = await self.bot.get_channel(self.config.poll_channel_id).fetch_message(key)
+                message = await self.config.poll_channel.fetch_message(key)
             except discord.NotFound:
                 # capita se viene cancellata dopo un riavvio o mentre è offline
                 await self.logger.log('proposta già cancellata, ignoro')
@@ -631,7 +632,7 @@ class EventCog(commands.Cog):
                 report['description'] = 'La proposta è stata bocciata dalla maggioranza.',
                 report['colour'] = discord.Color.red()
             # TODO mettere durata proposte nella config
-            elif datetime.now() - datetime.fromisoformat(proposal['timestamp']) >= timedelta(days=3):
+            elif date.today() - date.fromisoformat(proposal['timestamp']) >= timedelta(days=3):
                 report['result'] = 'scaduta'
                 report['title'] = 'Proposta scaduta'
                 report['description'] = 'La proposta non ha ricevuto abbastanza voti.'
@@ -653,13 +654,13 @@ class EventCog(commands.Cog):
                 value=proposal['content'],
                 inline=False
             )
-            await proposal_channel.send(embed=content)
+            await self.config.poll_channel.send(embed=content)
             await self.logger.log(f'proposta di {message.author.mention} {report["result"]}:\n\n{proposal["content"]}')
             await message.delete()
             to_delete.add(key)
         for key in to_delete:
             del proposals[key]
-        shared_functions.update_json_file(proposals, 'proposals.json')
+        sf.update_json_file(proposals, 'proposals.json')
 
     async def remove_dank_from_afler(self, afler: Afler, id: int) -> None:
         """Rimuove il ruolo cazzaro dall'afler.
@@ -667,12 +668,12 @@ class EventCog(commands.Cog):
         :param afler: l'istanza nell'archivio dell'afler a cui rimuovere il ruolo
         :param id: l'id di discord dell'afler
         """
-        role_channel = self.bot.get_channel(self.config.main_channel_id)
-        dank_role = self.guild.get_role(self.config.dank_role_id)
-        await self.guild.get_member(id).remove_roles(dank_role)
-        msg = f'<@!{id}> non è più un {dank_role.mention}'
+        member = self.config.guild.get_member(id)
+        assert member is not None
+        await member.remove_roles(self.config.dank_role)
+        msg = f'{member.mention} non è più un {self.config.dank_role.mention}'
         await self.logger.log(msg)
-        await role_channel.send(embed=discord.Embed(description=f'{msg} :)'))
+        await self.config.main_channel.send(embed=discord.Embed(description=f'{msg} :)'))
         afler.remove_dank()
 
     async def set_dank(self, afler: Afler, id: int) -> None:
@@ -681,16 +682,16 @@ class EventCog(commands.Cog):
         :param afler: l'istanza nell'archivio dell'afler a cui conferire il ruolo
         :param id: l'id di discord dell'afler
         """
-        role_channel = self.bot.get_channel(self.config.main_channel_id)
-        dank_role = self.guild.get_role(self.config.dank_role_id)
-        await self.guild.get_member(id).add_roles(dank_role)
+        member = self.config.guild.get_member(id)
+        assert member is not None
+        await member.add_roles(self.config.dank_role)
         msg = ''
         if afler.dank:
-            msg = f'<@!{id}>: rinnovato ruolo {dank_role.mention}'
+            msg = f'{member.mention}: rinnovato ruolo {self.config.dank_role.mention}'
         else:
-            msg = f'<@!{id}> è diventato un {dank_role.mention}'
+            msg = f'{member.mention} è diventato un {self.config.dank_role.mention}'
         await self.logger.log(msg)
-        await role_channel.send(embed=discord.Embed(description=msg))
+        await self.config.main_channel.send(embed=discord.Embed(description=msg))
         afler.set_dank()
 
     async def coherency_check(self, members: Sequence[discord.Member]) -> None:
@@ -740,118 +741,87 @@ class EventCog(commands.Cog):
         """
         # gestisce anche prefissi più lunghi
         if message.content.startswith(self.config.current_prefix):
-            if not discord_markdown(message.content):
+            if not sf.discord_tag(message.content):
                 return True
         return False
 
+    def add_proposal(self, message: discord.Message) -> None:
+        """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
+        in quel momento.
 
-def evaluate_diff(before: str, after: str) -> str:
-    """Confronta due stringhe e restituisce una stringa formattata
-    che evidenzia le differenze tra le due.
-
-    :param before: la stringa di partenza
-    :param after: la stringa modificata
-
-    :returns: una stringa formattata per evidenziare le modifiche
-    :rtype: str
-    """
-    diff: SequenceMatcher = SequenceMatcher(None, before, after)
-    output: list[str] = []
-    for opcode, a0, a1, b0, b1 in diff.get_opcodes():
-        if opcode == 'equal':
-            output.append(diff.a[a0:a1])
-        elif opcode == 'insert':
-            output.append(f'**{diff.b[b0:b1]}**')
-        elif opcode == 'delete':
-            output.append(f'~~{diff.a[a0:a1]}~~')
-        elif opcode == 'replace':
-            output.append(f'~~{diff.a[a0:a1]}~~**{diff.b[b0:b1]}**')
-        else:
-            return f'Before:\n    {before}\nAfter:\n    {after}'
-    return ''.join(output)
-
-
-def add_proposal(message: discord.Message, guild: discord.Guild) -> None:
-    """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
-    in quel momento.
-
-    :param message: messaggio mandato nel canale proposte da aggiungere
-    :param guild: il server discord
-    """
-    proposals: Dict[str, Dict[str, Any]] = {}
-    try:
-        with open('proposals.json', 'r') as file:
-            proposals = json.load(file)
-    except FileNotFoundError:
-        print('file non trovato, lo creo ora')
-        with open('proposals.json', 'w+') as file:
-            proposals = {}
-    # TODO rendere orator_count dipendente dal contesto nel server
-    orator_count = 2  # moderatori non hanno ruolo oratore
-    members = guild.members
-    orator_role = guild.get_role(Config.get_config().orator_role_id)
-    for member in members:
-        if not member.bot:
-            if orator_role in member.roles:
+        :param message: messaggio mandato nel canale proposte da aggiungere
+        :param guild: il server discord
+        """
+        proposals: Dict[str, Dict[str, Any]] = {}
+        try:
+            with open('proposals.json', 'r') as file:
+                proposals = json.load(file)
+        except FileNotFoundError:
+            print('file non trovato, lo creo ora')
+            with open('proposals.json', 'w+') as file:
+                proposals = {}
+        orator_count = 0
+        for member in self.config.guild.members:
+            if (self.config.orator_role in member.roles or
+                    any(role in self.config.moderation_roles for role in member.roles)):
                 orator_count += 1
-    # TODO valutare di spostare l'inizializzazione di proposal altrove
-    proposal = {
-        'timestamp': message.created_at.date().isoformat(),
-        'total_voters': orator_count,
-        'threshold': calculate_threshold(orator_count),
-        'passed': False,
-        'rejected': False,
-        'yes': 0,
-        'no': 0,
-        'content': message.content
-    }
-    # save as string for coherency with the loading
-    proposals[str(message.id)] = proposal
-    shared_functions.update_json_file(proposals, 'proposals.json')
+        # TODO valutare di spostare l'inizializzazione di proposal altrove
+        proposal = {
+            'timestamp': message.created_at.date().isoformat(),
+            'total_voters': orator_count,
+            'threshold': calculate_threshold(orator_count),
+            'passed': False,
+            'rejected': False,
+            'yes': 0,
+            'no': 0,
+            'content': message.content
+        }
+        # save as string for coherency with the loading
+        proposals[str(message.id)] = proposal
+        sf.update_json_file(proposals, 'proposals.json')
 
+    def remove_proposal(self, message: discord.Message) -> None:
+        """Rimuove la proposta con id uguale al messaggio passato dal file. Se non trovata
+        non fa nulla.
 
-def remove_proposal(message: discord.Message) -> None:
-    """Rimuove la proposta con id uguale al messaggio passato dal file. Se non trovata
-    non fa nulla.
+        :param message: messaggio della proposta
+        """
+        try:
+            with open('proposals.json', 'r') as file:
+                proposals: Dict[str, Dict[str, Any]] = json.load(file)
+        except FileNotFoundError:
+            print('errore nel file delle proposte')
+            return
+        try:
+            del proposals[str(message.id)]
+        except KeyError:
+            print('proposta non trovata')
+        else:
+            sf.update_json_file(proposals, 'proposals.json')
 
-    :param message: messaggio della proposta
-    """
-    try:
-        with open('proposals.json', 'r') as file:
-            proposals: Dict[str, Dict[str, Any]] = json.load(file)
-    except FileNotFoundError:
-        print('errore nel file delle proposte')
-        return
-    try:
-        del proposals[str(message.id)]
-    except KeyError:
-        print('proposta non trovata')
-    else:
-        shared_functions.update_json_file(proposals, 'proposals.json')
+    def valid_for_orator(self, message: discord.Message) -> bool:
+        """Verifica se il canale in cui è stato inviato il messaggio contribuisce
+        al ruolo oratore.
 
+        :param message: il messaggio inviato
 
-def valid_for_orator(message: discord.Message) -> bool:
-    """Verifica se il canale in cui è stato inviato il messaggio contribuisce
-    al ruolo oratore.
+        :returns: True se il messaggio conta, False altrimenti
+        :rtype: bool
+        """
+        return (isinstance(message.channel, discord.TextChannel) and
+                message.channel.category_id == Config.get_config().orator_category_id)
 
-    :param message: il messaggio inviato
+    def valid_for_dank(self, message: discord.Message) -> bool:
+        """Verifica se il canale in cui è stato inviato il messaggio contribuisce
+        al ruolo cazzaro.
 
-    :returns: True se il messaggio conta, False altrimenti
-    :rtype: bool
-    """
-    return message.channel.category_id == Config.get_config().orator_category_id
+        :param message: il messaggio inviato
 
-
-def valid_for_dank(message: discord.Message) -> bool:
-    """Verifica se il canale in cui è stato inviato il messaggio contribuisce
-    al ruolo cazzaro.
-
-    :param message: il messaggio inviato
-
-    :returns: True se il messaggio conta, False altrimenti
-    :rtype: bool
-    """
-    return message.channel.category_id == Config.get_config().dank_category_id
+        :returns: True se il messaggio conta, False altrimenti
+        :rtype: bool
+        """
+        return (isinstance(message.channel, discord.TextChannel) and
+                message.channel.category_id == Config.get_config().dank_category_id)
 
 
 def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> None:
@@ -890,7 +860,7 @@ def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> N
             proposal['rejected'] = True
         else:
             proposal['rejected'] = False
-    shared_functions.update_json_file(proposals, 'proposals.json')
+    sf.update_json_file(proposals, 'proposals.json')
 
 
 def calculate_threshold(orator_count: int) -> int:
@@ -902,30 +872,9 @@ def calculate_threshold(orator_count: int) -> int:
     :returns: soglia affinchè la proposta passi
     :rtype: int
     """
-    return int(orator_count / 2) + 1
+    return orator_count // 2 + 1
 
 
-def discord_markdown(content: str) -> bool:
-    """Controlla se la stringa riconosciuta come comando è in realtà un markdown.
-    Serve solo a gestire i conflitti in caso il prefisso del bot sia settato a '<'.
-
-    I markdown di discord sono raggruppabili nelle seguenti categorie:
-    <@id> -> menzione membri o ruoli
-    <#id> -> menzione canali
-    <:id> -> emoji personalizzate
-    <a:id> -> emoji animate
-    <t:timestamp> -> timestamp
-    Inoltre, viene gestita l'emoticon '<3', che non viene convertita automaticamente
-    nell'emoji standard quando il messaggio è inviato dal client mobile.
-
-    :param content: comando che ha dato errore
-
-    :returns: se rappresenta un markdown
-    :rtype: bool
-    """
-    return content[1] in ('@', '#', ':', 'a', 't', '3')
-
-
-async def setup(bot: commands.Bot):
+async def setup(bot: AFLBot):
     """Entry point per il caricamento della cog"""
     await bot.add_cog(EventCog(bot))

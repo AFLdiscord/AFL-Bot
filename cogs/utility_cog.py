@@ -1,10 +1,15 @@
 """:class: UtilityCog contiene comandi di uso generale."""
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional, Union
 
 import discord
 from discord.ext import commands
-from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config
+from aflbot import AFLBot
+from utils.afler import Afler
+from utils.archive import Archive
+from utils.banned_words import BannedWords
+from utils.bot_logger import BotLogger
+from utils.config import Config
 
 
 class UtilityCog(commands.Cog, name='Utility'):
@@ -19,8 +24,8 @@ class UtilityCog(commands.Cog, name='Utility'):
     - info invia il link alla pagina GitHub di AFL
     """
 
-    def __init__(self, bot: commands.Bot):
-        self.bot: commands.Bot = bot
+    def __init__(self, bot: AFLBot):
+        self.bot: AFLBot = bot
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
@@ -47,6 +52,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         <status @someone    ritorna lo status di 'someone' se presente nel file
         """
         if member is None:
+            assert isinstance(ctx.author, discord.Member)
             member = ctx.author
         try:
             item: Afler = self.archive.get(member.id)
@@ -66,16 +72,18 @@ class UtilityCog(commands.Cog, name='Utility'):
         msg_text = f'Oratore: {item.orator_total_messages}\nCazzaro: {item.dank_total_messages}\nTotale: {item.total_messages}'
         status.add_field(name='Messaggi totali:',
                          value=msg_text, inline=False)
-        is_a_mod: bool = False
+        is_a_mod = False
         for role in member.roles:
             if role.id in self.config.moderation_roles_id:
                 is_a_mod = True
                 status.add_field(name='Ruolo:', value=role.name, inline=False)
                 break
         if not is_a_mod and item.orator:
+            assert item.orator_expiration is not None
             status.add_field(
-                name='Oratore:', value=f'scade il {datetime.strftime(item.orator_expiration, "%d/%m")}', inline=False)
+                name='Oratore:', value=f'scade il {date.strftime(item.orator_expiration, "%d/%m")}', inline=False)
         if item.dank:
+            assert item.dank_expiration is not None
             status.add_field(
                 name='Cazzaro:', value=f'scade il {datetime.strftime(item.dank_expiration, "%d/%m %H:%M")}', inline=False)
         if item.warn_count() == 0:
@@ -83,7 +91,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         else:
             if item.last_violation_date != None:
                 violations_expiration = (
-                    item.last_violation_date + timedelta(days=self.config.violations_reset_days)).__str__()
+                    item.last_violation_date + timedelta(days=self.config.violations_reset_days)).isoformat()
                 status.add_field(
                     name='Violazioni:', value=f'{item.warn_count()} (scade il {violations_expiration})', inline=False)
         await ctx.send(embed=status)
@@ -100,7 +108,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if user is None:
             user = ctx.author
         # se l'utente è nel server, stampo il suo nickname invece del suo username
-        member = self.bot.get_guild(self.config.guild_id).get_member(user.id)
+        member = self.config.guild.get_member(user.id)
         if member is not None:
             user = member
         avatar = discord.Embed(
@@ -141,7 +149,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
         elif self.archive.contains_nick(new_nick):
             await ctx.send('Questo nickname è già in uso')
-        elif any(ctx.author.id != afler and new_nick == self.bot.get_user(afler).name for afler in self.archive.keys()):
+        elif any(ctx.author.id != afler and new_nick == self.bot.get_user(afler).name for afler in self.archive.keys()):  # type: ignore
             await ctx.send('Questo nickname è l\'username di un utente, non puoi usarlo')
         else:
             old_nick = discord.utils.escape_markdown(ctx.author.display_name)
@@ -149,7 +157,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             self.archive.save()
             escaped_nick = discord.utils.escape_markdown(
                 new_nick)   # serve per stampare
-            await ctx.author.edit(nick=escaped_nick)
+            await ctx.author.edit(nick=escaped_nick)    # type: ignore
             await ctx.send(f'Nickname cambiato in {escaped_nick}')
             await self.logger.log(f'Nickname di {ctx.author.mention} modificato in {escaped_nick} (era {old_nick})')
 
@@ -187,6 +195,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         <bio @someone      # ritorna la bio di *someone*, se presente
         """
         if member is None:
+            assert isinstance(ctx.author, discord.Member)
             member = ctx.author
         try:
             item: Afler = self.archive.get(member.id)
@@ -222,9 +231,8 @@ class UtilityCog(commands.Cog, name='Utility'):
                 ranking.append((mention, message_count))
         ranking = sorted(ranking, key=lambda i: i[1], reverse=True)
         leaderboard = ''
-        for i in range(len(ranking)):
-            entry = ranking[i]
-            leaderboard += f'{i+1}) {entry[0]} - {entry[1]}\n'
+        for i, entry in enumerate(ranking, start=1):
+            leaderboard += f'{i}) {entry[0]} - {entry[1]}\n'
         embed = discord.Embed(title='Leaderboard')
         embed.description = leaderboard
         await ctx.send(embed=embed)
@@ -236,6 +244,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         Sintassi
         <info         # invia le info
         """
+        assert isinstance(self.bot.user, discord.User)
         embed = discord.Embed(title='Informazioni sul bot')
         embed.add_field(
             name='Uptime',
@@ -253,6 +262,6 @@ class UtilityCog(commands.Cog, name='Utility'):
         await ctx.send(embed=embed)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot: AFLBot):
     """Entry point per il caricamento della cog."""
     await bot.add_cog(UtilityCog(bot))

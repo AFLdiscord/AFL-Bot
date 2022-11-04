@@ -5,7 +5,12 @@ from typing import Union
 import discord
 from discord.ext import commands
 from discord.utils import MISSING
-from utils.shared_functions import Afler, Archive, BannedWords, BotLogger, Config, relevant_message
+from utils.shared_functions import relevant_message
+from utils.afler import Afler
+from utils.archive import Archive
+from utils.banned_words import BannedWords
+from utils.bot_logger import BotLogger
+from utils.config import Config
 
 
 class ModerationCog(commands.Cog, name='Moderazione'):
@@ -53,6 +58,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         if channel_id in self.config.exceptional_channels_id:
             return
         await message.delete()
+        assert isinstance(message.author, discord.Member)
         await self.logger.log(f'aggiunto warn a {message.author.mention} per \
             linguaggio inappropriato:\n{message.content}')
         await self._add_warn(message.author, 'linguaggio inappropriato', 1)
@@ -75,19 +81,21 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         """
         if amount is MISSING or amount <= 0:
             raise commands.CommandError
+        assert isinstance(ctx.author, discord.Member)
         # senza il + 1 l'amount non considererebbe il comando ed
         # eliminerebbe un messaggio in meno rispetto alla quantità prevista
         to_delete = set([m async for m in ctx.channel.history(limit=amount + 1)])
         # non è possibile usare la bulk delete su messaggi mandati 14
         # giorni fa o prima, per cui questi vanno eliminati a parte
-        to_delete_old = set(m for m in to_delete if datetime.now(
-            timezone.utc) - m.created_at >= timedelta(days=14))
+        to_delete_old = set(m for m in to_delete if discord.utils.utcnow(
+        ) - m.created_at >= timedelta(days=14))
         to_delete.difference_update(to_delete_old)
+        assert isinstance(ctx.channel, discord.TextChannel)
         await ctx.channel.delete_messages(to_delete, reason=reason)
         for m in to_delete_old:
             await m.delete()
         await self.logger.log(discord.utils.escape_markdown(
-            f'<@{ctx.author.id}> ha eliminato {amount} messaggi in <#{ctx.channel.id}>.\nMotivo:\n{reason}'))
+            f'{ctx.author.mention} ha eliminato {amount} messaggi in {ctx.channel.mention}.\nMotivo:\n{reason}'))
 
     @commands.command(brief='reimposta il nickname dell\'utente citato')
     async def resetnick(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = MISSING, *, name: str = MISSING):
@@ -113,7 +121,9 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                     raise commands.CommandError
             else:
                 # tramite messaggio citato
-                msg = await ctx.fetch_message(ctx.message.reference.message_id)
+                reference_id = ctx.message.reference.message_id
+                assert reference_id is not None
+                msg = await ctx.fetch_message(reference_id)
                 member = msg.author
                 if name is MISSING:
                     name = f'{attempted_member}'
@@ -129,6 +139,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         old_nick = item.nick
         item.nick = name
         self.archive.save()
+        assert isinstance(member, discord.Member)
         await member.edit(nick=name)
         await self.logger.log(discord.utils.escape_markdown(f'Nickname di {member.mention} ripristinato in {name} (era {old_nick})'))
         await ctx.send(f'Nickname di {member.mention} ripristinato')
@@ -160,7 +171,9 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 await ctx.send('Devi menzionare qualcuno o rispondere a un messaggio per poter usare questo comando', delete_after=5)
                 return
             # in questo caso ho risposto a un messaggio con <warn
-            msg = await ctx.fetch_message(ctx.message.reference.message_id)
+            reference_id = ctx.message.reference.message_id
+            assert reference_id is not None
+            msg = await ctx.fetch_message(reference_id)
             member = msg.author
             await msg.delete()
         else:   # con argomenti al warn
@@ -172,7 +185,9 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 member = ctx.message.mentions[0]
             else:
                 # ho menzionato qualcuno, prendo come target del warn
-                msg = await ctx.fetch_message(ctx.message.reference.message_id)
+                reference_id = ctx.message.reference.message_id
+                assert reference_id is not None
+                msg = await ctx.fetch_message(reference_id)
                 member = msg.author
                 await msg.delete()
                 # solo se vado per reference devo sistemare la reason perchè la prima parola va in attempted_member
@@ -184,10 +199,10 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                     reason = f'{attempted_member} {reason}'
         if member.bot:   # or member == ctx.author:
             return
+        assert isinstance(member, discord.Member)
         await self._add_warn(member, reason, 1)
-        user = f'<@!{member.id}>'
         await self.logger.log(f'{member.mention} warnato. Motivo: {reason}')
-        await ctx.send(f'{user} warnato. Motivo: {reason}')
+        await ctx.send(f'{member.mention} warnato. Motivo: {reason}')
         await ctx.message.delete(delay=5)
 
     @commands.command(brief='rimuove un warn all\'utente citato')
@@ -201,9 +216,8 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             return
         reason = 'buona condotta'
         await self._add_warn(member, reason, -1)
-        user = f'<@!{member.id}>'
         await self.logger.log(f'rimosso warn a {member.mention}')
-        await ctx.send(f'{user} rimosso un warn.')
+        await ctx.send(f'{member.mention} rimosso un warn.')
         await ctx.message.delete(delay=5)
 
     @commands.command(brief='mostra i warn di tutti i membri', aliases=['warnc', 'wc'])
@@ -262,7 +276,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         await ctx.send(f'{user} bannato. Motivo: {reason}')
         await ctx.message.delete(delay=5)
         penalty = 'bannato dal server.'
-        channel = await member.create_dm()
+        channel = member.dm_channel if member.dm_channel is not None else await member.create_dm()
         await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
         await member.ban(delete_message_days=0, reason=reason)
 
@@ -278,21 +292,19 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             if number < 0:  # non deve controllare il ban se è un unwarn
                 return
             if item.warn_count() == 3:
-                role = self.bot.get_guild(self.config.guild_id).get_role(
-                    self.config.under_surveillance_id)
-                await member.add_roles(role)
+                await member.add_roles(Config.get_config().surveillance_role)
                 penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
-                channel = await member.create_dm()
+                channel = member.dm_channel if member.dm_channel is not None else await member.create_dm()
                 await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
-                await self.logger.log(f'{member.mention} aggiunto a {role.mention}')
+                await self.logger.log(f'{member.mention} aggiunto a {Config.get_config().surveillance_role.mention}')
             elif item.warn_count() >= 4:
                 penalty = 'bannato dal server.'
-                channel = await member.create_dm()
+                channel = member.dm_channel if member.dm_channel is not None else await member.create_dm()
                 await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
                 await member.ban(delete_message_days=0, reason=reason)
                 await self.logger.log(f'{member.mention} bannato automaticamente per aver superato i 3 warn')
             else:
-                channel = await member.create_dm()
+                channel = member.dm_channel if member.dm_channel is not None else await member.create_dm()
                 await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
         else:
             # membro che non ha mai scritto nei canali conteggiati
