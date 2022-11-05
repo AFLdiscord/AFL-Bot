@@ -186,7 +186,7 @@ class EventCog(commands.Cog):
         """Invocata alla cancellazione di un messaggio. Se era una proposta, questa viene rimossa.
         Se tale messaggio proveniva da un canale conteggiato occorre decrementare
         il contatore dell'utente corrispondente di uno.
-        Per cancellazioni in bulk vedi on_bulk_message_delete.
+        Per cancellazioni in bulk vedi il comando delete nel cog di moderazione.
         """
         if not sf.relevant_message(message):
             return
@@ -214,19 +214,6 @@ class EventCog(commands.Cog):
             self.archive.save()
             msg = f'messaggio di {message.author.mention} cancellato in {message.channel.mention}\n    {message.content}'
         await self.logger.log(f'{msg}\n\n{counter}', media=message.attachments)
-
-    @commands.Cog.listener()
-    async def on_bulk_message_delete(self, messages: List[discord.Message]):
-        """Invocata quando si effettua una bulk delete dei messaggi. Aggiorna i contatori di tutti
-        i membri i cui messaggi sono coinvolti nella bulk delete. Il comportamento per ogni singolo
-        messaggio è lo stesso della on_message_delete.
-        """
-        for message in messages:
-            # logga tutti i messaggi
-            await self.on_message_delete(message)
-        channel = messages[0].channel
-        assert isinstance(channel, discord.TextChannel)
-        await self.logger.log(f'rimossi {len(messages)} messaggi da {channel.mention}')
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):

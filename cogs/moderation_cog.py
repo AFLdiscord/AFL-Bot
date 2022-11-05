@@ -1,6 +1,6 @@
 """:class: ModerationCog contiene tutti i comandi per la moderazione."""
-from datetime import datetime, timedelta, timezone
-from typing import Union
+from datetime import timedelta
+from typing import List, Optional, Union
 
 import discord
 from discord.ext import commands
@@ -72,30 +72,63 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             await self.on_message(after)
 
     @commands.command(brief='elimina dei messaggi da un canale', aliases=['del', 'd'])
-    async def delete(self, ctx: commands.Context, amount: int = MISSING, *, reason: str = 'messaggi non idonei'):
+    async def delete(self, ctx: commands.Context, amount: int = MISSING, *, reason: Optional[str] = None):
         """Elimina una certa quantità di messaggi da un canale.
+        La quantità deve essere compresa tra 1 e 100
 
         Sintassi:
         <delete amount          # elimina la quantità di messaggi indicata
         <delete amount reason   # allega un motivo al log della delete
         """
-        if amount is MISSING or amount <= 0:
+        if amount is MISSING or amount <= 0 or amount > 100:
             raise commands.CommandError
         assert isinstance(ctx.author, discord.Member)
         # senza il + 1 l'amount non considererebbe il comando ed
         # eliminerebbe un messaggio in meno rispetto alla quantità prevista
-        to_delete = set([m async for m in ctx.channel.history(limit=amount + 1)])
-        # non è possibile usare la bulk delete su messaggi mandati 14
-        # giorni fa o prima, per cui questi vanno eliminati a parte
-        to_delete_old = set(m for m in to_delete if discord.utils.utcnow(
-        ) - m.created_at >= timedelta(days=14))
-        to_delete.difference_update(to_delete_old)
         assert isinstance(ctx.channel, discord.TextChannel)
-        await ctx.channel.delete_messages(to_delete, reason=reason)
-        for m in to_delete_old:
-            await m.delete()
-        await self.logger.log(discord.utils.escape_markdown(
-            f'{ctx.author.mention} ha eliminato {amount} messaggi in {ctx.channel.mention}.\nMotivo:\n{reason}'))
+        deleted = await ctx.channel.purge(limit=amount + 1, reason=reason)
+        msg = f'{ctx.author.mention} ha eliminato {amount} messaggi in {ctx.channel.mention}'
+        if reason is not None:
+            msg += f'\n\n**Motivo**:\n{reason}'
+        await self.logger.log(msg)
+        deleted.pop(0)
+        deleted.reverse()
+        await self._report_deleted(deleted)
+
+    async def _report_deleted(self, deleted: List[discord.Message]) -> None:
+        """Si occupa di loggare i messaggi eliminati dal comando delete."""
+        today = discord.utils.utcnow()
+        report = '**Messaggi eliminati:**\n\n'
+        attachment_list = []
+        prev_author = ''
+        for message in deleted:
+            # controlla se
+            # - il messaggio di log più il nuovo messaggio, compreso di
+            #   indicatori di allegato "[allegato x]\n", non superino il
+            #   tetto massimo di 4096 caratteri
+            # - gli allegati non siano più di 10 per messaggio di log
+            # in tal caso invia quanto contato fin'ora e ricomincia ad
+            # accumulare i messaggi rimanenti per un nuovo log
+            if (len(report)
+                + len(discord.utils.escape_markdown(message.content))
+                + 13*len(message.attachments)  # sarebbe "[allegato x]\n"
+                > 4096 or
+                    len(attachment_list) + len(message.attachments) > 10):
+                await self.logger.log(f'{report}', attachment_list)
+                report = ''
+                attachment_list.clear()
+                prev_author = ''
+            if prev_author != message.author.mention:
+                prev_author = message.author.mention
+                report += f'{prev_author}, '
+            granularity = ('T' if today - message.created_at < timedelta(days=1)
+                           else 'f')
+            report += f'{discord.utils.format_dt(message.created_at, granularity)}:\n\
+                {discord.utils.escape_markdown(message.content)}\n'
+            for att in message.attachments:
+                attachment_list.append(att)
+                report += f'[allegato {len(attachment_list)}]\n'
+        await self.logger.log(f'{report}', attachment_list)
 
     @commands.command(brief='reimposta il nickname dell\'utente citato')
     async def resetnick(self, ctx: commands.Context, attempted_member: Union[str, discord.Member] = MISSING, *, name: str = MISSING):
