@@ -364,7 +364,7 @@ class EventCog(commands.Cog):
             return
 
         # altri update che non serve gestire (per ora)
-        if before.display_name != new_nick:
+        if before.display_name == new_nick:
             return
 
         # cambio di nickname
