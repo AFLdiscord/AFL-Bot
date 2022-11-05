@@ -564,7 +564,7 @@ class EventCog(commands.Cog):
                 await self.logger.log(msg)
                 # rimozione del ruolo sotto sorveglianza
                 await member.remove_roles(self.config.surveillance_role)
-                await self.logger.log(f'{member.mention} rimosso da <@!{self.config.surveillance_role.mention}')
+                await self.logger.log(f'{member.mention} rimosso da {self.config.surveillance_role.mention}')
 
             # rimuovo i messaggi contati 7 giorni fa
             item.forget_last_week()
@@ -572,7 +572,7 @@ class EventCog(commands.Cog):
             # controllo scadenza ruolo attivo
             if item.is_orator_expired():
                 await member.remove_roles(self.config.orator_role)
-                msg = f'<@!{id}> non è più un {self.config.orator_role.mention}'
+                msg = f'{member.mention} non è più un {self.config.orator_role.mention}'
                 await self.logger.log(msg)
                 await self.config.main_channel.send(embed=discord.Embed(description=f'{msg} :('))
                 item.remove_orator()
@@ -633,7 +633,7 @@ class EventCog(commands.Cog):
             )
             content.add_field(
                 name='Autore',
-                value=f'{message.author.mention}>',
+                value=f'{message.author.mention}',
                 inline=False
             )
             content.add_field(
