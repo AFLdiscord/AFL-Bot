@@ -244,7 +244,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         Sintassi
         <info         # invia le info
         """
-        assert isinstance(self.bot.user, discord.User)
+        assert isinstance(self.bot.user, discord.ClientUser)
         embed = discord.Embed(title='Informazioni sul bot')
         embed.add_field(
             name='Uptime',
