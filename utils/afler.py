@@ -291,7 +291,7 @@ class Afler():
         presente nel file aflers.json lo aggiunge inizializzando tutti i contatori dei giorni a 0 e counter a 1.
         Si occupa anche di aggiornare il campo 'last_message_date'.
         """
-        today = date.today()
+        today = date.today().isoformat()
         if self.data['last_message_date'] == today:
             # messaggi dello stesso giorno, continuo a contare
             self.data['counter'] += 1
@@ -307,7 +307,7 @@ class Afler():
                     self.data['last_message_date']).weekday()]
                 self.data[day] = self.data['counter']
             self.data['counter'] = 1
-            self.data['last_message_date'] = today.isoformat()
+            self.data['last_message_date'] = today
         self.data['orator_total_messages'] += 1
 
     def decrease_orator_counter(self, amount: int = 1) -> None:
