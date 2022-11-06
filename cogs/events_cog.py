@@ -30,7 +30,6 @@ class EventCog(commands.Cog):
     Messaggi:
     - on_message
     - on_message_delete
-    - on_bulk_message_delete
     - on_message_edit
 
     Reazioni:
