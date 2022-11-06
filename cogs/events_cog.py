@@ -4,20 +4,12 @@ nella classe EventCog
 Contiene anche due comandi:
 - updatestatus  per aggiornare l'attività del bot (sta giocando a...)
 - presentation  per consentire ai nuovi membri di presentarsi
-
-Sono inoltre presenti delle funzioni usiliarie alle funzioni del bot:
-Proposte
-- add_proposal          aggiunge una nuova proposta al file che le traccia
-- remove_proposal       rimuove la proposta dal file
-- adjust_vote_count     aggiorna i contatori relativi a una proposta
-- calculate_threshold   logica per stabilire la sogli affinchè una proposta passi
 """
 
 import re
-import json
 from enum import Enum
 from datetime import datetime, date, timedelta
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Dict, Sequence, Tuple
 
 import discord
 from discord.ext import commands, tasks
@@ -28,6 +20,7 @@ from utils.archive import Archive
 from utils.banned_words import BannedWords
 from utils.bot_logger import BotLogger
 from utils.config import Config
+from utils.proposals import Proposals
 from aflbot import AFLBot
 
 
@@ -63,6 +56,7 @@ class EventCog(commands.Cog):
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
+        self.proposals: Proposals = Proposals.get_instance()
 
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
@@ -149,7 +143,7 @@ class EventCog(commands.Cog):
             return
         if message.channel == self.config.poll_channel:
             await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
-            self.add_proposal(message)
+            self.proposals.add_proposal(message)
             await self.logger.log(f'proposta aggiunta al file:\n{message.content}')
             return
         # se è un comando non verifico i contatori (come per gli slash command)
@@ -193,7 +187,7 @@ class EventCog(commands.Cog):
         assert isinstance(message.channel, discord.TextChannel)
         if message.channel == self.config.poll_channel:
             await self.logger.log(f'rimuovo proposta\n{message.content}')
-            self.remove_proposal(message)
+            self.proposals.remove_proposal(message.id)
             return
         try:
             item = self.archive.get(message.author.id)
@@ -258,7 +252,7 @@ class EventCog(commands.Cog):
                 if payload.member == user:
                     await message.remove_reaction(reaction, payload.member)
                     break
-        adjust_vote_count(payload, 1)
+        self.proposals.adjust_vote_count(payload, 1)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
@@ -278,7 +272,7 @@ class EventCog(commands.Cog):
         if message.author == self.bot.user:
             return
         await self.logger.log(f'rimossa reazione sulla proposta\n{message.content}')
-        adjust_vote_count(payload, -1)
+        self.proposals.adjust_vote_count(payload, -1)
 
     def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
         """Controlla se la reazione è stata messa nel canale proposte da un membro che
@@ -535,7 +529,7 @@ class EventCog(commands.Cog):
         """
         # TODO accorciare la funzione
         await self.logger.log('controllo proposte...')
-        await self.handle_proposals()
+        await self.proposals.handle_proposals()
         await self.logger.log('controllo proposte terminato')
         await self.logger.log('controllo conteggio messaggi...')
         for id in self.archive.keys():
@@ -583,71 +577,6 @@ class EventCog(commands.Cog):
 
         await self.logger.log('controllo conteggio messaggi terminato')
         self.archive.save()
-
-    async def handle_proposals(self) -> None:
-        """Gestisce le proposte, verificando se hanno raggiunto un termine."""
-        try:
-            with open('proposals.json', 'r') as file:
-                proposals = json.load(file)
-        except FileNotFoundError:
-            await self.logger.log('nessun file di proposte trovato')
-            return
-        report = {
-            'result': '',
-            'title': '',
-            'description': '',
-            'colour': discord.Color
-        }
-        to_delete = set()
-        for key in proposals:
-            try:
-                message = await self.config.poll_channel.fetch_message(key)
-            except discord.NotFound:
-                # capita se viene cancellata dopo un riavvio o mentre è offline
-                await self.logger.log('proposta già cancellata, ignoro')
-                to_delete.add(key)
-                continue
-            proposal = proposals[key]
-            if proposal['passed']:
-                report['result'] = 'passata'
-                report['title'] = 'Raggiunta soglia per la proposta'
-                report['description'] = 'La soglia per la proposta è stata raggiunta.'
-                report['colour'] = discord.Color.green()
-            elif proposal['rejected']:
-                report['result'] = 'bocciata'
-                report['title'] = 'Proposta bocciata'
-                report['description'] = 'La proposta è stata bocciata dalla maggioranza.',
-                report['colour'] = discord.Color.red()
-            # TODO mettere durata proposte nella config
-            elif date.today() - date.fromisoformat(proposal['timestamp']) >= timedelta(days=3):
-                report['result'] = 'scaduta'
-                report['title'] = 'Proposta scaduta'
-                report['description'] = 'La proposta non ha ricevuto abbastanza voti.'
-                report['colour'] = discord.Color.gold()
-            else:
-                continue
-            content = discord.Embed(
-                title=report['title'],
-                description=report['description'],
-                colour=report['colour']
-            )
-            content.add_field(
-                name='Autore',
-                value=f'{message.author.mention}',
-                inline=False
-            )
-            content.add_field(
-                name='Contenuto',
-                value=proposal['content'],
-                inline=False
-            )
-            await self.config.poll_channel.send(embed=content)
-            await self.logger.log(f'proposta di {message.author.mention} {report["result"]}:\n\n{proposal["content"]}')
-            await message.delete()
-            to_delete.add(key)
-        for key in to_delete:
-            del proposals[key]
-        sf.update_json_file(proposals, 'proposals.json')
 
     async def remove_dank_from_afler(self, afler: Afler, id: int) -> None:
         """Rimuove il ruolo cazzaro dall'afler.
@@ -732,60 +661,6 @@ class EventCog(commands.Cog):
                 return True
         return False
 
-    def add_proposal(self, message: discord.Message) -> None:
-        """Aggiunge la proposta al file proposals.json salvando timestamp e numero di membri attivi
-        in quel momento.
-
-        :param message: messaggio mandato nel canale proposte da aggiungere
-        :param guild: il server discord
-        """
-        proposals: Dict[str, Dict[str, Any]] = {}
-        try:
-            with open('proposals.json', 'r') as file:
-                proposals = json.load(file)
-        except FileNotFoundError:
-            print('file non trovato, lo creo ora')
-            with open('proposals.json', 'w+') as file:
-                proposals = {}
-        orator_count = 0
-        for member in self.config.guild.members:
-            if (self.config.orator_role in member.roles or
-                    any(role in self.config.moderation_roles for role in member.roles)):
-                orator_count += 1
-        # TODO valutare di spostare l'inizializzazione di proposal altrove
-        proposal = {
-            'timestamp': message.created_at.date().isoformat(),
-            'total_voters': orator_count,
-            'threshold': calculate_threshold(orator_count),
-            'passed': False,
-            'rejected': False,
-            'yes': 0,
-            'no': 0,
-            'content': message.content
-        }
-        # save as string for coherency with the loading
-        proposals[str(message.id)] = proposal
-        sf.update_json_file(proposals, 'proposals.json')
-
-    def remove_proposal(self, message: discord.Message) -> None:
-        """Rimuove la proposta con id uguale al messaggio passato dal file. Se non trovata
-        non fa nulla.
-
-        :param message: messaggio della proposta
-        """
-        try:
-            with open('proposals.json', 'r') as file:
-                proposals: Dict[str, Dict[str, Any]] = json.load(file)
-        except FileNotFoundError:
-            print('errore nel file delle proposte')
-            return
-        try:
-            del proposals[str(message.id)]
-        except KeyError:
-            print('proposta non trovata')
-        else:
-            sf.update_json_file(proposals, 'proposals.json')
-
     def valid_for_orator(self, message: discord.Message) -> bool:
         """Verifica se il canale in cui è stato inviato il messaggio contribuisce
         al ruolo oratore.
@@ -809,57 +684,6 @@ class EventCog(commands.Cog):
         """
         return (isinstance(message.channel, discord.TextChannel) and
                 message.channel.category_id == Config.get_config().dank_category_id)
-
-
-def adjust_vote_count(payload: discord.RawReactionActionEvent, change: int) -> None:
-    """Aggiusta il contatore dei voti in base al parametro passato. Stabilisce in autonomia
-    se il voto è a favore o contrario guardando il tipo di emoji cambiata.
-
-    :param payload: l'evento di rimozione dell'emoji
-    :param change: variazione del voto (+1 o -1)
-    """
-    try:
-        with open('proposals.json', 'r') as file:
-            proposals: Dict[str, Dict[str, Any]] = json.load(file)
-    except FileNotFoundError:
-        print('errore nel file delle proposte')
-        return
-    try:
-        proposal = proposals[str(payload.message_id)]
-    except KeyError:
-        print('impossibile trovare la proposta')
-        return
-    if payload.emoji.name == '🟢':
-        proposal['yes'] += change
-        if proposal['yes'] < 0:
-            proposal['yes'] = 0
-        if proposal['yes'] >= proposal['threshold']:
-            proposal['passed'] = True
-        else:
-            # è possibile cambiare idea, il controllo lo fa la task
-            proposal['passed'] = False
-    else:
-        # se payload.emoji.name == '🔴'
-        proposal['no'] += change
-        if proposal['no'] < 0:
-            proposal['no'] = 0
-        if proposal['no'] >= proposal['threshold']:
-            proposal['rejected'] = True
-        else:
-            proposal['rejected'] = False
-    sf.update_json_file(proposals, 'proposals.json')
-
-
-def calculate_threshold(orator_count: int) -> int:
-    """Calcola la soglia di voti a favore necessari al passaggio di una proposta.
-    Per ora il criterio è maggioranza assoluta.
-
-    :param orator_count: totale aventi diritto al voto
-
-    :returns: soglia affinchè la proposta passi
-    :rtype: int
-    """
-    return orator_count // 2 + 1
 
 
 async def setup(bot: AFLBot):
