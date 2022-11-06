@@ -440,7 +440,7 @@ class EventCog(commands.Cog):
         """
         if BannedWords.contains_banned_words(new_nick):
             return (False, 'contiene parole offensive')
-        elif self.archive.contains_nick(new_nick):
+        elif self.archive.contains_nick(new_nick) and self.archive.get(afler_id).nick != new_nick:
             return (False, 'è già in uso')
         elif any(new_nick == afler.name for afler in self.config.guild.members if afler.id != afler_id):
             return (False, 'è l\'username di un utente')
