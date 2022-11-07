@@ -1,9 +1,12 @@
 """:class: UtilityCog contiene comandi di uso generale."""
 from datetime import date, datetime, timedelta
+from enum import Enum
+from git.repo import Repo
 from typing import Optional, Union
 
 import discord
 from discord.ext import commands
+from discord.utils import MISSING
 from aflbot import AFLBot
 from utils.afler import Afler
 from utils.archive import Archive
@@ -272,7 +275,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         ).set_thumbnail(
             url=self.bot.user.display_avatar
         ).set_footer(
-            text=f'AFL Bot versione {self.bot.version}'
+            text=f'AFL Bot versione {self.bot.version} - {Repo(".").head.commit.hexsha[0:7]}',
         )
         await ctx.send(embed=embed)
 
