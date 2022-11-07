@@ -212,28 +212,43 @@ class UtilityCog(commands.Cog, name='Utility'):
             )
             await ctx.send(embed=bio)
 
+    class Category(Enum):
+        oratore = 'oratore'
+        cazzaro = 'cazzaro'
+        generale = 'generale'
+
+        def str(self) -> str:
+            return self.value
+
     @commands.hybrid_command(brief='mostra il numero di messaggi mandati dagli aflers')
-    async def leaderboard(self, ctx: commands.Context):
-        """Mostra la classifica degli afler in base ai messaggi degli ultimi
-        7 giorni. Solo i membri con più di 0 messaggi sono mostrati.
+    @discord.app_commands.rename(category='categoria')
+    @discord.app_commands.describe(
+        category='la categoria della classifica'
+    )
+    async def leaderboard(self, ctx: commands.Context, category: Category = Category.generale):
+        """Mostra la classifica degli afler in base alla classifica scelta.
 
         Sintassi
         <leaderboard     # stampa la leaderboard
         """
-        # TODO valutare se rendere la classifica sulla base dei messaggi
-        # totali o se per categorie
+        assert isinstance(category, self.Category)
         ranking = []
         for id in self.archive.keys():
             afler = self.archive.get(id)
             mention = f'<@{id}>'
-            message_count = afler.total_messages
+            if category == self.Category.generale:
+                message_count = afler.total_messages
+            elif category == self.Category.oratore:
+                message_count = afler.orator_total_messages
+            elif category == self.Category.cazzaro:
+                message_count = afler.dank_total_messages
             if message_count > 0:
                 ranking.append((mention, message_count))
         ranking = sorted(ranking, key=lambda i: i[1], reverse=True)
         leaderboard = ''
         for i, entry in enumerate(ranking, start=1):
             leaderboard += f'{i}) {entry[0]} - {entry[1]}\n'
-        embed = discord.Embed(title='Leaderboard')
+        embed = discord.Embed(title=f'Leaderboard {category.value}')
         embed.description = leaderboard
         await ctx.send(embed=embed)
 
