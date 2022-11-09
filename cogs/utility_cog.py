@@ -6,7 +6,6 @@ from typing import Optional, Union
 
 import discord
 from discord.ext import commands
-from discord.utils import MISSING
 from aflbot import AFLBot
 from utils.afler import Afler
 from utils.archive import Archive
