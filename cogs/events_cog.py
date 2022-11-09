@@ -556,8 +556,9 @@ class EventCog(commands.Cog):
                 msg = f'rimosse le {violations_count} violazioni di {member.mention}'
                 await self.logger.log(msg)
                 # rimozione del ruolo sotto sorveglianza
-                await member.remove_roles(self.config.surveillance_role)
-                await self.logger.log(f'{member.mention} rimosso da {self.config.surveillance_role.mention}')
+                if self.config.surveillance_role in member.roles:
+                    await member.remove_roles(self.config.surveillance_role)
+                    await self.logger.log(f'{member.mention} rimosso da {self.config.surveillance_role.mention}')
 
             # rimuovo i messaggi contati 7 giorni fa
             item.forget_last_week()
