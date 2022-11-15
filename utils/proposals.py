@@ -281,12 +281,16 @@ class Proposals():
                 value=f'{message.author.mention}',
                 inline=False
             )
+            msg_content = proposal.content
+            if len(message.attachments):
+                msg_content += ' [File in allegato]'
             content.add_field(
                 name='Contenuto',
-                value=proposal.content,
+                value=msg_content,
                 inline=False
             )
-            await Config.get_config().poll_channel.send(embed=content)
+            attachments = [await a.to_file() for a in message.attachments]
+            await Config.get_config().poll_channel.send(embed=content, files=attachments)
             await BotLogger.get_instance().log(f'proposta di {message.author.mention} {report["result"]}:\n\n{proposal.content}')
             await message.delete()
             to_delete.add(key)

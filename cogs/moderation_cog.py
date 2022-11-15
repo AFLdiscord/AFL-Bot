@@ -85,7 +85,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
         assert isinstance(ctx.author, discord.Member)
         # senza il + 1 l'amount non considererebbe il comando ed
         # eliminerebbe un messaggio in meno rispetto alla quantità prevista
-        assert isinstance(ctx.channel, discord.TextChannel)
+        assert isinstance(ctx.channel, discord.abc.GuildChannel)
         deleted = await ctx.channel.purge(limit=amount + 1, reason=reason)
         msg = f'{ctx.author.mention} ha eliminato {amount} messaggi in {ctx.channel.mention}'
         if reason is not None:

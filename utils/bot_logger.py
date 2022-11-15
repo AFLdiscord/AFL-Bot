@@ -5,7 +5,6 @@ from typing import ClassVar, List, Optional
 from utils.config import Config
 
 import discord
-from discord.ext import commands
 from discord.utils import MISSING
 
 

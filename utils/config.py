@@ -111,8 +111,9 @@ class Config():
         :rtype: str
         """
         attributes = vars(self)
+        fields = ConfigFields.__annotations__.keys()
         string = ''
-        for key in attributes:
+        for key in fields:
             string += f'{key} = {attributes[key]}\n'
         return string
 

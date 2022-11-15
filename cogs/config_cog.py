@@ -155,11 +155,11 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             cogs: List[str] = []
             for e in args:
                 cogs.append(f'cogs.{e}')
-        reloaded: str = ''
+        reloaded = ''
         for ext in cogs:
             try:
                 await self.bot.reload_extension(ext)
-                reloaded += f'`{ext}` '
+                reloaded += f' `{ext}`'
             except commands.ExtensionError as e:
                 print(e)
                 await ctx.send(f'Errore nella ricarica di {ext}, vedi log del bot.', delete_after=5)
@@ -194,8 +194,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             await ctx.message.delete(delay=5)
         else:
             with open('extensions.json', 'r') as file:
-                extensions = json.load(file)
-            added: str = ''
+                extensions: List[str] = json.load(file)
+            added = ''
             for ext in args:
                 ext = f'cogs.{ext}'
                 if ext not in extensions:
@@ -206,7 +206,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                         print(e)
                     else:
                         extensions.append(ext)
-                        added += '`{ext} ` '
+                        added += f' `{ext}`'
                 else:
                     await ctx.send(f'{ext} già presente.')
             if added != '':
@@ -231,8 +231,8 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             await ctx.message.delete(delay=5)
         else:
             with open('extensions.json', 'r') as file:
-                extensions = json.load(file)
-            removed: str = ''
+                extensions: List[str] = json.load(file)
+            removed = ''
             for ext in args:
                 ext = f'cogs.{ext}'
                 if ext in extensions:
@@ -243,7 +243,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                     await ctx.send(f'Impossibile rimuovere {ext}')
                     print(e)
                 else:
-                    removed += '`{ext} ` '
+                    removed += f' `{ext}`'
             if removed != '':
                 await self.logger.log(f'estensioni {removed} rimosse correttamente')
                 await ctx.send(f'Estensioni {removed} rimosse correttamente.')
@@ -261,9 +261,9 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         """
         with open('extensions.json', 'r') as file:
             extensions: List[str] = json.load(file)
-        cogs: str = ''
+        cogs = ''
         for ext in extensions:
-            cogs += f'`{ext} ` '
+            cogs += f'`{ext}` '
         await ctx.send(f'Le estensioni caricate all\'avvio sono:\n{cogs}')
 
     @commands.command(brief='permette di gestire le soglie per diversi parametri', aliases=['setthreshold', 'sett', 'threshold'])

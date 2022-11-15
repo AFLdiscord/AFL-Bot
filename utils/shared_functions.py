@@ -136,6 +136,8 @@ def relevant_message(message: discord.Message) -> bool:
     :rtype: bool
     """
     global _guild
+    if message.author.bot:
+        return False
     if message.type not in (discord.MessageType.default, discord.MessageType.reply):
         # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
         # automaticamente ma vengono attribuiti all'utente che esegue l'azione
@@ -147,7 +149,7 @@ def relevant_message(message: discord.Message) -> bool:
         from utils.config import Config
         _guild = Config.get_config().guild
         del Config
-    if message.guild != _guild or message.author.bot:
+    if message.guild != _guild:
         # ignora i messaggi al di fuori dal server o di un bot
         return False
     return True
