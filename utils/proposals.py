@@ -261,8 +261,7 @@ class Proposals():
                     'description': 'La proposta è stata bocciata dalla maggioranza.',
                     'colour': discord.Color.red()
                 }
-            # TODO mettere durata proposte nella config
-            elif date.today() - date.fromisoformat(proposal.timestamp) >= timedelta(days=3):
+            elif date.today() - date.fromisoformat(proposal.timestamp) >= timedelta(days=Config.get_config().poll_duration):
                 report: Report = {
                     'result': 'scaduta',
                     'description': 'La proposta non ha ricevuto abbastanza voti.',

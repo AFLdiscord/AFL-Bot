@@ -30,6 +30,7 @@ class ConfigFields(TypedDict):
     dank_duration: int
     exceptional_channels_id: List[int]
     poll_channel_id: int
+    poll_duration: int
     under_surveillance_id: int
     violations_reset_days: int
     nick_change_days: int
@@ -87,6 +88,7 @@ class Config():
         dank_duration: durata del ruolo cazzaro in GIORNI
         exceptional_channels_id: [elenco dei canali non controllati dal bot, separati da virgola se più di uno]
         poll_channel_id: canale in cui controllare le reaction alle proposte
+        poll_duration: tempo di voto per le proposte in giorni
         under_surveillance_id: id del ruolo sotto sorveglianza (vedi regole)
         violations_reset_days: tempo dopo cui si resettano le violazioni in giorni
         nick_change_days: giorni concessi tra un cambio di nickname e l'altro (0 nessun limite)
@@ -178,6 +180,7 @@ class Config():
         for channel in data['exceptional_channels_id']:
             self.exceptional_channels_id.append(int(channel))
         self.poll_channel_id = int(data['poll_channel_id'])
+        self.poll_duration = int(data['poll_duration'])
         self.under_surveillance_id = int(data['under_surveillance_id'])
         self.violations_reset_days = data['violations_reset_days']
         self.nick_change_days = data['nick_change_days']

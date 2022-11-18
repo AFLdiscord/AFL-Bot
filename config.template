@@ -19,6 +19,7 @@
     "dank_duration": durata del ruolo cazzaro in giorni,
     "exceptional_channels_id": [elenco dei canali non controllati dal bot, separati da virgola se più di uno],
     "poll_channel_id": canale in cui controllare le reaction alle proposte,
+    "poll_duration": tempo di voto per le proposte in giorni,
     "under_surveillance_id": id del ruolo sotto sorveglianza (vedi regole),
     "violations_reset_days": tempo dopo cui si resettano le violazioni in giorni,
     "nick_change_days": giorni concessi tra un cambio di nickname e l'altro (0 nessun limite),
