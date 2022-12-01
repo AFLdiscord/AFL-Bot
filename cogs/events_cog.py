@@ -183,7 +183,8 @@ class EventCog(commands.Cog):
         """
         if not sf.relevant_message(message):
             return
-        assert isinstance(message.channel, (discord.abc.GuildChannel))
+        assert isinstance(
+            message.channel, (discord.abc.GuildChannel, discord.Thread))
         if message.channel == self.config.poll_channel:
             await self.logger.log(f'rimuovo proposta\n{message.content}')
             self.proposals.remove_proposal(message.id)
@@ -296,7 +297,8 @@ class EventCog(commands.Cog):
         """Registra le modifiche dei messaggi nel log."""
         if not sf.relevant_message(before):
             return
-        assert isinstance(before.channel, discord.abc.GuildChannel)
+        assert isinstance(
+            before.channel, (discord.abc.GuildChannel, discord.Thread))
         # va esplicitato il controllo affinché si considerino solamente
         # le modifiche effettive (ad esempio non l'aggiunta di un embed
         # che essendo vista come una modifica triggererebbe il metodo)
@@ -670,8 +672,10 @@ class EventCog(commands.Cog):
         :returns: True se il messaggio conta, False altrimenti
         :rtype: bool
         """
-        return (isinstance(message.channel, discord.abc.GuildChannel) and
-                message.channel.category_id == Config.get_config().orator_category_id)
+        if isinstance(message.channel, (discord.abc.GuildChannel, discord.Thread)):
+            if message.channel.category_id == Config.get_config().orator_category_id:
+                return True
+        return False
 
     def valid_for_dank(self, message: discord.Message) -> bool:
         """Verifica se il canale in cui è stato inviato il messaggio contribuisce
@@ -682,8 +686,10 @@ class EventCog(commands.Cog):
         :returns: True se il messaggio conta, False altrimenti
         :rtype: bool
         """
-        return (isinstance(message.channel, discord.abc.GuildChannel) and
-                message.channel.category_id == Config.get_config().dank_category_id)
+        if isinstance(message.channel, (discord.abc.GuildChannel, discord.Thread)):
+            if message.channel.category_id == Config.get_config().dank_category_id:
+                return True
+        return False
 
 
 async def setup(bot: AFLBot):
