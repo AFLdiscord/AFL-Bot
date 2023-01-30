@@ -1,6 +1,7 @@
 """Modulo per l'interazione con le API di reddit, utilizzate per alcuni comandi"""
 import os
 import discord
+from dotenv import load_dotenv
 from discord.ext import commands
 from discord.utils import MISSING
 from asyncpraw import Reddit
@@ -72,4 +73,6 @@ class RedditCog(commands.Cog):
 
 async def setup(bot: AFLBot):
     """Entry point per il caricamento della cog."""
+    # load reddit data from .env
+    load_dotenv()
     await bot.add_cog(RedditCog(bot))
