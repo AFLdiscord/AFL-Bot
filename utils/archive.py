@@ -61,16 +61,31 @@ class Archive():
         Se non esiste lo crea vuoto. Se chiamato ulteriormente a bot
         avviato, serve a refreshare l'archivio, rileggendo il file.
         """
+        archive: Dict[int, Any] = {}
         try:
             with open('aflers.json', 'r') as file:
                 raw_archive: Dict[str, Any] = json.load(file)
                 # conversione degli id da str a int così come sono su discord
-                archive: Dict[int, Any] = {}
                 for k in raw_archive:
                     archive[int(k)] = raw_archive[k]
         except FileNotFoundError:
-            with open('aflers.json', 'w+') as file:
-                archive: Dict[int, Any] = {}
+            file = open('aflers.json', 'x')
+            file.close()
+        except json.JSONDecodeError:
+            with open('aflers.json', 'r') as file:
+                first_line = file.readline()
+            if len(first_line) >= 1:
+                choice = input("L'archivio sembra essere corrotto: creare un nuovo archivio? [Y/n] ").strip()
+                if choice.casefold() != 'n':
+                    print('Creazione di un nuovo archivio...')
+                    rename('aflers.json', f'aflers-backup-{date.today()}.json')
+                    file = open('aflers.json', 'x')
+                    file.close()
+                    print(f'Il vecchio archivio è stato salvato nel file aflers-backup-{date.today()}.json.')
+                    print("Dopo averlo corretto, cancella l'archivio attuale e rinomina quello vecchio in 'aflers.json'.")
+                else:
+                    print("Correggi l'archivio prima di riavviare il bot.")
+                    exit()
         finally:
             # Serve creare un'istanza dell'archivio all'avvio.
             # Questo non è il caso invece quando si vuole fare il refresh
