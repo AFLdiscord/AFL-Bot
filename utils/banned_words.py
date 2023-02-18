@@ -12,14 +12,14 @@ class BannedWords():
 
     Attributes
     -------------
-    banned_words: List[str] attributo di classe contenente l'elenco delle parole bannate
+    banned_words: `list[str]`   attributo di classe contenente l'elenco delle parole bannate
 
     Methods
     -------------
-    load()  carica dal file banned_words.json l'elenco della parole bannate
-    add(word) aggiunge la parola all'elenco
-    remove(word) rimuove la parola dall'elenco
-    contains_banned_words(text) controlla se sono presenti parole bannate nel testo fornito
+    load():                         carica dal file banned_words.json l'elenco della parole bannate
+    add(word):                      aggiunge la parola all'elenco
+    remove(word):                   rimuove la parola dall'elenco
+    contains_banned_words(text):    controlla se sono presenti parole bannate nel testo fornito
     """
 
     banned_words: List[str] = []

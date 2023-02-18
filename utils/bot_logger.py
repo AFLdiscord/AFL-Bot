@@ -15,17 +15,17 @@ class BotLogger():
 
     Attributes
     -------------
-    _logger: BotLogger   attributo di classe, contiene l'istanza del logger
+    _logger: `BotLogger`   attributo di classe, contiene l'istanza del logger
 
     Classmethods
     -------------
-    create_instance()   inizializza l'istanza dell logger
-    get_instance()   ritorna l'unica istanza del logger
+    create_instance():  inizializza l'istanza dell logger
+    get_instance():     ritorna l'unica istanza del logger
 
     Methods
     -------------
-    initialize()   coroutine, inizializza il canale su cui viene fatto il logging
-    log()   coroutine, compila il messaggio e lo invia nel canale
+    initialize():   coroutine, inizializza il canale su cui viene fatto il logging
+    log():          coroutine, compila il messaggio e lo invia nel canale
     """
     _logger: ClassVar[BotLogger] = MISSING
 

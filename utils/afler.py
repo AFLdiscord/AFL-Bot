@@ -31,46 +31,46 @@ class Afler():
 
     Attributes
     -------------
-    data: Dict[]                            contiene i dati dell'afler
-    nick: str                               contiene il nickname dell'afler
-    bio: str                                contiene la bio dell'afler
-    orator: bool                            flag per dire se è oratore o meno
-    dank: bool                              flag per dire se è cazzaro o meno
-    dank_messages_buffer: int               messaggi del ruolo cazzaro inviati nella finestra di tempo
-    orator_total_messages: int              totale messaggi orator
-    dank_total_messages: int                totale messaggi dank
-    total_messages: int                     messaggi totali inviati dall'afler
-    orator_expiration: Optional[date]       data di scadenza del ruolo oratore
-    dank_expiration: Optional[date]         data di scadenza del ruolo cazzaro
-    last_nick_change: date                  data dell'ultimo cambio nickname
-    last_message_date: Optional[date]       data dell'ultimo messaggio valido per l'oratore
-    last_violation_date: Optional[date]     data di ultima violazione
+    data: `dict`                            contiene i dati dell'afler
+    nick: `str`                             contiene il nickname dell'afler
+    bio: `str`                              contiene la bio dell'afler
+    orator: `bool`                          flag per dire se è oratore o meno
+    dank: `bool`                            flag per dire se è cazzaro o meno
+    dank_messages_buffer: `int`             messaggi del ruolo cazzaro inviati nella finestra di tempo
+    orator_total_messages: `int`            totale messaggi orator
+    dank_total_messages: `int`              totale messaggi dank
+    total_messages: `int`                   messaggi totali inviati dall'afler
+    orator_expiration: `Optional[date]`     data di scadenza del ruolo oratore
+    dank_expiration: `Optional[date]`       data di scadenza del ruolo cazzaro
+    last_nick_change: `date`                data dell'ultimo cambio nickname
+    last_message_date: `Optional[date]`     data dell'ultimo messaggio valido per l'oratore
+    last_violation_date: `Optional[date]`   data di ultima violazione
 
     Classmethods
     -------------
-    new_entry(nick) crea un nuovo afler
-    from_archive(data) crea un afler con i dati letti dall'archivio
+    new_entry(nick):    crea un nuovo afler
+    from_archive(data): crea un afler con i dati letti dall'archivio
 
     Methods
     -------------
-    increase_orator_counter() incrementa il contatore oratore
-    decrease_orator_counter() decrementa il contatore oratore del giorno corrente
-    set_orator() imposta l'afler come oratore
-    is_orator_expired() controlla se il ruolo oratore è scaduto
-    remove_orator() rimuove il ruolo oratore
-    set_dank() imposta l'afler come cazzaro
-    increase_dank_counter() incrementa il contatore cazzaro
-    decrease_dank_counter() decrementa il contatore cazzaro
-    is_eligible_for_dank() controlla se l'afler può ottenere il ruolo cazzaro
-    is_dank_expired() controlla se il ruolo cazzaro è scaduto
-    remove_dank() rimuove il ruolo cazzaro
-    modify_warn() aggiunge o rimuove warn all'afler
-    warn_count() ritorna il numero di warn
-    reset_violations() azzera il numero di violazioni commesse
-    forget_last_week() azzera il contatore corrispondente a 7 giorni fa
-    clean() sistema i dati salvati al cambio di giorno
-    count_orator_messages() conta i messaggi totali
-    count_consolidated_messages() conta solo i messaggi dei giorni precedenti a oggi
+    increase_orator_counter():      incrementa il contatore oratore
+    decrease_orator_counter():      decrementa il contatore oratore del giorno corrente
+    set_orator():                   imposta l'afler come oratore
+    is_orator_expired():            controlla se il ruolo oratore è scaduto
+    remove_orator():                rimuove il ruolo oratore
+    set_dank():                     imposta l'afler come cazzaro
+    increase_dank_counter():        incrementa il contatore cazzaro
+    decrease_dank_counter():        decrementa il contatore cazzaro
+    is_eligible_for_dank():         controlla se l'afler può ottenere il ruolo cazzaro
+    is_dank_expired():              controlla se il ruolo cazzaro è scaduto
+    remove_dank():                  rimuove il ruolo cazzaro
+    modify_warn():                  aggiunge o rimuove warn all'afler
+    warn_count():                   ritorna il numero di warn
+    reset_violations():             azzera il numero di violazioni commesse
+    forget_last_week():             azzera il contatore corrispondente a 7 giorni fa
+    clean():                        sistema i dati salvati al cambio di giorno
+    count_orator_messages():        conta i messaggi totali
+    count_consolidated_messages():  conta solo i messaggi dei giorni precedenti a oggi
     """
 
     def __init__(self, data: Dict[str, Any]) -> None:

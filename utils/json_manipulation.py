@@ -17,16 +17,16 @@ class JsonManipulator():
 
     Attributes
     -------------
-    old_archive: dict, archivio originale caricato dal file
-    new_archive: dict, archivio modificato
+    old_archive: `dict` archivio originale caricato dal file
+    new_archive: `dict` archivio modificato
 
     Methods
     -------------
-    add_and_initialize_field(field_name, default_value) aggiunge nuovo campo e lo inizializza
-    delete_field(field_name)  rimuove un campo dall'archivio
-    save() salva le modifiche nel file aflers
-    discard() cancella tutte le modifiche fatte
-    print_changes() stampa il nuovo archivio con le modifiche
+    add_and_initialize_field(field_name, default_value):    aggiunge nuovo campo e lo inizializza
+    delete_field(field_name):                               rimuove un campo dall'archivio
+    save():                                                 salva le modifiche nel file aflers
+    discard():                                              cancella tutte le modifiche fatte
+    print_changes():                                        stampa il nuovo archivio con le modifiche
     """
 
     def __init__(self) -> None:

@@ -17,7 +17,7 @@ class ConfigFields(TypedDict):
     welcome_channel_id: int
     log_channel_id: int
     current_prefix: str
-    moderation_roles_id: List[int]
+    moderation_roles_id: list[int]
     afl_role_id: int
     orator_role_id: int
     orator_category_id: int
@@ -28,7 +28,7 @@ class ConfigFields(TypedDict):
     dank_threshold: int
     dank_time_window: int
     dank_duration: int
-    exceptional_channels_id: List[int]
+    exceptional_channels_id: list[int]
     poll_channel_id: int
     poll_duration: int
     under_surveillance_id: int
@@ -69,35 +69,35 @@ class Config():
 
     Attributes
     -------------
-        guild_id: id del server in cui contare i messaggi
-        main_channel_id: canale dei messaggi di sistema del bot
-        presentation_channel_id: canale in cui i nuovi membri si presentano prima dell'ammissione
-        welcome_channel_id: canale di benvenuto in cui si annunciano i nuovi membri
-        log_channel_id: canale del server in cui si ricevono i messaggi di log del bot
-        current_prefix: prefisso per i comandi del bot
-        moderation_roles_id: [id dei ruoli di moderazione separati da virgola se più di uno]
-        afl_role_id: id del ruolo AFL
-        orator_role_id: id del ruolo oratore
-        orator_category_id: id della categoria dei canali rilevanti al conteggio oratore
-        orator_threshold: numero di messaggi da mandare prima di ricevere il ruolo oratore
-        orator_duration: durata del ruolo oratore in GIORNI
-        dank_role_id: id del ruolo cazzari
-        dank_category_id: id della categoria dei canali rilevanti al conteggio cazzaro
-        dank_threshold: numero di messaggi da mandare prima di ricevere il ruolo cazzaro
-        dank_time_window: giorni a disposizione per mandare i messaggi per il ruolo cazzaro
-        dank_duration: durata del ruolo cazzaro in GIORNI
-        exceptional_channels_id: [elenco dei canali non controllati dal bot, separati da virgola se più di uno]
-        poll_channel_id: canale in cui controllare le reaction alle proposte
-        poll_duration: tempo di voto per le proposte in giorni
-        under_surveillance_id: id del ruolo sotto sorveglianza (vedi regole)
-        violations_reset_days: tempo dopo cui si resettano le violazioni in giorni
-        nick_change_days: giorni concessi tra un cambio di nickname e l'altro (0 nessun limite)
-        bio_length_limit: massimo numero di caratteri per la bio
-        greetings: messaggio di benvenuto per i nuovi membri
+    guild_id: `int`                   id del server in cui contare i messaggi
+    main_channel_id: `int`            canale dei messaggi di sistema del bot
+    presentation_channel_id: `int`    canale in cui i nuovi membri si presentano prima dell'ammissione
+    welcome_channel_id: `int`         canale di benvenuto in cui si annunciano i nuovi membri
+    log_channel_id: `int`             canale del server in cui si ricevono i messaggi di log del bot
+    current_prefix: `int`             prefisso per i comandi del bot
+    moderation_roles_id: `int`        [id dei ruoli di moderazione separati da virgola se più di uno]
+    afl_role_id: `int`                id del ruolo AFL
+    orator_role_id: `int`             id del ruolo oratore
+    orator_category_id: `int`         id della categoria dei canali rilevanti al conteggio oratore
+    orator_threshold: `int`           numero di messaggi da mandare prima di ricevere il ruolo oratore
+    orator_duration: `int`            durata del ruolo oratore in GIORNI
+    dank_role_id: `int`               id del ruolo cazzari
+    dank_category_id: `int`           id della categoria dei canali rilevanti al conteggio cazzaro
+    dank_threshold: `int`             numero di messaggi da mandare prima di ricevere il ruolo cazzaro
+    dank_time_window: `int`           giorni a disposizione per mandare i messaggi per il ruolo cazzaro
+    dank_duration: `int`              durata del ruolo cazzaro in GIORNI
+    exceptional_channels_id: `int`    [elenco dei canali non controllati dal bot, separati da virgola se più di uno]
+    poll_channel_id: `int`            canale in cui controllare le reaction alle proposte
+    poll_duration: `int`              empo di voto per le proposte in giorni
+    under_surveillance_id: `int`      id del ruolo sotto sorveglianza (vedi regole)
+    violations_reset_days: `int`      tempo dopo cui si resettano le violazioni in giorni
+    nick_change_days: `int`           giorni concessi tra un cambio di nickname e l'altro (0 nessun limite)
+    bio_length_limit: `int`           massimo numero di caratteri per la bio
+    greetings: `str`                  messaggio di benvenuto per i nuovi membri
 
     Methods
     -------------
-    load()  carica i valori dal file config.json
+    load():  carica i valori dal file config.json
     """
     _instance: ClassVar[Config] = MISSING
     _bot: AFLBot = MISSING

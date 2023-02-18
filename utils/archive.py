@@ -23,23 +23,23 @@ class Archive():
 
     Attributes
     -------------
-    _archive: Archive   attributo di classe, contiene l'istanza dell'archivio
+    _archive: `Archive` attributo di classe, contiene l'istanza dell'archivio
 
     Classmethods
     -------------
-    load_archive()   carica il contenuto del file nell'attributo di classe
-    get_instance()   ritorna l'unica istanza dell'archivio
+    load_archive():   carica il contenuto del file nell'attributo di classe
+    get_instance():   ritorna l'unica istanza dell'archivio
 
     Methods
     -------------
-    get()           ritorna i dati dell'afler richiesto
-    add()           aggiunge una nuova entry all'archivio
-    remove()        rimuove l'afler dall'archivio
-    is_present()    controlla se l'afler è presente o meno
-    keys()          ritorna gli id di tutti gli aflers salvati
-    values()        ritorna tutte le istanze di afler salvate
-    save()          salva le modifiche fatte all'archivio
-    contains_nick() controlla se il nickname è già utilizzato da un afler
+    get():           ritorna i dati dell'afler richiesto
+    add():           aggiunge una nuova entry all'archivio
+    remove():        rimuove l'afler dall'archivio
+    is_present():    controlla se l'afler è presente o meno
+    keys():          ritorna gli id di tutti gli aflers salvati
+    values():        ritorna tutte le istanze di afler salvate
+    save():          salva le modifiche fatte all'archivio
+    contains_nick(): controlla se il nickname è già utilizzato da un afler
     """
     _archive_instance: ClassVar[Archive] = MISSING
 

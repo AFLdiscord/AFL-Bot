@@ -18,22 +18,15 @@ class Proposal():
     Attributes
     -------------
     timestamp: `str`    la data della proposta
-
     total_voters: `int` la quantità totale di persone che devono votare
     al momento della proposta
-
     threshold: `int`    la quantità minima di voti che deve ricevere una
     proposta per considerarsi valida (passata o bocciata)
-
     passed: `bool`      parametro messo a True se la proposta è passata
-
     rejected: `bool`    parametro messo a True se la proposta è stata
     bocciata
-
     yes: `int`          numero di voti a favore
-
     no: `int`           numero di voti contrari
-
     content: `str`      contenuto della proposta
 
     Methods
@@ -107,25 +100,20 @@ class Proposals():
 
     Attributes
     -------------
-    _instance: `ClassVar[Proposals]`    attributo di classe, contiene
+    _instance: `Proposals`    attributo di classe, contiene
     l'istanza del wrapper
 
     Classmethods
     -------------
     load():         carica il contenuto del file nell'attributo di classe
-
     get_instance(): ritorna l'unica istanza del wrapper
 
     Methods
     -------------
     get_proposal():         ritorna la proposta richiesta
-
     add_proposal():         aggiunge una nuova proposta all'archivio
-
     remove_proposal():      rimuove la proposta dall'archivio
-
     adjust_vote_count():    aggiorna i voti di una proposta
-
     handle_proposals():     controlla lo stato delle proposte
     """
     _instance: ClassVar[Proposals] = MISSING
