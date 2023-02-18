@@ -620,29 +620,21 @@ class EventCog(commands.Cog):
 
         :param members: l'elenco dei membri del server
         """
-        archived_ids = list(self.archive.keys())
-        members_ids_and_nick: Dict[int, str] = {}
-        # salva tutti gli id dei membri presenti
-        for member in members:
-            if not member.bot:
-                members_ids_and_nick[member.id] = member.display_name
-                # controlla che tutti i membri presenti esistano nell'archivio
-                # quelli che mancano vengono aggiunti
-                try:
-                    self.archive.get(member.id)
-                except KeyError:
-                    self.archive.add(
-                        member.id, Afler.new_entry(member.display_name))
-                    await self.logger.log(f'membro {member.mention} aggiunto all\'archivio')
-
-        # controlla che tutti i membri archiviati siano ancora presenti
-        # in caso contrario rimuove l'entry corrispondente dall'archivio
-        for archived in archived_ids:
-            if archived not in members_ids_and_nick:
-                self.archive.remove(archived)
-                await self.logger.log(f'membro <@{archived}> rimosso dall\'archivio')
-
-        # salva i cambiamenti su file
+        archive_ids = set(self.archive.keys())
+        current_members = set(member.id for member in members)
+        ex_members = archive_ids.difference(current_members)
+        new_members = map(
+            lambda id: self.config.guild.get_member(id),
+            current_members.difference(archive_ids)
+        )
+        for id in ex_members:
+            self.archive.remove(id)
+            await self.logger.log(f"membro <@{id}> rimosso dall'archivio")
+        for member in new_members:
+            if member is None or member.bot or self.config.afl_role not in member.roles:
+                continue
+            self.archive.add(member.id, Afler.new_entry(member.display_name))
+            await self.logger.log(f"membro {member.mention} aggiunto all'archivio")
         self.archive.save()
 
     def is_command(self, message: discord.Message) -> bool:
