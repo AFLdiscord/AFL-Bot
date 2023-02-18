@@ -94,6 +94,8 @@ class EventCog(commands.Cog):
             return
         assert isinstance(interaction.user, discord.Member)
         await interaction.user.add_roles(self.config.afl_role)
+        afler = Afler.new_entry(interaction.user.display_name)
+        self.archive.add(interaction.user.id, afler)
         msg = f'{interaction.user.mention} si è presentato con età={age} e sesso={sex.value}'
         await interaction.response.send_message(msg)
         await self.logger.log(msg)
@@ -151,13 +153,8 @@ class EventCog(commands.Cog):
         # TODO migliorare accesso a oggetto afler, magari spostandolo all'inizio o in un'altra funzione
         # controlla se il messaggio è valido
         if self.valid_for_orator(message):
-            # controlla se il membro è già registrato nell'archivio, in caso contrario lo aggiunge
-            if message.author.id in self.archive.keys():
-                afler = self.archive.get(message.author.id)
-            else:
-                afler = Afler.new_entry(message.author.display_name)
-                self.archive.add(message.author.id, afler)
             # incrementa il conteggio
+            afler = self.archive.get(message.author.id)
             afler.increase_orator_counter()
             self.archive.save()
         elif self.valid_for_dank(message):
