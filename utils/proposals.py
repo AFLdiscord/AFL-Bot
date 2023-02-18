@@ -62,23 +62,12 @@ class Proposal():
         :param change: variazione del voto (+1 o -1)
         """
         if vote == '🟢':
-            self.yes += change
-            if self.yes < 0:
-                self.yes = 0
-            if self.yes >= self.threshold:
-                self.passed = True
-            else:
-                # è possibile cambiare idea, in quel caso deve
-                self.passed = False
+            self.yes = max(0, self.yes + change)
+            self.passed = self.yes >= self.threshold
         else:
             # se vote == '🔴'
-            self.no += change
-            if self.no < 0:
-                self.no = 0
-            if self.no >= self.threshold:
-                self.rejected = True
-            else:
-                self.rejected = False
+            self.no = max(0, self.no + change)
+            self.rejected = self.no >= self.threshold
 
 
 class ProposalType(TypedDict):
