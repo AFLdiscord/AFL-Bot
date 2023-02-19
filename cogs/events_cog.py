@@ -194,7 +194,7 @@ class EventCog(commands.Cog):
         else:
             counter = ''
             if self.is_command(message):
-                # non devo decrementare nulla perchè i messaggi non contano
+                # non devo decrementare nulla perchè i comandi non contano
                 return
             elif self.valid_for_orator(message):
                 item.decrease_orator_counter()
