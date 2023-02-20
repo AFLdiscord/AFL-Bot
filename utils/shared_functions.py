@@ -151,6 +151,6 @@ def relevant_message(message: discord.Message) -> bool:
         _guild = Config.get_config().guild
         del Config
     if message.guild != _guild:
-        # ignora i messaggi al di fuori dal server o di un bot
+        # ignora i messaggi al di fuori dal server
         return False
     return True
