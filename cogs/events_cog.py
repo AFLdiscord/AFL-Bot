@@ -9,7 +9,7 @@ Contiene anche due comandi:
 import re
 from enum import Enum
 from datetime import datetime, date, timedelta
-from typing import Dict, Sequence, Tuple
+from typing import Sequence, Tuple
 
 import discord
 from discord.ext import commands, tasks
@@ -115,13 +115,15 @@ class EventCog(commands.Cog):
         - il bot stesso
         - altri bot
         - canali di chat privata
-        Il messaggio 'ping' ritorna l'intervallo di tempo tra un HEARTBEAT e il suo ack in ms.'
+        Il messaggio 'ping' ritorna l'intervallo di tempo tra un HEARTBEAT e il suo ack in ms.
         Se il messaggio è nel canale di presentazione, ammette il membro automaticamente assegnandogli
         il ruolo AFL.
+        Per la parte di moderazione, vedere 'moderation_cog.py'.
         """
-        # TODO accorciare
         if not sf.relevant_message(message):
             return
+        assert isinstance(message.author, discord.Member)
+        # Risposte dirette
         if message.content.lower() == 'ping':
             response = f'pong in {round(self.bot.latency * 1000)} ms'
             await message.channel.send(response)
@@ -130,28 +132,42 @@ class EventCog(commands.Cog):
             response = 'nice'
             await message.channel.send(response)
             return
+        # Gestione delle presentazioni
         if message.channel == self.config.presentation_channel:
             # non deve rispondere a eventuali messaggi di moderatori nel canale, solo a nuovi membri
-            assert isinstance(message.author, discord.Member)
             if any(x in self.config.moderation_roles for x in message.author.roles):
                 return
             # a tutti gli altri dice di presentarsi
-            await message.reply('Presentati usando il comando `/presentation`')
-        link = sf.link_to_clean(message.content)
-        if link is not None:
-            await message.delete()
-            await message.channel.send(f'Link da {message.author.mention}:\n{link}')
+            reply = await message.reply('Presentati usando il comando `/presentation`')
+            await message.delete(delay=2)
+            await reply.delete(delay=3)
             return
+        # Gestione delle proposte
         if message.channel == self.config.poll_channel:
             await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
             self.proposals.add_proposal(message)
             await self.logger.log(f'proposta aggiunta al file:\n{message.content}')
             return
-        # se è un comando non verifico i contatori (come per gli slash command)
+        # Ignoro i comandi
         if self.is_command(message):
             return
-        # TODO migliorare accesso a oggetto afler, magari spostandolo all'inizio o in un'altra funzione
-        # controlla se il messaggio è valido
+        # Eventuale incremento dei contatori
+        await self.check_role_contribution(message)
+        # Gestione dei link
+        link = sf.link_to_clean(message.content)
+        if link is not None:
+            # Il contributo va considerato anche qui per ovviare all'eventuale eliminazione
+            await self.check_role_contribution(message)
+            await message.delete()
+            await message.channel.send(f'Link da {message.author.mention}:\n{link}')
+
+    async def check_role_contribution(self, message: discord.Message) -> None:
+        """Controlla la categoria del canale in cui è stato mandato il
+        messaggio ed incrementa il contatore corretto di conseguenza.
+
+        :param message: il messaggio mandato
+        """
+        # Gestione contatori per i ruoli oratore e cazzaro
         if self.valid_for_orator(message):
             # incrementa il conteggio
             afler = self.archive.get(message.author.id)
