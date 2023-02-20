@@ -157,8 +157,8 @@ class EventCog(commands.Cog):
         link = sf.link_to_clean(message.content)
         if link is not None:
             # Il contributo va considerato anche qui per ovviare all'eventuale eliminazione
-            await self.check_role_contribution(message)
             await message.delete()
+            await self.check_role_contribution(message)
             await message.channel.send(f'Link da {message.author.mention}:\n{link}')
 
     async def check_role_contribution(self, message: discord.Message) -> None:
