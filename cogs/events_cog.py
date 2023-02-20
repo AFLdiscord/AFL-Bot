@@ -314,7 +314,7 @@ class EventCog(commands.Cog):
         if member.bot:
             return
         await self.config.presentation_channel.send(
-            'Benvenuto su AFL! Presentati usando il comando `/presentation`')
+            f'Benvenuto su AFL, {member.mention}! Presentati usando il comando `/presentation`')
         await self.logger.log(f'nuovo membro: {member.mention}')
         dm = member.dm_channel if member.dm_channel is not None else await member.create_dm()
         await dm.send(self.config.greetings)
