@@ -1,5 +1,4 @@
 """bot.py"""
-from __future__ import annotations
 from aflbot import AFLBot
 import os
 import logging
@@ -10,6 +9,9 @@ from utils.archive import Archive
 from utils.banned_words import BannedWords
 from utils.bot_logger import BotLogger
 from utils.config import Config
+from utils import update
+
+update.run()
 
 # logging di base sul terminale
 logging.basicConfig(level=logging.INFO)
