@@ -52,8 +52,13 @@ fields_2_0 = [
 
 def run():
     """Applica la patch al dizionario."""
-    with open('utils/fields.json', 'r') as file:
-        curr_fields = json.load(file)
+    try:
+        with open('utils/fields.json', 'r') as file:
+            curr_fields = json.load(file)
+    except FileNotFoundError:
+        with open('utils/fields.json', 'w+') as file:
+            json.dump(lastest_fields, file)
+        return
     try:
         with open('aflers.json', 'r') as file:
             aflers = json.load(file)
