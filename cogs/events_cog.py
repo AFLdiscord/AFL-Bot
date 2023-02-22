@@ -8,7 +8,7 @@ Contiene anche due comandi:
 
 import re
 from enum import Enum
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, time, timedelta
 from typing import Sequence, Tuple
 
 import discord
@@ -524,12 +524,12 @@ class EventCog(commands.Cog):
             if self.config.main_channel_id is not None:
                 await self.config.main_channel.send(f'AFL Bot `{self.bot.version}` avviato alle {discord.utils.format_dt(self.bot.start_time, "T")}. Il prefisso è: `{self.bot.command_prefix}`')
             await self.logger.log('avvio task')
+            await self.periodic_checks()
             self.periodic_checks.start()
         else:
             await self.logger.log('chiamata on_ready ma la task è già avviata')
 
-    # TODO vedere asyncio.Task per gestire automaticamente la partenza del task a mezzanotte
-    @tasks.loop(hours=24)
+    @tasks.loop(time=time(0, 0, tzinfo=datetime.now().astimezone().tzinfo))
     async def periodic_checks(self):
         """Task periodica per la gestione di:
             - controllo sulle proposte
