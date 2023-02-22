@@ -72,6 +72,9 @@ def run():
 
 
 def from_2_0_to_lastest(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Aggiorna il dizionario dell'afler dalla versione 2.0 all'ultima
+    versione.
+    """
     new_item = {}
     new_item['nickname'] = data['nick']
     new_item['last_nick_change'] = data['last_nick_change']
