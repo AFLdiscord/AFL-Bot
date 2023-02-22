@@ -24,7 +24,7 @@ def update_json_file(data, json_file: str) -> None:
     :param json_file: il nome del file da aprire (es. config.json)
     """
     with open(json_file, 'w+') as file:
-        json.dump(data, file, indent=4)
+        json.dump(data, file, indent=4, default=str)
 
 
 def get_extensions() -> List[str]:

@@ -45,8 +45,7 @@ class Archive():
 
     def __init__(self) -> None:
         # è sbagliato creare un'istanza, è un singleton
-        self.archive: Dict[int, Any]
-        self.wrapped_archive: Dict[int, Afler]
+        self.archive: Dict[int, Afler]
         raise RuntimeError(
             'Non istanziare archivio, usa Archive.get_instance()')
 
@@ -61,7 +60,7 @@ class Archive():
     def load_archive(cls):
         """Carica l'archivio da file e lo salva in archive.
         Se chiamato ulteriormente a bot avviato, serve a refreshare
-        l'archivio,  rileggendo il file.
+        l'archivio, rileggendo il file.
         """
         archive: Dict[int, Any] = {}
         try:
@@ -82,17 +81,9 @@ class Archive():
             # dell'archivio dopo aver modificato i campi manualmente.
             if cls._archive_instance is MISSING:
                 cls._archive_instance = cls.__new__(cls)
-            # cls._archive_instance.archive l'archivio in formato dizionario così da poterlo salvare agevolemente
-            #
-            # cls._archive_instance.wrapped_archive ogni entry dell'archivio è incapsulata nella classe Afler
-            # per manipolarla più facilmente
-            #
-            # nota che i dati dei due attributi sono condivisi, quindi lo stato è sempre aggiornato
-            cls._archive_instance.archive = archive
-            cls._archive_instance.wrapped_archive = {}
+            cls._archive_instance.archive = {}
             for key in archive.keys():
-                cls._archive_instance.wrapped_archive[key] = Afler.from_archive(
-                    archive[key])
+                cls._archive_instance.archive[key] = Afler.from_archive(archive[key])
 
     @classmethod
     def refresh(cls):
@@ -114,7 +105,7 @@ class Archive():
         :raises: KeyError se l'afler non è presente nell'archivio
         """
         try:
-            return self.wrapped_archive[id]
+            return self.archive[id]
         except KeyError:
             raise
 
@@ -125,8 +116,7 @@ class Archive():
         :param afler: afler da aggiungere
         """
         if not self.is_present(id):
-            self.archive[id] = afler.data
-            self.wrapped_archive[id] = afler
+            self.archive[id] = afler
 
     def remove(self, id: int) -> None:
         """Rimuove l'afler dall'archivio. In caso non fosse presente non fa nulla.
@@ -134,7 +124,6 @@ class Archive():
         :param id: id dell'afler richiesto
         """
         if self.is_present(id):
-            del self.wrapped_archive[id]
             del self.archive[id]
 
     def is_present(self, id: int) -> bool:
@@ -145,10 +134,7 @@ class Archive():
         :returns: True se il membro è presente, False altrimenti
         :rtype: bool
         """
-        if id in self.archive.keys() and id in self.wrapped_archive.keys():
-            return True
-        else:
-            return False
+        return id in self.archive.keys()
 
     def keys(self) -> List[int]:
         """Ritorna una lista con gli id di tutti gli aflers presenti nell'archivio.
@@ -166,7 +152,7 @@ class Archive():
         :returns: lista con tutti gli afler
         :rtype: List[Afler]
         """
-        return list(self.wrapped_archive.values())
+        return list(self.archive.values())
 
     def save(self, filename: str = 'aflers.json') -> None:
         """Salva su disco le modifiche effettuate all'archivio.
@@ -179,7 +165,8 @@ class Archive():
         L'idea è lasciare più flessibilità, consentendo di effettuare operazioni diverse
         e poi salvare tutto alla fine.
         """
-        update_json_file(self.archive, filename)
+        archive = {id: afler.__dict__ for id, afler in self.archive.items()}
+        update_json_file(archive, filename)
 
     def contains_nick(self, nick: str) -> bool:
         """Controlla se un nickname sia utilizzato correntemente da un afler.

@@ -171,7 +171,7 @@ class EventCog(commands.Cog):
         if self.valid_for_orator(message):
             # incrementa il conteggio
             afler = self.archive.get(message.author.id)
-            afler.increase_orator_counter()
+            afler.increase_orator_buffer()
             self.archive.save()
         elif self.valid_for_dank(message):
             if message.author.id in self.archive.keys():
@@ -213,7 +213,7 @@ class EventCog(commands.Cog):
                 # non devo decrementare nulla perchè i comandi non contano
                 return
             elif self.valid_for_orator(message):
-                item.decrease_orator_counter()
+                item.decrease_orator_buffer()
                 counter = f'decrementato contatore orator di {message.author.mention}'
             elif self.valid_for_dank(message):
                 item.decrease_dank_counter()
@@ -548,7 +548,7 @@ class EventCog(commands.Cog):
         await self.logger.log('controllo conteggio messaggi...')
         for id in self.archive.keys():
             item = self.archive.get(id)
-            item.clean()
+            item.clean_orator_buffer()
             count = item.count_consolidated_messages()
             member = self.config.guild.get_member(id)
             assert member is not None
