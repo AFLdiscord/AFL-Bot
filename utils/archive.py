@@ -1,10 +1,13 @@
 from __future__ import annotations
 from datetime import date
+from discord import Embed
 import json
 from os import rename
 from typing import Any, ClassVar, Dict, List
 
 from utils.afler import Afler
+from utils.bot_logger import BotLogger
+from utils.config import Config
 from utils.shared_functions import update_json_file
 
 from discord.utils import MISSING
@@ -72,9 +75,11 @@ class Archive():
         except FileNotFoundError:
             pass
         except json.JSONDecodeError:
-            print("L'archivio sembra essere corrotto: backup e creazione di un nuovo archivio...")
+            print(
+                "L'archivio sembra essere corrotto: backup e creazione di un nuovo archivio...")
             rename('aflers.json', f'aflers-backup-{date.today()}.json')
-            print(f'Il vecchio archivio è stato salvato nel file aflers-backup-{date.today()}.json.')
+            print(
+                f'Il vecchio archivio è stato salvato nel file aflers-backup-{date.today()}.json.')
         finally:
             # Serve creare un'istanza dell'archivio all'avvio.
             # Questo non è il caso invece quando si vuole fare il refresh
@@ -83,7 +88,8 @@ class Archive():
                 cls._archive_instance = cls.__new__(cls)
             cls._archive_instance.archive = {}
             for key in archive.keys():
-                cls._archive_instance.archive[key] = Afler.from_archive(archive[key])
+                cls._archive_instance.archive[key] = Afler.from_archive(
+                    archive[key])
 
     @classmethod
     def refresh(cls):
@@ -177,3 +183,58 @@ class Archive():
         :rtype: bool
         """
         return any(afler.nick == nick for afler in self.values())
+
+    async def handle_counters(self) -> None:
+        """Esegue il controllo dei contatori degli afler.
+
+        Nello specifico si occupa di:
+        - consolidare dei messaggi nel buffer oratore se necessario;
+        - azzerare dei messaggi conteggiati scaduti;
+        - assegnare/rimuovere i ruoli (i mod sono esclusi);
+        - rimuovere strike/violazioni scaduti.
+
+        Di norma, viene chiamato durante la task periodica.
+        """
+        logger = BotLogger.get_instance()
+        config = Config.get_config()
+        for id, afler in self.archive.items():
+            afler.clean_orator_buffer()
+            count = afler.count_consolidated_messages()
+            member = config.guild.get_member(id)
+            assert member is not None
+            # controllo messaggi per ruolo attivo
+            if (count >= config.orator_threshold and
+                    not any(role in config.moderation_roles for role in member.roles)):
+                await member.add_roles(config.orator_role)
+                if afler.orator:
+                    msg = f'{member.mention}: rinnovato ruolo {config.orator_role.mention}'
+                else:
+                    msg = f'{member.mention} è diventato {config.orator_role.mention}'
+                await logger.log(msg)
+                await config.main_channel.send(embed=Embed(description=msg))
+                afler.set_orator()
+            # controllo delle violazioni
+            violations_count = afler.reset_violations()
+            if violations_count > 0:
+                msg = f'rimosse le {violations_count} violazioni di {member.mention}'
+                await logger.log(msg)
+                # rimozione del ruolo sotto sorveglianza
+                if config.surveillance_role in member.roles:
+                    await member.remove_roles(config.surveillance_role)
+                    await logger.log(f'{member.mention} rimosso da {config.surveillance_role.mention}')
+            # rimuovo i messaggi contati 7 giorni fa
+            afler.forget_last_week()
+            # controllo scadenza ruolo attivo
+            if afler.is_orator_expired():
+                await member.remove_roles(config.orator_role)
+                msg = f'{member.mention} non è più un {config.orator_role.mention}'
+                await logger.log(msg)
+                await config.main_channel.send(embed=Embed(description=f'{msg} :('))
+                afler.remove_orator()
+            # controllo scadenza ruolo cazzaro
+            if afler.is_dank_expired():
+                await member.remove_roles(config.dank_role)
+                msg = f'{member.mention} non è più un {config.dank_role.mention}'
+                await logger.log(msg)
+                await config.main_channel.send(embed=Embed(description=f'{msg} :)'))
+                afler.remove_dank()

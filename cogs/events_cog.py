@@ -533,64 +533,16 @@ class EventCog(commands.Cog):
     async def periodic_checks(self):
         """Task periodica per la gestione di:
             - controllo sulle proposte
-            - consolidamento dei messaggi temporanei in counter se necessario
-            - azzeramento dei messaggi conteggiati scaduti
-            - assegnamento/rimozione ruoli (i mod sono esclusi)
-            - rimozione strike/violazioni
-
-        Viene avviata tramite la on_ready quando il bot ha completato la fase di setup ed è
-        programmata per essere eseguita ogni 24 ore da quel momento.
+            - controllo su messaggi e violazioni
+        Viene avviata tramite la on_ready quando il bot ha completato la
+        fase di setup ed è programmata per essere eseguita ad ogni mezzanotte.
         """
-        # TODO accorciare la funzione
         await self.logger.log('controllo proposte...')
         await self.proposals.handle_proposals()
         await self.logger.log('controllo proposte terminato')
-        await self.logger.log('controllo conteggio messaggi...')
-        for id in self.archive.keys():
-            item = self.archive.get(id)
-            item.clean_orator_buffer()
-            count = item.count_consolidated_messages()
-            member = self.config.guild.get_member(id)
-            assert member is not None
-
-            # controllo messaggi per ruolo attivo
-            if (count >= self.config.orator_threshold and
-                    not any(role in self.config.moderation_roles for role in member.roles)):
-                await member.add_roles(self.config.orator_role)
-                if item.orator:
-                    msg = f'{member.mention}: rinnovato ruolo {self.config.orator_role.mention}'
-                else:
-                    msg = f'{member.mention} è diventato {self.config.orator_role.mention}'
-                await self.logger.log(msg)
-                await self.config.main_channel.send(embed=discord.Embed(description=msg))
-                item.set_orator()
-
-            # controllo delle violazioni
-            violations_count = item.reset_violations()
-            if violations_count > 0:
-                msg = f'rimosse le {violations_count} violazioni di {member.mention}'
-                await self.logger.log(msg)
-                # rimozione del ruolo sotto sorveglianza
-                if self.config.surveillance_role in member.roles:
-                    await member.remove_roles(self.config.surveillance_role)
-                    await self.logger.log(f'{member.mention} rimosso da {self.config.surveillance_role.mention}')
-
-            # rimuovo i messaggi contati 7 giorni fa
-            item.forget_last_week()
-
-            # controllo scadenza ruolo attivo
-            if item.is_orator_expired():
-                await member.remove_roles(self.config.orator_role)
-                msg = f'{member.mention} non è più un {self.config.orator_role.mention}'
-                await self.logger.log(msg)
-                await self.config.main_channel.send(embed=discord.Embed(description=f'{msg} :('))
-                item.remove_orator()
-
-            # controllo scadenza ruolo cazzaro
-            if item.is_dank_expired():
-                await self.remove_dank_from_afler(item, id)
-
-        await self.logger.log('controllo conteggio messaggi terminato')
+        await self.logger.log('controllo conteggio messaggi e violazioni...')
+        await self.archive.handle_counters()
+        await self.logger.log('controllo conteggio messaggi e violazioni terminato')
         self.archive.save()
 
     async def remove_dank_from_afler(self, afler: Afler, id: int) -> None:
