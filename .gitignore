@@ -8,4 +8,5 @@ config.json
 proposals.json
 cogs/__pycache__
 utils/__pycache__
+utils/fields.json
 __pycache__
