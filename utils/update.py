@@ -54,8 +54,15 @@ def run():
     """Applica la patch al dizionario."""
     with open('utils/fields.json', 'r') as file:
         curr_fields = json.load(file)
-    with open('aflers.json', 'r') as file:
-        aflers = json.load(file)
+    try:
+        with open('aflers.json', 'r') as file:
+            aflers = json.load(file)
+    except FileNotFoundError:
+        return
+    except json.JSONDecodeError:
+        print('aggiornamento non attuabile su archivio attuale perché corrotto')
+        replace('aflers.json', 'aflers-not-upgraded.json')
+        return
     if curr_fields == lastest_fields:
         return
     if curr_fields == fields_2_0:
