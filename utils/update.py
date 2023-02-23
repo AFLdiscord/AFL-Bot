@@ -53,21 +53,15 @@ fields_2_0 = [
 def run():
     """Applica la patch al dizionario."""
     try:
-        with open('utils/fields.json', 'r') as file:
-            curr_fields = json.load(file)
-    except FileNotFoundError:
-        with open('utils/fields.json', 'w+') as file:
-            json.dump(lastest_fields, file)
-        return
-    try:
         with open('aflers.json', 'r') as file:
-            aflers = json.load(file)
+            aflers: Dict[str, Dict[str, Any]] = json.load(file)
     except FileNotFoundError:
         return
     except json.JSONDecodeError:
         print('aggiornamento non attuabile su archivio attuale perché corrotto')
         replace('aflers.json', 'aflers-not-upgraded.json')
         return
+    curr_fields = list(next(iter(aflers.values())).keys())
     if curr_fields == lastest_fields:
         return
     if curr_fields == fields_2_0:
@@ -78,9 +72,6 @@ def run():
     replace('aflers.json', 'aflers-old.json')
     with open('aflers.json', 'w+') as file:
         json.dump(aflers_new, file, indent=4)
-    replace('utils/fields.json', 'utils/fields-old.json')
-    with open('utils/fields.json', 'w+') as file:
-        json.dump(lastest_fields, file, indent=4)
 
 
 def from_2_0_to_lastest(data: Dict[str, Any]) -> Dict[str, Any]:
