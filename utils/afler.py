@@ -372,7 +372,7 @@ class Afler():
             # in teoria potrei anche eliminare solo il giorno precedente contando sul fatto che venga
             # eseguito tutti i giorni ma preferisco azzerare tutti in caso di downtime di qualche giorno
             day = d = self.orator_last_message_timestamp.weekday()
-            while d != today:
+            while d != today.weekday():
                 d = (d + 1) % 7
                 self.orator_weekly_buffer[d] = 0
         if self.orator_daily_buffer != 0:
