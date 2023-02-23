@@ -327,7 +327,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
                 return
             if item.warn_count() == 3:
                 await member.add_roles(Config.get_config().surveillance_role)
-                penalty = 'sottoposto a sorveglianza, il prossimo sara\' un ban.'
+                penalty = 'sottoposto a sorveglianza, il prossimo sarà un ban.'
                 channel = member.dm_channel if member.dm_channel is not None else await member.create_dm()
                 await channel.send(f'Sei stato {penalty} Motivo: {reason}.')
                 await self.logger.log(f'{member.mention} aggiunto a {Config.get_config().surveillance_role.mention}')
