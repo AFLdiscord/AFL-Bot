@@ -67,6 +67,9 @@ class RedditCog(commands.Cog):
         """Carica un post dal sub indicato.
 
         :param sub: il subreddit da cui caricare il post
+
+        :returns: il post
+        :rtype: asyncpraw.models.Submission
         """
         try:
             generator = self.post_caches[sub]
