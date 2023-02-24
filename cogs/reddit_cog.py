@@ -44,15 +44,44 @@ class RedditCog(commands.Cog):
         Sintassi
         <4chan      # ritorna un'embed con l'immagine
         """
-        submission = await self.load_post('4chan')
-        # limit embed title is 256 chars
-        post = discord.Embed(
-            title=submission.title[:256],
-            url=f"https://www.reddit.com{submission.permalink}",
-            description="", color=discord.Color.green()
-        )
-        post.set_image(url=submission.url)
-        await ctx.send(embed=post)
+        await self.post_submission(ctx, '4chan')
+
+    async def post_submission(self, ctx: commands.Context, sub: str) -> None:
+        """Pubblica un post del subreddit richiesto.
+
+        :param ctx: il contesto del comando che ha richiesto il post
+        :param sub: il subreddit di interesse
+        """
+        # TODO: supporto video
+        submission = await self.load_post(sub)
+        media: list[discord.Embed] = []
+        if 'gallery' in submission.url:
+            # Il post ha una galleria di contenuti multimediali
+            for item in sorted(submission.gallery_data['items'], key=lambda x: x['id']):
+                media_id = item['media_id']
+                meta = submission.media_metadata[media_id]
+                if meta['e'] == 'Image':
+                    extension = meta['m'][6:]   # ad esempio, 'jpg' in 'image/jpg'
+                    embed = discord.Embed(
+                        # limit embed title is 256 chars
+                        title=submission.title[:256],
+                        url=f'https://www.reddit.com{submission.permalink}',
+                        description="",
+                        color=discord.Color.green()
+                    )
+                    embed.set_image(url=f'https://i.redd.it/{media_id}.{extension}')
+                    media.append(embed)
+        else:
+            # Il post ha una sola immagine
+            post = discord.Embed(
+                title=submission.title[:256],
+                url=f"https://www.reddit.com{submission.permalink}",
+                description="",
+                color=discord.Color.green()
+            )
+            post.set_image(url=submission.url)
+            media.append(post)
+        await ctx.send(embeds=media)
 
     async def create_post_iterator(self, sub: str) -> None:
         """Prepara un AsyncIterator per caricare i post.
