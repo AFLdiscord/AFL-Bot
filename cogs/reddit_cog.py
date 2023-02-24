@@ -1,8 +1,9 @@
 """Modulo per l'interazione con le API di reddit, utilizzate per alcuni comandi"""
 import os
+from typing import Dict
+
 import discord
 from discord.ext import commands
-from discord.utils import MISSING
 from asyncpraw import Reddit
 from asyncpraw.models import ListingGenerator, Submission
 from aflbot import AFLBot
@@ -25,7 +26,7 @@ class RedditCog(commands.Cog):
             client_secret=os.getenv('REDDIT_APP_SECRET'),
             user_agent=f'discord:AFL-Bot:{self.bot.version} (by /u/Skylake-dev)'
         )
-        self.post_cache: ListingGenerator = MISSING
+        self.post_caches: Dict[str, ListingGenerator] = {}
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
@@ -60,22 +61,25 @@ class RedditCog(commands.Cog):
         """
         subreddit = await self.reddit.subreddit(sub)
         # arbitrary limit, i guess that after these have been consumed hot posts will change
-        self.post_cache = subreddit.hot(limit=100)
+        self.post_caches[sub] = subreddit.hot(limit=100)
 
     async def load_post(self, sub: str) -> Submission:
         """Carica un post dal sub indicato.
 
         :param sub: il subreddit da cui caricare il post
         """
-        if self.post_cache is MISSING:
+        try:
+            generator = self.post_caches[sub]
+        except KeyError:
             await self.create_post_iterator(sub)
+            generator = self.post_caches[sub]
         while True:
             try:
-                submission = await self.post_cache.__anext__()
+                submission = await generator.__anext__()
                 # in python 3.10+ --> submission = await anext(self.post_cache[sub])
             except StopAsyncIteration:
                 await self.create_post_iterator(sub)
-                submission = await self.post_cache.__anext__()
+                submission = await generator.__anext__()
             if not submission.stickied:
                 return submission
 
