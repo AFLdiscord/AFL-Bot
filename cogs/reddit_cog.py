@@ -4,7 +4,7 @@ import discord
 from discord.ext import commands
 from discord.utils import MISSING
 from asyncpraw import Reddit
-from asyncpraw.models import ListingGenerator
+from asyncpraw.models import ListingGenerator, Submission
 from aflbot import AFLBot
 from utils.archive import Archive
 from utils.bot_logger import BotLogger
@@ -43,14 +43,7 @@ class RedditCog(commands.Cog):
         Sintassi
         <4chan      # ritorna un'embed con l'immagine
         """
-        if self.post_cache is MISSING:
-            await self._load_posts('4chan')
-        # in python 3.10+ --> submission = await anext(self.post_cache)
-        try:
-            submission = await self.post_cache.__anext__()
-        except StopAsyncIteration:
-            await self._load_posts('4chan')
-            submission = await self.post_cache.__anext__()
+        submission = await self.load_post('4chan')
         # limit embed title is 256 chars
         post = discord.Embed(
             title=submission.title[:256],
@@ -60,7 +53,7 @@ class RedditCog(commands.Cog):
         post.set_image(url=submission.url)
         await ctx.send(embed=post)
 
-    async def _load_posts(self, sub: str) -> None:
+    async def create_post_iterator(self, sub: str) -> None:
         """Prepara un AsyncIterator per caricare i post.
 
         :param sub: il subreddit da cui caricare i post
@@ -68,6 +61,23 @@ class RedditCog(commands.Cog):
         subreddit = await self.reddit.subreddit(sub)
         # arbitrary limit, i guess that after these have been consumed hot posts will change
         self.post_cache = subreddit.hot(limit=100)
+
+    async def load_post(self, sub: str) -> Submission:
+        """Carica un post dal sub indicato.
+
+        :param sub: il subreddit da cui caricare il post
+        """
+        if self.post_cache is MISSING:
+            await self.create_post_iterator(sub)
+        while True:
+            try:
+                submission = await self.post_cache.__anext__()
+                # in python 3.10+ --> submission = await anext(self.post_cache[sub])
+            except StopAsyncIteration:
+                await self.create_post_iterator(sub)
+                submission = await self.post_cache.__anext__()
+            if not submission.stickied:
+                return submission
 
 
 async def setup(bot: AFLBot):
