@@ -61,7 +61,8 @@ class RedditCog(commands.Cog):
                 media_id = item['media_id']
                 meta = submission.media_metadata[media_id]
                 if meta['e'] == 'Image':
-                    extension = meta['m'][6:]   # ad esempio, 'jpg' in 'image/jpg'
+                    # ad esempio, 'jpg' in 'image/jpg'
+                    extension = meta['m'][6:]
                     embed = discord.Embed(
                         # limit embed title is 256 chars
                         title=submission.title[:256],
@@ -69,7 +70,8 @@ class RedditCog(commands.Cog):
                         description="",
                         color=discord.Color.green()
                     )
-                    embed.set_image(url=f'https://i.redd.it/{media_id}.{extension}')
+                    embed.set_image(
+                        url=f'https://i.redd.it/{media_id}.{extension}')
                     media.append(embed)
         else:
             # Il post ha una sola immagine
@@ -118,4 +120,24 @@ class RedditCog(commands.Cog):
 
 async def setup(bot: AFLBot):
     """Entry point per il caricamento della cog."""
-    await bot.add_cog(RedditCog(bot))
+    if (not os.getenv('REDDIT_APP_ID')) or (not os.getenv('REDDIT_APP_SECRET')):
+        print('chiavi di reddit non trovate, carico fallback')
+        await bot.add_cog(RedditCogFallback(bot))
+    else:
+        await bot.add_cog(RedditCog(bot))
+
+
+class RedditCogFallback(commands.Cog):
+
+    def __init__(self, bot: AFLBot) -> None:
+        self.bot: AFLBot = bot
+
+    @commands.hybrid_command(brief='ritorna un post da 4chan', aliases=['4chan', '4c'])
+    async def fourchan(self, ctx: commands.Context):
+        await self.reply(ctx)
+
+    async def reply(self, ctx: commands.Context):
+        await ctx.send(
+            'Per usare questo comando è necessario aggiungere le chiavi '
+            'delle API di reddit. Segui le istruzioni nel readme per farlo.'
+        )
