@@ -27,7 +27,7 @@ pip install -r requirements.txt
 
 ### Post dai subreddit
 
-Ci sono dei comandi che permettono di caricare post in tendenza da specifici subreddit (per adesso solo /r/4chan) usando la libreria [Asycn PRAW](https://github.com/praw-dev/asyncpraw). Per utilizzare questa funzionalità è necessario ottenere le chiavi per API di reddit. Le istruzioni per farlo sono riportate nel [quickstart](https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example#first-steps) sull'autenticazione. 
+Ci sono dei comandi che permettono di caricare post in tendenza da specifici subreddit (per adesso solo /r/4chan) usando la libreria [Async PRAW](https://github.com/praw-dev/asyncpraw). Per utilizzare questa funzionalità è necessario ottenere le chiavi per API di reddit. Le istruzioni per farlo sono riportate nel [quickstart](https://github.com/reddit-archive/reddit/wiki/OAuth2-Quick-Start-Example#first-steps) sull'autenticazione.
 
 Una volta ottenute le chiavi occorre aggiungere due entrate al file .env contenente il token del bot:
 
