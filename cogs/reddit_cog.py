@@ -12,6 +12,16 @@ from utils.bot_logger import BotLogger
 from utils.config import Config
 
 
+def is_moderator():
+    """Decoratore che permette di separare i comandi per gli utenti dai
+    comandi per i moderatori.
+    """
+    async def mod(ctx: commands.Context):
+        assert isinstance(ctx.author, discord.Member)
+        return any(role in Config.get_config().moderation_roles for role in ctx.author.roles)
+    return commands.check(mod)
+
+
 class RedditCog(commands.Cog):
     """Raccoglie i comandi che richiedono interazione con reddit."""
 
@@ -27,6 +37,7 @@ class RedditCog(commands.Cog):
             user_agent=f'discord:AFL-Bot:{self.bot.version} (by /u/Skylake-dev)'
         )
         self.post_caches: Dict[str, ListingGenerator] = {}
+        self.subs = ['4chan']
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
@@ -36,6 +47,41 @@ class RedditCog(commands.Cog):
             if self.config.afl_role_id == role.id:
                 return True
         return False
+
+    @commands.hybrid_group(name='rdm', with_app_command=True, fallback='show')
+    async def reddit_manager(self, ctx: commands.Context):
+        """Gruppo di comandi per gestire i subreddit ammessi.
+        Se chiamato senza nessun'altro argomento, mostra i subreddit
+        correntemente accettati.
+        """
+        await ctx.reply(', '.join(self.subs))
+
+    @reddit_manager.command(brief='Aggiunge un subreddit alla lista dei subreddit ammessi.')
+    @is_moderator()
+    async def add(self, ctx: commands.Context, name: str) -> None:
+        """Aggiunge un subreddit alla lista dei subreddit ammessi.
+
+        :param name: il nome del subreddit da aggiungere
+        """
+        if name in self.subs:
+            await ctx.reply(f'`{name}` già presente nella lista dei subreddit.')
+        else:
+            self.subs.append(name)
+            await ctx.reply(f'`{name}` aggiunto alla lista dei subreddit.')
+
+    @reddit_manager.command(brief='Aggiunge un subreddit alla lista dei subreddit ammessi.')
+    @is_moderator()
+    async def remove(self, ctx: commands.Context, name: str) -> None:
+        """Rimuove un subreddit alla lista dei subreddit ammessi.
+
+        :param name: il nome del subreddit da rimuovere
+        """
+        if name not in self.subs:
+            await ctx.reply(f'`{name}` non è nella lista dei subreddit.')
+        else:
+            self.subs.remove(name)
+            await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
+
 
     @commands.hybrid_command(brief='ritorna un post da 4chan', aliases=['4chan', '4c'])
     async def fourchan(self, ctx: commands.Context):
