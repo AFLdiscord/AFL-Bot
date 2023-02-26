@@ -54,7 +54,10 @@ class RedditCog(commands.Cog):
         Se chiamato senza nessun'altro argomento, mostra i subreddit
         correntemente accettati.
         """
-        await ctx.reply(', '.join(self.subs))
+        if len(self.subs) > 0:
+            await ctx.reply(', '.join(self.subs))
+        else:
+            await ctx.reply('Lista dei subreddit vuota.')
 
     @reddit_manager.command(brief='Aggiunge un subreddit alla lista dei subreddit ammessi.')
     @is_moderator()
