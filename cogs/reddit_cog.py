@@ -1,4 +1,5 @@
 """Modulo per l'interazione con le API di reddit, utilizzate per alcuni comandi"""
+from json import load
 import os
 from typing import Dict
 
@@ -10,6 +11,7 @@ from aflbot import AFLBot
 from utils.archive import Archive
 from utils.bot_logger import BotLogger
 from utils.config import Config
+from utils import shared_functions as sf
 
 
 def is_moderator():
@@ -37,7 +39,11 @@ class RedditCog(commands.Cog):
             user_agent=f'discord:AFL-Bot:{self.bot.version} (by /u/Skylake-dev)'
         )
         self.post_caches: Dict[str, ListingGenerator] = {}
-        self.subs = ['4chan']
+        try:
+            with open('subreddits.json', 'r') as f:
+                self.subs = load(f)
+        except FileNotFoundError:
+            self.subs = ['4chan']
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
@@ -71,6 +77,7 @@ class RedditCog(commands.Cog):
         else:
             self.subs.append(name)
             await ctx.reply(f'`{name}` aggiunto alla lista dei subreddit.')
+            sf.update_json_file(self.subs, 'subreddits.json')
 
     @reddit_manager.command(brief='Aggiunge un subreddit alla lista dei subreddit ammessi.')
     @is_moderator()
@@ -84,6 +91,7 @@ class RedditCog(commands.Cog):
         else:
             self.subs.remove(name)
             await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
+            sf.update_json_file(self.subs, 'subreddits.json')
 
 
     @commands.hybrid_command(brief='ritorna un post da 4chan', aliases=['4chan', '4c'])
