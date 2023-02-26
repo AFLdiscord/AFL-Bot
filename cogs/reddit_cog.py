@@ -65,7 +65,7 @@ class RedditCog(commands.Cog):
         else:
             await ctx.reply('Lista dei subreddit vuota.')
 
-    @reddit_manager.command(brief='Aggiunge un subreddit alla lista dei subreddit ammessi.')
+    @reddit_manager.command(brief='aggiunge un subreddit alla lista dei subreddit ammessi')
     @is_moderator()
     async def add(self, ctx: commands.Context, name: str) -> None:
         """Aggiunge un subreddit alla lista dei subreddit ammessi.
@@ -79,7 +79,7 @@ class RedditCog(commands.Cog):
             await ctx.reply(f'`{name}` aggiunto alla lista dei subreddit.')
             sf.update_json_file(self.subs, 'subreddits.json')
 
-    @reddit_manager.command(brief='Aggiunge un subreddit alla lista dei subreddit ammessi.')
+    @reddit_manager.command(brief='aggiunge un subreddit alla lista dei subreddit ammessi')
     @is_moderator()
     async def remove(self, ctx: commands.Context, name: str) -> None:
         """Rimuove un subreddit alla lista dei subreddit ammessi.
