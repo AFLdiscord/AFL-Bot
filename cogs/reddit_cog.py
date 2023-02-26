@@ -33,7 +33,7 @@ class RedditCog(commands.Cog):
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
         # initialize the reddit instance, need specific user agent
-        self.reddit: Reddit = Reddit(
+        self.reddit_instance: Reddit = Reddit(
             client_id=os.getenv('REDDIT_APP_ID'),
             client_secret=os.getenv('REDDIT_APP_SECRET'),
             user_agent=f'discord:AFL-Bot:{self.bot.version} (by /u/Skylake-dev)'
@@ -93,6 +93,12 @@ class RedditCog(commands.Cog):
             await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
             sf.update_json_file(self.subs, 'subreddits.json')
 
+    @commands.hybrid_command(brief='ritorna un post dal subreddit indicato', aliases=['r', 'rd'])
+    async def reddit(self, ctx: commands.Context, sub: str):
+        if sub not in self.subs:
+            await ctx.reply(f'`{sub}` non fa parte dei subreddit ammessi in questo server.')
+            return
+        await self.post_submission(ctx, sub)
 
     @commands.hybrid_command(brief='ritorna un post da 4chan', aliases=['4chan', '4c'])
     async def fourchan(self, ctx: commands.Context):
@@ -147,7 +153,7 @@ class RedditCog(commands.Cog):
 
         :param sub: il subreddit da cui caricare i post
         """
-        subreddit = await self.reddit.subreddit(sub)
+        subreddit = await self.reddit_instance.subreddit(sub)
         # arbitrary limit, i guess that after these have been consumed hot posts will change
         self.post_caches[sub] = subreddit.hot(limit=100)
 
