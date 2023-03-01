@@ -99,6 +99,17 @@ class RedditCog(commands.Cog):
 
     @commands.hybrid_command(brief='ritorna un post dal subreddit indicato', aliases=['r', 'rd'])
     async def reddit(self, ctx: commands.Context, sub: str):
+        """Ritorna un post dal subreddit indicato.
+
+        Il subreddit deve essere presente nella lista dei subreddit ammessi,
+        ottenibile tramite "<rdm".
+
+        Sintassi:
+        <reddit <sub>
+
+        Alias:
+        r, rd
+        """
         if sub not in self.subs:
             await ctx.reply(f'`{sub}` non fa parte dei subreddit ammessi in questo server.')
             return
