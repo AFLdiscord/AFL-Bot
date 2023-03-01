@@ -55,12 +55,13 @@ class RedditCog(commands.Cog):
         return False
 
     @commands.hybrid_group(
-            name='rdm',
-            with_app_command=True,
-            fallback='show',
-            brief='gruppo di comandi per gestire i subreddit ammessi')
+        name='rdm',
+        with_app_command=True,
+        fallback='show',
+        brief='gruppo di comandi per gestire i subreddit ammessi')
     async def reddit_manager(self, ctx: commands.Context):
         """Gruppo di comandi per gestire i subreddit ammessi.
+
         Se chiamato senza nessun'altro argomento, mostra i subreddit
         correntemente accettati.
         """
@@ -71,10 +72,14 @@ class RedditCog(commands.Cog):
 
     @reddit_manager.command(brief='aggiunge un subreddit alla lista dei subreddit ammessi')
     @is_moderator()
-    async def add(self, ctx: commands.Context, name: str) -> None:
+    async def add(self, ctx: commands.Context,
+                  name: str = commands.parameter(
+                      description='Il subreddit da aggiungere')
+                  ) -> None:
         """Aggiunge un subreddit alla lista dei subreddit ammessi.
 
-        :param name: il nome del subreddit da aggiungere
+        Sintassi
+        <rdm add <name>
         """
         if name in self.subs:
             await ctx.reply(f'`{name}` già presente nella lista dei subreddit.')
@@ -85,10 +90,14 @@ class RedditCog(commands.Cog):
 
     @reddit_manager.command(brief='rimuove un subreddit dalla lista dei subreddit ammessi')
     @is_moderator()
-    async def remove(self, ctx: commands.Context, name: str) -> None:
+    async def remove(self, ctx: commands.Context,
+                     name: str = commands.parameter(
+                         description='Il subreddit da rimuovere')
+                     ) -> None:
         """Rimuove un subreddit alla lista dei subreddit ammessi.
 
-        :param name: il nome del subreddit da rimuovere
+        Sintassi:
+        <rdm remove <name>
         """
         if name not in self.subs:
             await ctx.reply(f'`{name}` non è nella lista dei subreddit.')
@@ -97,8 +106,8 @@ class RedditCog(commands.Cog):
             await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
             sf.update_json_file(self.subs, 'subreddits.json')
 
-    @commands.hybrid_command(brief='ritorna un post dal subreddit indicato', aliases=['r', 'rd'])
-    async def reddit(self, ctx: commands.Context, sub: str):
+    async def reddit(self, ctx: commands.Context,
+                     sub: str = commands.parameter(description='Il subreddit desiderato')):
         """Ritorna un post dal subreddit indicato.
 
         Il subreddit deve essere presente nella lista dei subreddit ammessi,
@@ -119,7 +128,7 @@ class RedditCog(commands.Cog):
     async def fourchan(self, ctx: commands.Context):
         """Ritorna un post dal subreddit r/4chan.
 
-        Sintassi
+        Sintassi:
         <4chan      # ritorna un'embed con l'immagine
         """
         await self.post_submission(ctx, '4chan')
