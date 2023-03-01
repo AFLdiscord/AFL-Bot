@@ -178,7 +178,9 @@ class RedditCog(commands.Cog):
                 await self.create_post_iterator(sub)
                 submission = await generator.__anext__()
             if (not submission.stickied and
-                submission.domain != 'v.redd.it'):
+                submission.domain != 'v.redd.it' and
+                submission.banned_by is None and
+                submission.author is not None):
                 return submission
 
 
