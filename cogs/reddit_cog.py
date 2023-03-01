@@ -177,7 +177,8 @@ class RedditCog(commands.Cog):
             except StopAsyncIteration:
                 await self.create_post_iterator(sub)
                 submission = await generator.__anext__()
-            if not submission.stickied:
+            if (not submission.stickied and
+                submission.domain != 'v.redd.it'):
                 return submission
 
 
