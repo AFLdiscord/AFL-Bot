@@ -115,7 +115,6 @@ class RedditCog(commands.Cog):
         :param ctx: il contesto del comando che ha richiesto il post
         :param sub: il subreddit di interesse
         """
-        # TODO: supporto video
         submission = await self.load_post(sub)
         media: list[discord.Embed] = []
         if 'gallery' in submission.url:
