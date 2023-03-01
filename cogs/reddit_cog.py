@@ -54,7 +54,11 @@ class RedditCog(commands.Cog):
                 return True
         return False
 
-    @commands.hybrid_group(name='rdm', with_app_command=True, fallback='show')
+    @commands.hybrid_group(
+            name='rdm',
+            with_app_command=True,
+            fallback='show',
+            brief='gruppo di comandi per gestire i subreddit ammessi')
     async def reddit_manager(self, ctx: commands.Context):
         """Gruppo di comandi per gestire i subreddit ammessi.
         Se chiamato senza nessun'altro argomento, mostra i subreddit
