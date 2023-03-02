@@ -106,6 +106,7 @@ class RedditCog(commands.Cog):
             await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
             sf.update_json_file(self.subs, 'subreddits.json')
 
+    @commands.hybrid_command(brief='ritorna un post dal subreddit richiesto', aliases=['r', 'rd'])
     async def reddit(self, ctx: commands.Context,
                      sub: str = commands.parameter(description='Il subreddit desiderato')):
         """Ritorna un post dal subreddit indicato.
