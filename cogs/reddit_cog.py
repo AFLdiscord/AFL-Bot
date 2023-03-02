@@ -92,6 +92,7 @@ class RedditCog(commands.Cog):
             return
         self.subs.append(name)
         await ctx.reply(f'`{name}` aggiunto alla lista dei subreddit.')
+        await BotLogger.get_instance().log(f'{ctx.author.mention} ha aggiunto `{name}` alla lista dei subreddit ammessi.')
         sf.update_json_file(self.subs, 'subreddits.json')
 
     @reddit_manager.command(brief='rimuove un subreddit dalla lista dei subreddit ammessi')
@@ -107,10 +108,11 @@ class RedditCog(commands.Cog):
         """
         if name not in self.subs:
             await ctx.reply(f'`{name}` non è nella lista dei subreddit.')
-        else:
-            self.subs.remove(name)
-            await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
-            sf.update_json_file(self.subs, 'subreddits.json')
+            return
+        self.subs.remove(name)
+        await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
+        await BotLogger.get_instance().log(f'{ctx.author.mention} ha rimosso `{name}` dalla lista dei subreddit ammessi.')
+        sf.update_json_file(self.subs, 'subreddits.json')
 
     @commands.hybrid_command(brief='ritorna un post dal subreddit richiesto', aliases=['r', 'rd'])
     async def reddit(self, ctx: commands.Context,
