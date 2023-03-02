@@ -7,6 +7,7 @@ import discord
 from discord.ext import commands
 from asyncpraw import Reddit
 from asyncpraw.models import ListingGenerator, Submission
+from asyncprawcore.exceptions import Redirect
 from aflbot import AFLBot
 from utils.archive import Archive
 from utils.bot_logger import BotLogger
@@ -83,10 +84,15 @@ class RedditCog(commands.Cog):
         """
         if name in self.subs:
             await ctx.reply(f'`{name}` già presente nella lista dei subreddit.')
-        else:
-            self.subs.append(name)
-            await ctx.reply(f'`{name}` aggiunto alla lista dei subreddit.')
-            sf.update_json_file(self.subs, 'subreddits.json')
+            return
+        try:
+            await self.reddit_instance.subreddit(name, fetch=True)
+        except Redirect:
+            await ctx.reply(f'Il subreddit `r/{name}` non esiste.')
+            return
+        self.subs.append(name)
+        await ctx.reply(f'`{name}` aggiunto alla lista dei subreddit.')
+        sf.update_json_file(self.subs, 'subreddits.json')
 
     @reddit_manager.command(brief='rimuove un subreddit dalla lista dei subreddit ammessi')
     @is_moderator()
