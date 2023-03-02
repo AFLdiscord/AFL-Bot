@@ -51,7 +51,7 @@ class EventCog(commands.Cog):
 
     def __init__(self, bot: AFLBot):
         self.bot: AFLBot = bot
-        self.bot.version = 'v2.1.1'
+        self.bot.version = 'v2.2'
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
