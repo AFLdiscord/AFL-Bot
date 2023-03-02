@@ -124,7 +124,7 @@ class RedditCog(commands.Cog):
             return
         await self.post_submission(ctx, sub)
 
-    @commands.hybrid_command(brief='ritorna un post da 4chan', aliases=['4chan', '4c'])
+    @commands.hybrid_command(name='4chan', brief='ritorna un post da 4chan', aliases=['4c'])
     async def fourchan(self, ctx: commands.Context):
         """Ritorna un post dal subreddit r/4chan.
 
