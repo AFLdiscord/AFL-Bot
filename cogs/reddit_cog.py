@@ -1,4 +1,5 @@
 """Modulo per l'interazione con le API di reddit, utilizzate per alcuni comandi"""
+from json import load
 import os
 from typing import Dict
 
@@ -10,6 +11,17 @@ from aflbot import AFLBot
 from utils.archive import Archive
 from utils.bot_logger import BotLogger
 from utils.config import Config
+from utils import shared_functions as sf
+
+
+def is_moderator():
+    """Decoratore che permette di separare i comandi per gli utenti dai
+    comandi per i moderatori.
+    """
+    async def mod(ctx: commands.Context):
+        assert isinstance(ctx.author, discord.Member)
+        return any(role in Config.get_config().moderation_roles for role in ctx.author.roles)
+    return commands.check(mod)
 
 
 class RedditCog(commands.Cog):
@@ -21,12 +33,17 @@ class RedditCog(commands.Cog):
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
         # initialize the reddit instance, need specific user agent
-        self.reddit: Reddit = Reddit(
+        self.reddit_instance: Reddit = Reddit(
             client_id=os.getenv('REDDIT_APP_ID'),
             client_secret=os.getenv('REDDIT_APP_SECRET'),
             user_agent=f'discord:AFL-Bot:{self.bot.version} (by /u/Skylake-dev)'
         )
         self.post_caches: Dict[str, ListingGenerator] = {}
+        try:
+            with open('subreddits.json', 'r') as f:
+                self.subs = load(f)
+        except FileNotFoundError:
+            self.subs = ['4chan']
 
     def cog_check(self, ctx: commands.Context):
         """Check sui comandi per autorizzarne l'uso solo agli AFL"""
@@ -37,11 +54,81 @@ class RedditCog(commands.Cog):
                 return True
         return False
 
+    @commands.hybrid_group(
+        name='rdm',
+        with_app_command=True,
+        fallback='show',
+        brief='gruppo di comandi per gestire i subreddit ammessi')
+    async def reddit_manager(self, ctx: commands.Context):
+        """Gruppo di comandi per gestire i subreddit ammessi.
+
+        Se chiamato senza nessun'altro argomento, mostra i subreddit
+        correntemente accettati.
+        """
+        if len(self.subs) > 0:
+            await ctx.reply(', '.join(self.subs))
+        else:
+            await ctx.reply('Lista dei subreddit vuota.')
+
+    @reddit_manager.command(brief='aggiunge un subreddit alla lista dei subreddit ammessi')
+    @is_moderator()
+    async def add(self, ctx: commands.Context,
+                  name: str = commands.parameter(
+                      description='Il subreddit da aggiungere')
+                  ) -> None:
+        """Aggiunge un subreddit alla lista dei subreddit ammessi.
+
+        Sintassi
+        <rdm add <name>
+        """
+        if name in self.subs:
+            await ctx.reply(f'`{name}` già presente nella lista dei subreddit.')
+        else:
+            self.subs.append(name)
+            await ctx.reply(f'`{name}` aggiunto alla lista dei subreddit.')
+            sf.update_json_file(self.subs, 'subreddits.json')
+
+    @reddit_manager.command(brief='rimuove un subreddit dalla lista dei subreddit ammessi')
+    @is_moderator()
+    async def remove(self, ctx: commands.Context,
+                     name: str = commands.parameter(
+                         description='Il subreddit da rimuovere')
+                     ) -> None:
+        """Rimuove un subreddit alla lista dei subreddit ammessi.
+
+        Sintassi:
+        <rdm remove <name>
+        """
+        if name not in self.subs:
+            await ctx.reply(f'`{name}` non è nella lista dei subreddit.')
+        else:
+            self.subs.remove(name)
+            await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
+            sf.update_json_file(self.subs, 'subreddits.json')
+
+    async def reddit(self, ctx: commands.Context,
+                     sub: str = commands.parameter(description='Il subreddit desiderato')):
+        """Ritorna un post dal subreddit indicato.
+
+        Il subreddit deve essere presente nella lista dei subreddit ammessi,
+        ottenibile tramite "<rdm".
+
+        Sintassi:
+        <reddit <sub>
+
+        Alias:
+        r, rd
+        """
+        if sub not in self.subs:
+            await ctx.reply(f'`{sub}` non fa parte dei subreddit ammessi in questo server.')
+            return
+        await self.post_submission(ctx, sub)
+
     @commands.hybrid_command(brief='ritorna un post da 4chan', aliases=['4chan', '4c'])
     async def fourchan(self, ctx: commands.Context):
         """Ritorna un post dal subreddit r/4chan.
 
-        Sintassi
+        Sintassi:
         <4chan      # ritorna un'embed con l'immagine
         """
         await self.post_submission(ctx, '4chan')
@@ -52,7 +139,6 @@ class RedditCog(commands.Cog):
         :param ctx: il contesto del comando che ha richiesto il post
         :param sub: il subreddit di interesse
         """
-        # TODO: supporto video
         submission = await self.load_post(sub)
         media: list[discord.Embed] = []
         if 'gallery' in submission.url:
@@ -90,7 +176,7 @@ class RedditCog(commands.Cog):
 
         :param sub: il subreddit da cui caricare i post
         """
-        subreddit = await self.reddit.subreddit(sub)
+        subreddit = await self.reddit_instance.subreddit(sub)
         # arbitrary limit, i guess that after these have been consumed hot posts will change
         self.post_caches[sub] = subreddit.hot(limit=100)
 
@@ -114,7 +200,11 @@ class RedditCog(commands.Cog):
             except StopAsyncIteration:
                 await self.create_post_iterator(sub)
                 submission = await generator.__anext__()
-            if not submission.stickied:
+            if (not submission.stickied and
+                submission.is_reddit_media_domain and
+                submission.domain != 'v.redd.it' and
+                submission.banned_by is None and
+                submission.author is not None):
                 return submission
 
 
