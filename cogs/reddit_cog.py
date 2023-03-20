@@ -214,7 +214,8 @@ class RedditCog(commands.Cog):
                 submission.is_reddit_media_domain and
                 submission.domain != 'v.redd.it' and
                 submission.banned_by is None and
-                submission.author is not None
+                submission.author is not None and
+                submission.removed_by is None
             ):
                 return submission
 
