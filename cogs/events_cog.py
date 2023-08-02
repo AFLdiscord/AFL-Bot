@@ -595,14 +595,31 @@ class EventCog(commands.Cog):
             lambda id: self.config.guild.get_member(id),
             current_members.difference(archive_ids)
         )
+        # rimuovere i membri usciti
         for id in ex_members:
             self.archive.remove(id)
+            # non posso usare member.mention perchè non è più membro
             await self.logger.log(f"membro <@{id}> rimosso dall'archivio")
+        # aggiungere i nuovi membri entrati
         for member in new_members:
             if member is None or member.bot or self.config.afl_role not in member.roles:
                 continue
             self.archive.add(member.id, Afler.new_entry(member.display_name))
             await self.logger.log(f"membro {member.mention} aggiunto all'archivio")
+        # controllo che i nickname siano gli stessi settati nell'archivio, altrimenti aggiornare
+        for member in members:
+            if member is None or member.bot or self.config.afl_role not in member.roles:
+                continue
+            try:
+                entry: Afler = self.archive.get(member.id)
+            except Exception:
+                await self.logger.log(f'error nell\'estrarre {member.display_name} (id = {member.id}) dall\'archivio')
+                continue
+            else:
+                if member.display_name != entry.nick:
+                    # questo aggiorna anche la data di cambio
+                    await self.logger.log(f'aggiornato archivio di {member.mention} (nuovo nickname)')
+                    entry.nick = member.display_name
         self.archive.save()
 
     def is_command(self, message: discord.Message) -> bool:
