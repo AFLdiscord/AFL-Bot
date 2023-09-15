@@ -1,4 +1,5 @@
 """:class: UtilityCog contiene comandi di uso generale."""
+import hashlib
 from datetime import date, datetime, timedelta
 from enum import Enum
 from git.repo import Repo
@@ -24,6 +25,7 @@ class UtilityCog(commands.Cog, name='Utility'):
     - bio ritorna la bio dell'utente citato
     - leaderboard mostra il numero di messaggi mandati dagli aflers
     - info invia il link alla pagina GitHub di AFL
+    - hash permette di calcolare l'hash dell'input
     """
 
     def __init__(self, bot: AFLBot):
@@ -277,6 +279,57 @@ class UtilityCog(commands.Cog, name='Utility'):
             text=f'AFL Bot versione {self.bot.version} - {Repo(".").head.commit.hexsha[0:7]}',
         )
         await ctx.send(embed=embed)
+
+    class HashFunctions(Enum):
+        md5 = hashlib.md5
+        sha1 = hashlib.sha1
+        sha224 = hashlib.sha224
+        sha256 = hashlib.sha256
+        sha384 = hashlib.sha384
+        sha512 = hashlib.sha512
+        sha3_224 = hashlib.sha3_224
+        sha3_256 = hashlib.sha3_256
+        sha3_384 = hashlib.sha3_384
+        sha3_512 = hashlib.sha3_512
+
+    @discord.app_commands.command(description='Calcolo di varie funzioni di hash')
+    @discord.app_commands.rename(hash_type='hash', input='input')
+    @discord.app_commands.describe(
+        hash_type='funzione di hash da calcolare',
+        input='stringa di cui calcolare l\'hash (encoding utf-8)'
+    )
+    async def hash(self, interaction: discord.Interaction, hash_type: HashFunctions, input: str):
+        """Comando per calcolare l'hash di un dato input.
+
+        Supporta diversi algoritmi:
+         - md5
+         - sha1
+         - sha224
+         - sha256
+         - sha384
+         - sha512
+         - sha3_224
+         - sha3_256
+         - sha3_384
+         - sha3_512
+
+        Sintassi
+        /hash sha256 The SHA256 for this sentence begins with: one, eight, two, a, seven, c and nine.
+        """
+        assert isinstance(hash_type, self.HashFunctions)
+        assert type(interaction.channel) is discord.TextChannel
+        response = discord.Embed(
+            title='Calcolo hash',
+            colour=discord.Colour.green()
+        )
+        response.add_field(
+            name='Input', value=input, inline=False
+        ).add_field(
+            name=hash_type.name.upper(),
+            value=f'`{hash_type.value(bytes(input, "utf-8")).hexdigest()}`',
+            inline=False
+        )
+        await interaction.response.send_message(embed=response)
 
 
 async def setup(bot: AFLBot):
