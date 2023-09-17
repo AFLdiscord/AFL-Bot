@@ -1,7 +1,7 @@
 """Modulo di gestione delle proposte"""
 
 from __future__ import annotations
-from datetime import date, timedelta
+from datetime import datetime, date, timedelta
 import json
 from typing import ClassVar, Dict, Optional, TypedDict
 
@@ -89,8 +89,10 @@ class Proposals():
 
     Attributes
     -------------
-    _instance: `Proposals`    attributo di classe, contiene
-    l'istanza del wrapper
+    _instance: `Proposals`      attributo di classe, contiene l'istanza
+    del wrapper
+    last_timestamp: `Date`      data dell'ultima proposta, usata per il
+    controllo di integrità
 
     Classmethods
     -------------
@@ -110,6 +112,7 @@ class Proposals():
 
     def __init__(self) -> None:
         self.proposals: Dict[int, Proposal]
+        self.timestamp: date
         raise RuntimeError(
             'Usa Proposals.get_instance() per ottenere l\'istanza')
 
@@ -147,6 +150,10 @@ class Proposals():
         ) for i, p in raw_proposals.items()}
         cls._instance = cls.__new__(cls)
         cls._instance.proposals = proposals
+        try:
+            cls._instance.timestamp = date.fromisoformat(sorted(proposals.values(), key=lambda x: x.timestamp).pop().timestamp)
+        except IndexError:
+            cls._instance.timestamp = date.today()
 
     def get_proposal(self, messsage_id: int) -> Optional[Proposal]:
         """Cerca una proposta dato l'id del messaggio ad essa correlato.
@@ -181,6 +188,8 @@ class Proposals():
             content=message.content
         )
         self.proposals[message.id] = proposal
+        if message.created_at.date() > self.timestamp:
+            self.timestamp = message.created_at.date()
         self._save()
 
     async def remove_proposal(self, message_id: int) -> None:
@@ -288,7 +297,7 @@ class Proposals():
         le proposte nel canale.
         """
         existing_proposals = set()
-        async for message in Config.get_config().poll_channel.history():
+        async for message in Config.get_config().poll_channel.history(after=datetime.combine(self.timestamp, datetime.min.time())):
             if message.author.bot:
                 continue
             existing_proposals.add(message.id)
@@ -299,6 +308,7 @@ class Proposals():
             for wrong_react in message.reactions:
                 to_remove[wrong_react] = set()
                 async for member in wrong_react.users():
+                    assert isinstance(member, discord.Member)
                     if not (wrong_react.emoji in ('🔴', '🟢') and
                             (Config.get_config().orator_role in member.roles or
                             any(role in Config.get_config().moderation_roles for role in member.roles))):
