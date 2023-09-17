@@ -153,7 +153,8 @@ class Proposals():
         try:
             cls._instance.timestamp = date.fromisoformat(sorted(proposals.values(), key=lambda x: x.timestamp).pop().timestamp)
         except IndexError:
-            cls._instance.timestamp = date.today()
+            # Stima pessimistica di un periodo di down del bot, cambiare se necessario
+            cls._instance.timestamp = date.today() - timedelta(weeks=1)
 
     def get_proposal(self, messsage_id: int) -> Optional[Proposal]:
         """Cerca una proposta dato l'id del messaggio ad essa correlato.
