@@ -99,11 +99,12 @@ class Proposals():
 
     Methods
     -------------
-    get_proposal():         ritorna la proposta richiesta
-    add_proposal():         aggiunge una nuova proposta all'archivio
-    remove_proposal():      rimuove la proposta dall'archivio
-    adjust_vote_count():    aggiorna i voti di una proposta
-    handle_proposals():     controlla lo stato delle proposte
+    get_proposal():                 ritorna la proposta richiesta
+    add_proposal():                 aggiunge una nuova proposta all'archivio
+    remove_proposal():              rimuove la proposta dall'archivio
+    adjust_vote_count():            aggiorna i voti di una proposta
+    handle_proposals():             controlla lo stato delle proposte
+    check_proposals_integrity():    controlla se le proposte sono coerenti col canale
     """
     _instance: ClassVar[Proposals] = MISSING
 
@@ -182,17 +183,29 @@ class Proposals():
         self.proposals[message.id] = proposal
         self._save()
 
-    def remove_proposal(self, message_id: int) -> None:
-        """Rimuove la proposta con id uguale al messaggio passato dal file.
-        Se non trovata non fa nulla.
+    async def remove_proposal(self, message_id: int) -> None:
+        """Rimuove dal canale e dal file la proposta.
 
-        :param message: messaggio della proposta
+        :param message_id: id del messaggio della proposta
         """
+        # La funzione viene chiamata dalla task periodica, dall'eliminazione
+        # manuale di una proposta e da sé stessa quando elimina una proposta
+        # (dovuto al ciclo remove_proposal->on_message_delete->remove_proposal).
+        # In quest'ultimo caso non serve fare nulla.
         try:
-            del self.proposals[message_id]
+            message = await Config.get_config().poll_channel.fetch_message(message_id)
+            await message.delete()
+        except discord.NotFound:
+            # La proposta è stata già rimossa dal canale.
+            pass
+        try:
+            content = self.proposals[message_id]
         except KeyError:
-            print('proposta non trovata')
+            # La proposta è stata già rimossa dal dizionario.
+            return
         else:
+            del self.proposals[message_id]
+            await BotLogger.get_instance().log(f'Proposta rimossa dal file:\n\n{content}')
             self._save()
 
     def adjust_vote_count(self, payload: discord.RawReactionActionEvent, change: int):
@@ -211,20 +224,17 @@ class Proposals():
         self._save()
 
     async def handle_proposals(self) -> None:
-        """Gestisce le proposte, verificando se hanno raggiunto un termine."""
+        """Gestisce le proposte, verificando se il dizionario è coerente
+        con il canale e se le proposte hanno raggiunto un termine.
+        """
+        await self.check_proposals_integrity()
         class Report(TypedDict):
             result: str
             description: str
             colour: discord.Color
         to_delete = set()
         for key in self.proposals.keys():
-            try:
-                message = await Config.get_config().poll_channel.fetch_message(key)
-            except discord.NotFound:
-                # capita se viene cancellata dopo un riavvio o mentre è offline
-                await BotLogger.get_instance().log('proposta già cancellata, ignoro')
-                to_delete.add(key)
-                continue
+            message = await Config.get_config().poll_channel.fetch_message(key)
             proposal = self.proposals[key]
             if proposal.passed:
                 report: Report = {
@@ -254,7 +264,7 @@ class Proposals():
             )
             content.add_field(
                 name='Autore',
-                value=f'{message.author.mention}',
+                value=message.author.mention,
                 inline=False
             )
             msg_content = proposal.content
@@ -268,10 +278,40 @@ class Proposals():
             attachments = [await a.to_file() for a in message.attachments]
             await Config.get_config().poll_channel.send(embed=content, files=attachments)
             await BotLogger.get_instance().log(f'proposta di {message.author.mention} {report["result"]}:\n\n{proposal.content}')
-            await message.delete()
-            to_delete.add(key)
+            to_delete.add(message.id)
         for key in to_delete:
-            self.remove_proposal(key)
+            await self.remove_proposal(key)
+        self._save()
+
+    async def check_proposals_integrity(self) -> None:
+        """Controlla la corrispondenza tra le proposte nel dizionario e
+        le proposte nel canale.
+        """
+        existing_proposals = set()
+        async for message in Config.get_config().poll_channel.history():
+            if message.author.bot:
+                continue
+            existing_proposals.add(message.id)
+            if message not in self.proposals.keys():
+                self.add_proposal(message)
+            proposal = self.proposals[message.id]
+            to_remove: Dict[discord.Reaction, set[discord.Member]] = {}
+            for wrong_react in message.reactions:
+                to_remove[wrong_react] = set()
+                async for member in wrong_react.users():
+                    if not (wrong_react.emoji in ('🔴', '🟢') and
+                            (Config.get_config().orator_role in member.roles or
+                            any(role in Config.get_config().moderation_roles for role in member.roles))):
+                        to_remove[wrong_react].add(member)
+            for react, members in to_remove.items():
+                for member in members:
+                    await message.remove_reaction(react, member)
+            votes = {'🟢': proposal.yes, '🔴': proposal.no}
+            for react in message.reactions:
+                if react.emoji in ('🔴', '🟢'): # Necessario per questioni di caching delle reaction al messaggio da parte di discord
+                    proposal.adjust_vote_count(react.emoji, react.count - votes[react.emoji])
+        for invalid_proposal in set(self.proposals.keys()).difference(existing_proposals):
+            await self.remove_proposal(invalid_proposal)
         self._save()
 
     def _save(self) -> None:
