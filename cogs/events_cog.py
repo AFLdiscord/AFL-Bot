@@ -441,7 +441,7 @@ class EventCog(commands.Cog):
         else:
             await self.logger.log('chiamata on_ready ma la task è già avviata')
 
-    @tasks.loop(minutes=1)
+    @tasks.loop(time=time(0, 0, tzinfo=datetime.now().astimezone().tzinfo))
     async def periodic_checks(self):
         """Task periodica per la gestione di:
             - controllo sulle proposte
