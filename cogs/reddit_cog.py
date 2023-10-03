@@ -1,7 +1,7 @@
 """Modulo per l'interazione con le API di reddit, utilizzate per alcuni comandi"""
 from json import load
 import os
-from typing import Dict
+from typing import Dict, List
 
 import discord
 from discord.ext import commands
@@ -132,6 +132,13 @@ class RedditCog(commands.Cog):
             await ctx.reply(f'`{sub}` non fa parte dei subreddit ammessi in questo server.')
             return
         await self.post_submission(ctx, sub)
+
+    @reddit.autocomplete('sub')
+    async def reddit_autocomplete(self, interaction: discord.Interaction, curr: str) -> List[discord.app_commands.Choice[str]]:
+        return [
+            discord.app_commands.Choice(name=sub, value=sub)
+            for sub in self.subs if curr.lower() in sub.lower()
+        ]
 
     @commands.hybrid_command(name='4chan', brief='ritorna un post da 4chan', aliases=['4c'])
     async def fourchan(self, ctx: commands.Context):
