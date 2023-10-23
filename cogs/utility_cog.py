@@ -146,7 +146,7 @@ class UtilityCog(commands.Cog, name='Utility'):
             renewal = last_change + \
                 timedelta(days=self.config.nick_change_days)
             days_until_renewal = renewal - datetime.date(datetime.now())
-            await ctx.send(f'Prossimo cambio tra {days_until_renewal.days} giorni')
+            await ctx.send(f'Prossimo cambio il {discord.utils.format_dt(discord.utils.utcnow() + days_until_renewal, "D")}')
         elif BannedWords.contains_banned_words(new_nick):
             await ctx.send('Il nickname non può contenere parole offensive')
         elif len(new_nick) > 32:
