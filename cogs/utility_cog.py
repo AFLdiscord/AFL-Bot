@@ -141,12 +141,10 @@ class UtilityCog(commands.Cog, name='Utility'):
             await ctx.send('Il nickname coincide con quello attuale')
             return
         last_change = item.last_nick_change
-        difference = datetime.date(datetime.now()) - last_change
+        difference = date.today() - last_change
         if difference.days < self.config.nick_change_days:
-            renewal = last_change + \
-                timedelta(days=self.config.nick_change_days)
-            days_until_renewal = renewal - datetime.date(datetime.now())
-            await ctx.send(f'Prossimo cambio il {discord.utils.format_dt(discord.utils.utcnow() + days_until_renewal, "D")}')
+            renewal = datetime.combine(last_change + timedelta(days=self.config.nick_change_days), datetime.min.time())
+            await ctx.send(f'Prossimo cambio il {discord.utils.format_dt(renewal, "D")}')
         elif BannedWords.contains_banned_words(new_nick):
             await ctx.send('Il nickname non può contenere parole offensive')
         elif len(new_nick) > 32:
