@@ -312,8 +312,8 @@ class EventCog(commands.Cog):
         today = date.today()
         min_delta = timedelta(days=self.config.nick_change_days)
         if today - afler.last_nick_change < min_delta:
-            days_until_renewal = afler.last_nick_change + min_delta - today
-            await dm.send(f'Potrai cambiare nickname nuovamente tra {days_until_renewal.days} giorni')
+            renewal = datetime.combine(afler.last_nick_change + min_delta, datetime.min.time())
+            await dm.send(f'Potrai cambiare nickname nuovamente a partire dal {renewal}')
             await after.edit(nick=afler.nick)
         else:
             # aggiorno il nickname nell'archivio
