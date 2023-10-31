@@ -156,6 +156,10 @@ class RedditCog(commands.Cog):
         :param sub: il subreddit di interesse
         """
         submission = await self.load_post(sub)
+        if hasattr(submission, 'upvote_ratio'):
+            upvote = f'{int(submission.upvote_ratio * 100)}% upvote'
+        else:
+            upvote = 'unknown upvotes'
         media: list[discord.Embed] = []
         if 'gallery' in submission.url:
             # Il post ha una galleria di contenuti multimediali
@@ -173,7 +177,10 @@ class RedditCog(commands.Cog):
                         color=discord.Color.green()
                     )
                     embed.set_image(
-                        url=f'https://i.redd.it/{media_id}.{extension}')
+                        url=f'https://i.redd.it/{media_id}.{extension}'
+                    ).set_footer(
+                        text=f'r/{sub} - {upvote}'
+                    )
                     media.append(embed)
         else:
             # Il post ha una sola immagine
@@ -183,7 +190,11 @@ class RedditCog(commands.Cog):
                 description="",
                 color=discord.Color.green()
             )
-            post.set_image(url=submission.url)
+            post.set_image(
+                url=submission.url
+            ).set_footer(
+                text=f'r/{sub} - {upvote}'
+            )
             media.append(post)
         await ctx.send(embeds=media)
 
