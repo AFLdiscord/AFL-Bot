@@ -9,6 +9,7 @@ Contiene anche due comandi:
 import re
 from enum import Enum
 from datetime import datetime, date, time, timedelta
+from time import tzset
 from typing import Sequence, Tuple
 
 import discord
@@ -312,7 +313,8 @@ class EventCog(commands.Cog):
         today = date.today()
         min_delta = timedelta(days=self.config.nick_change_days)
         if today - afler.last_nick_change < min_delta:
-            renewal = datetime.combine(afler.last_nick_change + min_delta, datetime.min.time())
+            renewal = datetime.combine(
+                afler.last_nick_change + min_delta, datetime.min.time())
             await dm.send(f'Potrai cambiare nickname nuovamente a partire dal {renewal}')
             await after.edit(nick=afler.nick)
         else:
@@ -449,6 +451,15 @@ class EventCog(commands.Cog):
         Viene avviata tramite la on_ready quando il bot ha completato la
         fase di setup ed è programmata per essere eseguita ad ogni mezzanotte.
         """
+        # Decommentare solo per effettuare dei test
+        # tzset()
+        next_dt = sf.next_datetime(datetime.now(), 1)
+        # type: ignore
+        if next_dt.tzinfo != self.periodic_checks.time[0].tzinfo:              # type: ignore
+            await self.logger.log(
+                f'rilevato cambio orario, passaggio a {next_dt.tzname()}')
+            self.periodic_checks.change_interval(
+                time=time(0, 0, tzinfo=next_dt.tzinfo))
         await self.logger.log('controllo proposte...')
         await self.proposals.handle_proposals()
         await self.logger.log('controllo proposte terminato')
