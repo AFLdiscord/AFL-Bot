@@ -454,7 +454,6 @@ class EventCog(commands.Cog):
         # Decommentare solo per effettuare dei test
         # tzset()
         next_dt = sf.next_datetime(datetime.now(), 1)
-        # type: ignore
         if next_dt.tzinfo != self.periodic_checks.time[0].tzinfo:              # type: ignore
             await self.logger.log(
                 f'rilevato cambio orario, passaggio a {next_dt.tzname()}')
