@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 import discord
 from discord.ext import commands
+from discord.utils import format_dt
 from aflbot import AFLBot
 from utils.afler import Afler
 from utils.archive import Archive
@@ -85,20 +86,22 @@ class UtilityCog(commands.Cog, name='Utility'):
                 break
         if not is_a_mod and item.orator:
             assert item.orator_expiration is not None
+            expiration = datetime.combine(item.orator_expiration, time(0,0))
             status.add_field(
-                name='Oratore:', value=f'scade il {date.strftime(item.orator_expiration, "%d/%m")}', inline=False)
+                name='Oratore:', value=f'scade il {format_dt(expiration, "D")}', inline=False)
         if item.dank:
             assert item.dank_expiration is not None
             status.add_field(
-                name='Cazzaro:', value=f'scade il {datetime.strftime(item.dank_expiration, "%d/%m %H:%M")}', inline=False)
+                name='Cazzaro:', value=f'scade il {format_dt(item.dank_expiration, "f")}', inline=False)
         if item.warn_count() == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
             if item.last_violation_date != None:
-                violations_expiration = (
-                    item.last_violation_date + timedelta(days=self.config.violations_reset_days)).isoformat()
+                violations_expiration = datetime.combine(item.last_violation_date, time(0,0))
+                violations_expiration = next_datetime(violations_expiration, self.config.violations_reset_days)
                 status.add_field(
-                    name='Violazioni:', value=f'{item.warn_count()} (scade il {violations_expiration})', inline=False)
+                    name='Violazioni:',
+                    value=f'{item.warn_count()} (scade il {format_dt(violations_expiration, "D")})', inline=False)
         await ctx.send(embed=status)
 
     @commands.hybrid_command(brief='invia la propic dell\'utente')
