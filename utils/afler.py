@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, Optional
 
 from utils.config import Config
+from utils.shared_functions import next_datetime
 
 import discord
 
@@ -91,13 +92,14 @@ class Afler():
         self.dank: bool = data['dank']
         _dank_expiration = data['dank_expiration']
         if _dank_expiration is not None:
-            _dank_expiration = datetime.fromisoformat(_dank_expiration)
+            _dank_expiration = datetime.fromisoformat(
+                _dank_expiration).astimezone()
         self.dank_expiration: Optional[datetime] = _dank_expiration
         self.dank_messages_buffer: int = data['dank_messages_buffer']
         _dank_first_message_timestamp = data['dank_first_message_timestamp']
         if _dank_first_message_timestamp is not None:
             _dank_first_message_timestamp = datetime.fromisoformat(
-                _dank_first_message_timestamp)
+                _dank_first_message_timestamp).astimezone()
         self.dank_first_message_timestamp: Optional[datetime] = _dank_first_message_timestamp
         self.dank_total_messages: int = data['dank_total_messages']
 
@@ -206,7 +208,8 @@ class Afler():
         :param amount: numero di messaggi da rimuovere
         """
         self.orator_daily_buffer = max(0, self.orator_daily_buffer - amount)
-        self.orator_total_messages = max(0, self.orator_total_messages - amount)
+        self.orator_total_messages = max(
+            0, self.orator_total_messages - amount)
 
     def set_orator(self) -> None:
         """Imposta l'afler come oratore. Consiste in tre operazioni:
@@ -249,8 +252,8 @@ class Afler():
         self.dank = True
         self.dank_messages_buffer = 0
         self.dank_first_message_timestamp = None
-        expiration = (datetime.now()
-                      + timedelta(days=Config.get_config().dank_duration))
+        expiration = next_datetime(
+            datetime.now(), Config.get_config().dank_duration)
         self.dank_expiration = expiration.replace(
             minute=0, second=0, microsecond=0)
 
@@ -261,12 +264,12 @@ class Afler():
         buffer a 1.
         """
         expired = True
-        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+        now = datetime.now().astimezone().replace(
+            minute=0, second=0, microsecond=0)
         if self.dank_first_message_timestamp is not None:
             old_timestamp = self.dank_first_message_timestamp
-            elapsed_time = now - old_timestamp
-            expired = (elapsed_time >= timedelta(
-                days=Config.get_config().dank_duration))
+            expired = next_datetime(
+                old_timestamp, Config.get_config().dank_duration) <= now
         # 'expired' sarà True se il timestamp è vecchio o se non ce n'è uno
         if expired:
             self.dank_first_message_timestamp = now
@@ -300,7 +303,7 @@ class Afler():
         """
         if self.dank:
             assert (self.dank_expiration is not None)
-            if self.dank_expiration <= datetime.now():
+            if self.dank_expiration <= datetime.now().astimezone():
                 return True
         return False
 
