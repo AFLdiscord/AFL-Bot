@@ -6,7 +6,9 @@
 - evaluate_diff     valuta le differenze tra due messaggi
 - discord_tag       verifica se il testo sia un tag discord
 - relevant_message  stabilisce se analizzare un messaggio o meno
+- next_datetime     restituisce la data corretta
 """
+from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 import json
 import re
@@ -154,3 +156,18 @@ def relevant_message(message: discord.Message) -> bool:
         # ignora i messaggi al di fuori dal server
         return False
     return True
+
+
+def next_datetime(start_date: datetime, days: int) -> datetime:
+    """Restituisce il prossimo datetime, prestando attenzione al possibile
+    cambiamento di DST
+
+    :param start_date: la data di partenza
+    :param days: la distanza in giorni
+    :returns: il datetime con lo stesso orario
+    :rtype: datetime.datetime
+    """
+    start_date = start_date.astimezone()
+    start_date = start_date.replace(tzinfo=None)
+    next_date = start_date + timedelta(days=days)
+    return next_date.astimezone()
