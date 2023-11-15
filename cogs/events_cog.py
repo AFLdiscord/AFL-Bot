@@ -7,14 +7,16 @@ Contiene anche due comandi:
 """
 
 import re
+from datetime import date, datetime, time, timedelta
 from enum import Enum
-from datetime import datetime, date, time, timedelta
-from time import tzset
+from time import tzset  # Vedere periodic_checks
 from typing import Sequence, Tuple
 
 import discord
 from discord.ext import commands, tasks
 from discord.utils import escape_markdown
+
+from aflbot import AFLBot
 from utils import shared_functions as sf
 from utils.afler import Afler
 from utils.archive import Archive
@@ -22,7 +24,6 @@ from utils.banned_words import BannedWords
 from utils.bot_logger import BotLogger
 from utils.config import Config
 from utils.proposals import Proposals
-from aflbot import AFLBot
 
 
 class EventCog(commands.Cog):
