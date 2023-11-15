@@ -313,9 +313,9 @@ class EventCog(commands.Cog):
         today = date.today()
         min_delta = timedelta(days=self.config.nick_change_days)
         if today - afler.last_nick_change < min_delta:
-            renewal = datetime.combine(
-                afler.last_nick_change + min_delta, datetime.min.time())
-            await dm.send(f'Potrai cambiare nickname nuovamente a partire dal {renewal}')
+            renewal = datetime.combine(afler.last_nick_change, time(0, 0))
+            renewal = sf.next_datetime(renewal, self.config.nick_change_days)
+            await dm.send(f'Potrai cambiare nickname nuovamente a partire dal {discord.utils.format_dt(renewal, "D")}')
             await after.edit(nick=afler.nick)
         else:
             # aggiorno il nickname nell'archivio

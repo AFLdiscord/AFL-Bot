@@ -1,6 +1,6 @@
 """:class: UtilityCog contiene comandi di uso generale."""
 import hashlib
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from git.repo import Repo
 from typing import Optional, Union
@@ -13,6 +13,7 @@ from utils.archive import Archive
 from utils.banned_words import BannedWords
 from utils.bot_logger import BotLogger
 from utils.config import Config
+from utils.shared_functions import next_datetime
 
 
 class UtilityCog(commands.Cog, name='Utility'):
@@ -143,7 +144,8 @@ class UtilityCog(commands.Cog, name='Utility'):
         last_change = item.last_nick_change
         difference = date.today() - last_change
         if difference.days < self.config.nick_change_days:
-            renewal = datetime.combine(last_change + timedelta(days=self.config.nick_change_days), datetime.min.time())
+            renewal = datetime.combine(item.last_nick_change, time(0, 0))
+            renewal = next_datetime(renewal, self.config.nick_change_days)
             await ctx.send(f'Prossimo cambio il {discord.utils.format_dt(renewal, "D")}')
         elif BannedWords.contains_banned_words(new_nick):
             await ctx.send('Il nickname non può contenere parole offensive')
