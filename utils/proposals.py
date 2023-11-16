@@ -28,6 +28,7 @@ class Proposal():
     yes: `int`          numero di voti a favore
     no: `int`           numero di voti contrari
     content: `str`      contenuto della proposta
+    author: `int`       l'autore della proposta
 
     Methods
     -------------
@@ -40,18 +41,20 @@ class Proposal():
             total_voters: int,
             threshold: int,
             content: str,
+            author: int,
             passed: bool = False,
             rejected: bool = False,
             yes: int = 0,
             no: int = 0) -> None:
-        self.timestamp: str = timestamp
-        self.total_voters: int = total_voters
-        self.threshold: int = threshold
-        self.passed: bool = passed
-        self.rejected: bool = rejected
-        self.yes: int = yes
-        self.no: int = no
-        self.content: str = content
+        self.timestamp = timestamp
+        self.total_voters = total_voters
+        self.threshold = threshold
+        self.passed = passed
+        self.rejected = rejected
+        self.yes = yes
+        self.no = no
+        self.content = content
+        self.author = author
 
     def adjust_vote_count(self, vote: str, change: int) -> None:
         """Aggiusta il contatore dei voti in base al parametro passato.
@@ -76,6 +79,7 @@ class ProposalType(TypedDict):
     total_voters: int
     threshold: int
     content: str
+    author: int
     passed: bool
     rejected: bool
     yes: int
@@ -146,13 +150,15 @@ class Proposals():
             rejected=p['rejected'],
             yes=p['yes'],
             no=p['no'],
-            content=p['content']
+            content=p['content'],
+            author=int(p['author'])
         ) for i, p in raw_proposals.items()}
         cls._instance = cls.__new__(cls)
         cls._instance.proposals = proposals
         try:
-            cls._instance.timestamp = date.fromisoformat(sorted(proposals.values(), key=lambda x: x.timestamp).pop().timestamp)
-        except IndexError:
+            cls._instance.timestamp = date.fromisoformat(
+                min(proposals.values(), key=lambda x: x.timestamp).timestamp)
+        except ValueError:
             # Stima pessimistica di un periodo di down del bot, cambiare se necessario
             cls._instance.timestamp = date.today() - timedelta(weeks=1)
 
@@ -170,12 +176,15 @@ class Proposals():
         else:
             return proposal
 
-    def add_proposal(self, message: discord.Message) -> None:
-        """Aggiunge la proposta al file proposals.json salvando timestamp
-        e numero di membri attivi in quel momento.
+    async def add_proposal(self, message: discord.Message) -> discord.Message:
+        """Aggiunge la proposta al file proposals.json e crea un embed con
+        la proposta.
 
         :param message: messaggio mandato nel canale proposte da aggiungere
         :param guild: il server discord
+
+        :returns: il messaggio con l'embed
+        :rtype: discord.Message
         """
         orator_count = 0
         for member in Config.get_config().guild.members:
@@ -186,12 +195,27 @@ class Proposals():
             timestamp=message.created_at.date().isoformat(),
             total_voters=orator_count,
             threshold=(orator_count // 2 + 1),  # maggioranza assoluta
-            content=message.content
+            content=message.content,
+            author=message.author.id
         )
-        self.proposals[message.id] = proposal
+        content = discord.Embed(
+            title=f'Nuova proposta',
+            description=message.author.mention,
+            colour=discord.Color.orange(),
+            timestamp=message.created_at
+        )
+        content.add_field(
+            name='Testo:',
+            value=message.content,
+            inline=False
+        )
+        proposal_embed = await Config.get_config().poll_channel.send(embed=content)
+        self.proposals[proposal_embed.id] = proposal
+        await message.delete()
         if message.created_at.date() > self.timestamp:
             self.timestamp = message.created_at.date()
         self._save()
+        return proposal_embed
 
     async def remove_proposal(self, message_id: int) -> None:
         """Rimuove dal canale e dal file la proposta.
@@ -214,8 +238,8 @@ class Proposals():
             # La proposta è stata già rimossa dal dizionario.
             return
         else:
+            await BotLogger.get_instance().log(f'proposta rimossa dal file:\n\n{content.content}')
             del self.proposals[message_id]
-            await BotLogger.get_instance().log(f'Proposta rimossa dal file:\n\n{content}')
             self._save()
 
     def adjust_vote_count(self, payload: discord.RawReactionActionEvent, change: int):
@@ -238,6 +262,7 @@ class Proposals():
         con il canale e se le proposte hanno raggiunto un termine.
         """
         await self.check_proposals_integrity()
+
         class Report(TypedDict):
             result: str
             description: str
@@ -287,7 +312,7 @@ class Proposals():
             )
             attachments = [await a.to_file() for a in message.attachments]
             await Config.get_config().poll_channel.send(embed=content, files=attachments)
-            await BotLogger.get_instance().log(f'proposta di {message.author.mention} {report["result"]}:\n\n{proposal.content}')
+            await BotLogger.get_instance().log(f'proposta di <@{proposal.author}> {report["result"]}:\n\n{proposal.content}')
             to_delete.add(message.id)
         for key in to_delete:
             await self.remove_proposal(key)
@@ -297,13 +322,13 @@ class Proposals():
         """Controlla la corrispondenza tra le proposte nel dizionario e
         le proposte nel canale.
         """
-        existing_proposals = set()
+        existing_proposals: set[discord.Message] = set()
         async for message in Config.get_config().poll_channel.history(after=datetime.combine(self.timestamp, datetime.min.time())):
-            if message.author.bot:
-                continue
-            existing_proposals.add(message.id)
-            if message not in self.proposals.keys():
-                self.add_proposal(message)
+            if message.id not in self.proposals.keys() and not message.author.bot:
+                existing_proposals.add(await self.add_proposal(message))
+            elif len(message.embeds) and message.embeds[0].color == discord.Color.orange():
+                existing_proposals.add(message)
+        for message in existing_proposals:
             proposal = self.proposals[message.id]
             to_remove: Dict[discord.Reaction, set[discord.Member]] = {}
             for wrong_react in message.reactions:
@@ -319,9 +344,12 @@ class Proposals():
                     await message.remove_reaction(react, member)
             votes = {'🟢': proposal.yes, '🔴': proposal.no}
             for react in message.reactions:
-                if react.emoji in ('🔴', '🟢'): # Necessario per questioni di caching delle reaction al messaggio da parte di discord
-                    proposal.adjust_vote_count(react.emoji, react.count - votes[react.emoji])
-        for invalid_proposal in set(self.proposals.keys()).difference(existing_proposals):
+                # Necessario per questioni di caching delle reaction al messaggio da parte di discord
+                if react.emoji in ('🔴', '🟢'):
+                    proposal.adjust_vote_count(
+                        react.emoji, react.count - votes[react.emoji])
+        existing_proposals_id = map(lambda x: x.id, existing_proposals)
+        for invalid_proposal in set(self.proposals.keys()).difference(existing_proposals_id):
             await self.remove_proposal(invalid_proposal)
         self._save()
 

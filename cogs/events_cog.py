@@ -147,8 +147,8 @@ class EventCog(commands.Cog):
         # Gestione delle proposte
         if message.channel == self.config.poll_channel:
             await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
-            self.proposals.add_proposal(message)
-            await self.logger.log(f'proposta aggiunta al file:\n{message.content}')
+            await self.proposals.add_proposal(message)
+            await self.logger.log(f'proposta aggiunta al file:\n\n{message.content}')
             return
         # Ignoro i comandi
         if self.is_command(message):
@@ -196,12 +196,14 @@ class EventCog(commands.Cog):
         il contatore dell'utente corrispondente di uno.
         Per cancellazioni in bulk vedi il comando delete nel cog di moderazione.
         """
-        if not sf.relevant_message(message):
+        if not isinstance(
+                message.channel, (discord.abc.GuildChannel, discord.Thread)):
             return
-        assert isinstance(
-            message.channel, (discord.abc.GuildChannel, discord.Thread))
         if message.channel == self.config.poll_channel:
-            await self.proposals.remove_proposal(message.id)
+            if message.author.bot and message.embeds[0].color == discord.Color.orange():
+                await self.proposals.remove_proposal(message.id)
+            return
+        if not sf.relevant_message(message):
             return
         try:
             item = self.archive.get(message.author.id)
@@ -336,63 +338,53 @@ class EventCog(commands.Cog):
         Se il riscontro è positivo viene aggiornato il file delle proposte.
         Ignora la reaction - eliminandola - se:
         - il membro non è autorizzato a votare;
-        - la reaction non è valida per la proposta;
-        - la reaction viene messa a un messaggio del bot.
+        - la reaction non è valida per la proposta.
         """
         if payload.channel_id != self.config.poll_channel_id:
             return
         assert payload.member is not None
-        # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
         message = await self.config.poll_channel.fetch_message(payload.message_id)
-        if message.author == self.bot.user or payload.emoji.name not in ('🟢', '🔴'):
+        if not (payload.emoji.name in ('🟢', '🔴') and self._check_reaction_permissions(payload)):
             await message.remove_reaction(payload.emoji, payload.member)
             return
         # aggiorna il contatore proposte, devo aggiornarlo sempre perchè
         # altrimenti la remove rimuove un voto dal conteggio quando il
         # bot la rimuove
-        await self.logger.log(f'aggiunta reazione sulla proposta\n{message.content}')
-        is_good = self._check_reaction_permissions(payload)
-        if not is_good:
-            # devo rimuovere la reaction perchè il membro non ha i requisiti
-            try:
-                message = await self.config.poll_channel.fetch_message(payload.message_id)
-                await message.remove_reaction(payload.emoji, payload.member)
-            except discord.NotFound:
-                await self.logger.log('impossibile trovare il messaggio o la reaction cercate')
-            return
-        other_react = {
-            react for react in message.reactions
-            if react.emoji != payload.emoji.name
-        }
-        # controlla se il membro abbia già messo un'altra reaction, e
-        # nel caso la rimuove
-        if len(other_react) == 1:
-            reaction = other_react.pop()
-            async for user in reaction.users():
-                if payload.member == user:
-                    await message.remove_reaction(reaction, payload.member)
-                    break
+        proposal = self.proposals.get_proposal(payload.message_id)
+        assert proposal is not None
+        author = self.config.guild.get_member(proposal.author)
+        assert author is not None
+        # rimuove l'eventuale voto opposto
+        try:
+            other_react = [
+                react for react in message.reactions if react.emoji != payload.emoji.name].pop()
+            await message.remove_reaction(other_react, payload.member)
+            # TODO impedire a on_raw_reaction_remove di loggare la rimozione
+            # della proposta quando viene rimossa per questo motivo, per
+            # evitare di loggare due volte un cambio.
+            await self.logger.log(f'cambiato voto alla proposta di {author.mention}:\n{proposal.content}')
+        except (IndexError, discord.NotFound):
+            await self.logger.log(f'aggiunto voto alla proposta di {author.mention}:\n{proposal.content}')
         self.proposals.adjust_vote_count(payload, 1)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
-        """Se la reaction è nel canale proposte, aggiorna il contatore
+        """Se la reaction è nel canale Proposte, aggiorna il contatore
         della proposta di conseguenza rimuovendo il voto corrispondente.
-        Ignora la rimozione di reaction a un messaggio in proposte se
-        tale messaggio è stato postato dal bot stesso o se la reaction
-        non era valida per la votazione.
+        Ignora la rimozione di reaction a un messaggio in proposte se la
+        reaction non era valida per la votazione.
         """
         if payload.channel_id != self.config.poll_channel_id:
             return
         # ignora le reaction non valide per il voto
         if payload.emoji.name not in ('🟢', '🔴'):
             return
-        # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
-        message = await self.config.poll_channel.fetch_message(payload.message_id)
-        if message.author == self.bot.user:
-            return
-        await self.logger.log(f'rimossa reazione sulla proposta\n{message.content}')
+        proposal = self.proposals.get_proposal(payload.message_id)
+        assert proposal is not None
+        author = self.config.guild.get_member(proposal.author)
+        assert author is not None
         self.proposals.adjust_vote_count(payload, -1)
+        await self.logger.log(f'rimosso voto dalla proposta di {author.mention}:\n{proposal.content}')
 
     def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
         """Controlla se la reazione è stata messa nel canale proposte da un membro che
@@ -411,7 +403,6 @@ class EventCog(commands.Cog):
         return (payload.event_type == 'REACTION_ADD' and (
             self.config.orator_role in payload.member.roles or
             any(role in self.config.moderation_roles for role in payload.member.roles)))
-
 
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
@@ -549,6 +540,7 @@ class EventCog(commands.Cog):
                 f'rilevato cambio orario, passaggio a {next_dt.tzname()}')
             self.periodic_checks.change_interval(
                 time=time(0, 0, tzinfo=next_dt.tzinfo))
+            tzset()
         await self.logger.log('controllo proposte...')
         await self.proposals.handle_proposals()
         await self.logger.log('controllo proposte terminato')
