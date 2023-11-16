@@ -1,7 +1,7 @@
 """Modulo di gestione delle proposte"""
 
 from __future__ import annotations
-from datetime import datetime, date, timedelta
+from datetime import datetime, timedelta
 import json
 from typing import ClassVar, Dict, Optional, TypedDict
 
@@ -123,7 +123,7 @@ class Proposals():
 
     def __init__(self) -> None:
         self.proposals: Dict[int, Proposal]
-        self.timestamp: date
+        self.timestamp: datetime
         raise RuntimeError(
             'Usa Proposals.get_instance() per ottenere l\'istanza')
 
@@ -163,11 +163,11 @@ class Proposals():
         cls._instance = cls.__new__(cls)
         cls._instance.proposals = proposals
         try:
-            cls._instance.timestamp = date.fromisoformat(
+            cls._instance.timestamp = datetime.fromisoformat(
                 min(proposals.values(), key=lambda x: x.timestamp).timestamp)
         except ValueError:
             # Stima pessimistica di un periodo di down del bot, cambiare se necessario
-            cls._instance.timestamp = date.today() - timedelta(weeks=1)
+            cls._instance.timestamp = datetime.now().astimezone() - timedelta(weeks=1)
 
     def get_proposal(self, message_id: int) -> Optional[Proposal]:
         """Cerca una proposta dato l'id del messaggio ad essa correlato.
@@ -199,28 +199,41 @@ class Proposals():
                     any(role in Config.get_config().moderation_roles for role in member.roles)):
                 orator_count += 1
         proposal = Proposal(
-            timestamp=message.created_at.date().isoformat(),
+            timestamp=message.created_at.astimezone().isoformat(),
             total_voters=orator_count,
             threshold=(orator_count // 2 + 1),  # maggioranza assoluta
             content=message.content,
             author=message.author.id
         )
         content = discord.Embed(
-            title=f'Nuova proposta',
-            description=message.author.mention,
-            colour=discord.Color.orange(),
-            timestamp=message.created_at
+            colour=discord.Color.orange()
+        )
+        content.set_author(
+            name='Nuova proposta', icon_url=message.author.display_avatar)
+        content.add_field(
+            name='Autore',
+            value=message.author.mention,
+            inline=False
         )
         content.add_field(
             name='Testo:',
             value=message.content,
             inline=False
         )
+        content.add_field(
+            name='Scadenza:',
+            value=discord.utils.format_dt(
+                sf.next_datetime(message.created_at.astimezone().replace(
+                    hour=0, minute=0), Config.get_config().poll_duration),
+                'D'
+            ),
+            inline=False
+        )
         proposal_embed = await Config.get_config().poll_channel.send(embed=content)
         self.proposals[proposal_embed.id] = proposal
         await message.delete()
-        if message.created_at.date() > self.timestamp:
-            self.timestamp = message.created_at.date()
+        if message.created_at.astimezone() > self.timestamp:
+            self.timestamp = message.created_at.astimezone()
         self._save()
         await proposal_embed.add_reaction('🟢')
         await proposal_embed.add_reaction('🔴')
@@ -287,7 +300,8 @@ class Proposals():
                     'description': 'La proposta è stata bocciata dalla maggioranza.',
                     'colour': discord.Color.red()
                 }
-            elif date.today() - date.fromisoformat(proposal.timestamp) >= timedelta(days=Config.get_config().poll_duration):
+            elif datetime.now().astimezone() >= sf.next_datetime(
+                    datetime.fromisoformat(proposal.timestamp).replace(hour=0, minute=0), Config.get_config().poll_duration):
                 report: Report = {
                     'result': 'scaduta',
                     'description': 'La proposta non ha ricevuto abbastanza voti.',
@@ -303,14 +317,15 @@ class Proposals():
                 colour=report['colour'],
                 timestamp=datetime.fromisoformat(proposal.timestamp)
             )
-            content.set_author(name=f'Proposta {report["result"]}', icon_url=author.display_avatar)
+            content.set_author(
+                name=f'Proposta {report["result"]}', icon_url=author.display_avatar)
             content.add_field(
                 name='Autore',
                 value=f'<@{proposal.author}>',
                 inline=False
             )
             content.set_footer(
-                text=f'🟢: {proposal.yes}, 🔴: {proposal.no}, partecipazione: {(proposal.yes + proposal.no)/proposal.total_voters}'
+                text=f'🟢: {proposal.yes}, 🔴: {proposal.no}, partecipazione: {(proposal.yes + proposal.no)*100/proposal.total_voters:.2f}%'
             )
             msg_content = proposal.content
             if len(message.attachments):
