@@ -169,7 +169,7 @@ class Proposals():
             # Stima pessimistica di un periodo di down del bot, cambiare se necessario
             cls._instance.timestamp = date.today() - timedelta(weeks=1)
 
-    def get_proposal(self, messsage_id: int) -> Optional[Proposal]:
+    def get_proposal(self, message_id: int) -> Optional[Proposal]:
         """Cerca una proposta dato l'id del messaggio ad essa correlato.
 
         :param message_id: l'id del messaggio
@@ -177,7 +177,7 @@ class Proposals():
         :rtype: Optional[Proposal]
         """
         try:
-            proposal = self.proposals[messsage_id]
+            proposal = self.proposals[message_id]
         except KeyError:
             return None
         else:
