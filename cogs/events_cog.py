@@ -7,7 +7,7 @@ Contiene anche due comandi:
 """
 
 import re
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time as t, timedelta
 from enum import Enum
 from time import tzset  # Vedere periodic_checks
 from typing import Sequence, Tuple
@@ -320,7 +320,7 @@ class EventCog(commands.Cog):
         today = date.today()
         min_delta = timedelta(days=self.config.nick_change_days)
         if today - afler.last_nick_change < min_delta:
-            renewal = datetime.combine(afler.last_nick_change, time(0, 0))
+            renewal = datetime.combine(afler.last_nick_change, t(0, 0))
             renewal = sf.next_datetime(renewal, self.config.nick_change_days)
             await dm.send(f'Potrai cambiare nickname nuovamente a partire dal {discord.utils.format_dt(renewal, "D")}')
             await after.edit(nick=afler.nick)
@@ -523,7 +523,7 @@ class EventCog(commands.Cog):
         else:
             await self.logger.log('chiamata on_ready ma la task è già avviata')
 
-    @tasks.loop(time=time(0, 0, tzinfo=datetime.now().astimezone().tzinfo))
+    @tasks.loop(time=t(0, 0, tzinfo=datetime.now().astimezone().tzinfo))
     async def periodic_checks(self):
         """Task periodica per la gestione di:
             - controllo sulle proposte
@@ -539,7 +539,7 @@ class EventCog(commands.Cog):
             await self.logger.log(
                 f'rilevato cambio orario, passaggio a {next_dt.tzname()}')
             self.periodic_checks.change_interval(
-                time=time(0, 0, tzinfo=next_dt.tzinfo))
+                time=t(0, 0, tzinfo=next_dt.tzinfo))
             tzset()
         await self.logger.log('controllo proposte...')
         await self.proposals.handle_proposals()
