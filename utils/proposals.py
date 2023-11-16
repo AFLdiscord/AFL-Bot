@@ -86,6 +86,13 @@ class ProposalType(TypedDict):
     no: int
 
 
+class Report(TypedDict):
+    """Utility per pubblicare l'esito di una proposta terminata"""
+    result: str
+    description: str
+    colour: discord.Colour
+
+
 class Proposals():
     """Wrapper per l'archivio delle proposte.
 
@@ -262,10 +269,6 @@ class Proposals():
         con il canale e se le proposte hanno raggiunto un termine.
         """
         await self.check_proposals_integrity()
-        class Report(TypedDict):
-            result: str
-            description: str
-            colour: discord.Color
         to_delete = set()
         for key in self.proposals.keys():
             message = await Config.get_config().poll_channel.fetch_message(key)
