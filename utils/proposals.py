@@ -222,6 +222,8 @@ class Proposals():
         if message.created_at.date() > self.timestamp:
             self.timestamp = message.created_at.date()
         self._save()
+        await proposal_embed.add_reaction('🟢')
+        await proposal_embed.add_reaction('🔴')
         return proposal_embed
 
     async def remove_proposal(self, message_id: int) -> None:
@@ -341,6 +343,8 @@ class Proposals():
             for wrong_react in message.reactions:
                 to_remove[wrong_react] = set()
                 async for member in wrong_react.users():
+                    if member.bot:
+                        continue
                     assert isinstance(member, discord.Member)
                     if not (wrong_react.emoji in ('🔴', '🟢') and
                             (Config.get_config().orator_role in member.roles or

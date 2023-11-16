@@ -343,6 +343,8 @@ class EventCog(commands.Cog):
         if payload.channel_id != self.config.poll_channel_id:
             return
         assert payload.member is not None
+        if payload.member.bot:
+            return
         message = await self.config.poll_channel.fetch_message(payload.message_id)
         if not (payload.emoji.name in ('🟢', '🔴') and self._check_reaction_permissions(payload)):
             await message.remove_reaction(payload.emoji, payload.member)
