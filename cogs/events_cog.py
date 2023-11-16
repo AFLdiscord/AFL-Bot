@@ -34,6 +34,10 @@ class EventCog(commands.Cog):
     - on_message_delete
     - on_message_edit
 
+    Reazioni:
+    - on_raw_reaction_add
+    - on_raw_reaction_remove
+
     Membri:
     - on_member_join
     - on_member_remove
@@ -324,6 +328,90 @@ class EventCog(commands.Cog):
             self.archive.save()
             await dm.send(f'Nickname cambiato con successo')
             await self.logger.log(escape_markdown(f'nickname di {before.mention} modificato in {new_nick} (era {before.display_name})'))
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
+        """Controlla se chi reagisce ai messaggi postati nel canale
+        proposte abbia i requisiti per farlo.
+        Se il riscontro è positivo viene aggiornato il file delle proposte.
+        Ignora la reaction - eliminandola - se:
+        - il membro non è autorizzato a votare;
+        - la reaction non è valida per la proposta;
+        - la reaction viene messa a un messaggio del bot.
+        """
+        if payload.channel_id != self.config.poll_channel_id:
+            return
+        assert payload.member is not None
+        # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
+        message = await self.config.poll_channel.fetch_message(payload.message_id)
+        if message.author == self.bot.user or payload.emoji.name not in ('🟢', '🔴'):
+            await message.remove_reaction(payload.emoji, payload.member)
+            return
+        # aggiorna il contatore proposte, devo aggiornarlo sempre perchè
+        # altrimenti la remove rimuove un voto dal conteggio quando il
+        # bot la rimuove
+        await self.logger.log(f'aggiunta reazione sulla proposta\n{message.content}')
+        is_good = self._check_reaction_permissions(payload)
+        if not is_good:
+            # devo rimuovere la reaction perchè il membro non ha i requisiti
+            try:
+                message = await self.config.poll_channel.fetch_message(payload.message_id)
+                await message.remove_reaction(payload.emoji, payload.member)
+            except discord.NotFound:
+                await self.logger.log('impossibile trovare il messaggio o la reaction cercate')
+            return
+        other_react = {
+            react for react in message.reactions
+            if react.emoji != payload.emoji.name
+        }
+        # controlla se il membro abbia già messo un'altra reaction, e
+        # nel caso la rimuove
+        if len(other_react) == 1:
+            reaction = other_react.pop()
+            async for user in reaction.users():
+                if payload.member == user:
+                    await message.remove_reaction(reaction, payload.member)
+                    break
+        self.proposals.adjust_vote_count(payload, 1)
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):
+        """Se la reaction è nel canale proposte, aggiorna il contatore
+        della proposta di conseguenza rimuovendo il voto corrispondente.
+        Ignora la rimozione di reaction a un messaggio in proposte se
+        tale messaggio è stato postato dal bot stesso o se la reaction
+        non era valida per la votazione.
+        """
+        if payload.channel_id != self.config.poll_channel_id:
+            return
+        # ignora le reaction non valide per il voto
+        if payload.emoji.name not in ('🟢', '🔴'):
+            return
+        # ignora le reaction ai suoi stessi messaggi, serve per gestire gli avvisi
+        message = await self.config.poll_channel.fetch_message(payload.message_id)
+        if message.author == self.bot.user:
+            return
+        await self.logger.log(f'rimossa reazione sulla proposta\n{message.content}')
+        self.proposals.adjust_vote_count(payload, -1)
+
+    def _check_reaction_permissions(self, payload: discord.RawReactionActionEvent) -> bool:
+        """Controlla se la reazione è stata messa nel canale proposte da un membro che
+        ne ha diritto, ovvero se:
+        - è un moderatore
+        - è in possesso del ruolo oratore
+
+        Entrambi questi ruoli vanno definiti nella config (vedi template).
+
+        :param payload: evento riguardo la reazione
+
+        :returns: se ci interessa gestire questa reaction
+        :rtype: bool
+        """
+        assert payload.member is not None
+        return (payload.event_type == 'REACTION_ADD' and (
+            self.config.orator_role in payload.member.roles or
+            any(role in self.config.moderation_roles for role in payload.member.roles)))
+
 
     @commands.Cog.listener()
     async def on_user_update(self, before: discord.User, after: discord.User):
