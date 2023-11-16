@@ -262,7 +262,6 @@ class Proposals():
         con il canale e se le proposte hanno raggiunto un termine.
         """
         await self.check_proposals_integrity()
-
         class Report(TypedDict):
             result: str
             description: str
@@ -324,8 +323,13 @@ class Proposals():
         """
         existing_proposals: set[discord.Message] = set()
         async for message in Config.get_config().poll_channel.history(after=datetime.combine(self.timestamp, datetime.min.time())):
-            if message.id not in self.proposals.keys() and not message.author.bot:
+            # Se il messaggio è di un utente, crea una nuova proposta
+            if not message.author.bot:
                 existing_proposals.add(await self.add_proposal(message))
+            # Altrimenti, controlla che il messaggio del bot sia una
+            # proposta, e non un report (la distinzione è effettuata per
+            # mezzo del colore dell'embed) # TODO stabilire se mantenere così
+            # TODO gestire recovery di proposte embed assenti nel file
             elif len(message.embeds) and message.embeds[0].color == discord.Color.orange():
                 existing_proposals.add(message)
         for message in existing_proposals:
