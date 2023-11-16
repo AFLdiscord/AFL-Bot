@@ -151,7 +151,8 @@ class Proposals():
         cls._instance = cls.__new__(cls)
         cls._instance.proposals = proposals
         try:
-            cls._instance.timestamp = date.fromisoformat(sorted(proposals.values(), key=lambda x: x.timestamp).pop().timestamp)
+            cls._instance.timestamp = date.fromisoformat(
+                sorted(proposals.values(), key=lambda x: x.timestamp).pop().timestamp)
         except IndexError:
             # Stima pessimistica di un periodo di down del bot, cambiare se necessario
             cls._instance.timestamp = date.today() - timedelta(weeks=1)
@@ -319,8 +320,10 @@ class Proposals():
                     await message.remove_reaction(react, member)
             votes = {'🟢': proposal.yes, '🔴': proposal.no}
             for react in message.reactions:
-                if react.emoji in ('🔴', '🟢'): # Necessario per questioni di caching delle reaction al messaggio da parte di discord
-                    proposal.adjust_vote_count(react.emoji, react.count - votes[react.emoji])
+                # Necessario per questioni di caching delle reaction al messaggio da parte di discord
+                if react.emoji in ('🔴', '🟢'):
+                    proposal.adjust_vote_count(
+                        react.emoji, react.count - votes[react.emoji])
         for invalid_proposal in set(self.proposals.keys()).difference(existing_proposals):
             await self.remove_proposal(invalid_proposal)
         self._save()
