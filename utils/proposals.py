@@ -296,15 +296,21 @@ class Proposals():
             else:
                 # La proposta semplicemente è ancora in corso
                 continue
+            author = Config.get_config().guild.get_member(proposal.author)
+            assert author is not None
             content = discord.Embed(
-                title=f'Proposta {report["result"]}',
                 description=report['description'],
-                colour=report['colour']
+                colour=report['colour'],
+                timestamp=datetime.fromisoformat(proposal.timestamp)
             )
+            content.set_author(name=f'Proposta {report["result"]}', icon_url=author.display_avatar)
             content.add_field(
                 name='Autore',
-                value=message.author.mention,
+                value=f'<@{proposal.author}>',
                 inline=False
+            )
+            content.set_footer(
+                text=f'🟢: {proposal.yes}, 🔴: {proposal.no}, partecipazione: {(proposal.yes + proposal.no)/proposal.total_voters}'
             )
             msg_content = proposal.content
             if len(message.attachments):
@@ -358,7 +364,7 @@ class Proposals():
                 # Necessario per questioni di caching delle reaction al messaggio da parte di discord
                 if react.emoji in ('🔴', '🟢'):
                     proposal.adjust_vote_count(
-                        react.emoji, react.count - votes[react.emoji])
+                        react.emoji, react.count - votes[react.emoji] - 1)
         existing_proposals_id = map(lambda x: x.id, existing_proposals)
         for invalid_proposal in set(self.proposals.keys()).difference(existing_proposals_id):
             await self.remove_proposal(invalid_proposal)
