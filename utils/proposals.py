@@ -230,6 +230,14 @@ class Proposals():
         embeds = [embed]
         attachments = [await a.to_file() for a in message.attachments]
         for file in attachments:
+            # Come riportato in https://github.com/discord/discord-api-docs/issues/1253,
+            # non è concesso ai bot di inserire video negli embed.
+            # TODO: Aggiungere eventuali altri formati validi per l'embed
+            if not file.filename.endswith(('jpg','png','webm')):
+                continue
+                # In questo modo i file vengono allegati al messaggio
+                # del bot e compariranno prima dell'embed: questo ordine
+                # non sembra essere modificabile. So sad.
             embeds.append(
                 discord.Embed(
                     # Come detto precedentemente, l'url è necessario
@@ -343,7 +351,9 @@ class Proposals():
             embeds = [embed]
             if len(message.embeds) > 1:
                 embeds.extend(message.embeds[1:])
-            await Config.get_config().poll_channel.send(embeds=embeds)
+            # Allegati che non sono immagini vengono semplicemente allegati al messaggio
+            files = [await f.to_file() for f in message.attachments]
+            await Config.get_config().poll_channel.send(embeds=embeds, files=files)
             await BotLogger.get_instance().log(f'proposta di <@{proposal.author}> {report["result"]}:\n\n{proposal.content}')
             to_delete.add(message.id)
         for key in to_delete:
