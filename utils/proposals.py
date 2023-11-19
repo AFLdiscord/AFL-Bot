@@ -323,15 +323,13 @@ class Proposals():
                 description=report['description'],
                 colour=report['colour'],
                 timestamp=datetime.fromisoformat(proposal.timestamp)
-            )
-            content.set_author(
-                name=f'Proposta {report["result"]}', icon_url=author.display_avatar)
-            content.add_field(
+            ).set_author(
+                name=f'Proposta {report["result"]}', icon_url=author.display_avatar
+            ).add_field(
                 name='Autore',
                 value=f'<@{proposal.author}>',
                 inline=False
-            )
-            content.set_footer(
+            ).set_footer(
                 text=f'🟢: {proposal.yes}, 🔴: {proposal.no}, partecipazione: {(proposal.yes + proposal.no)*100/proposal.total_voters:.2f}%'
             )
             msg_content = proposal.content
