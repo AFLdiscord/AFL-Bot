@@ -188,7 +188,6 @@ class Proposals():
         la proposta.
 
         :param message: messaggio mandato nel canale proposte da aggiungere
-        :param guild: il server discord
 
         :returns: il messaggio con l'embed
         :rtype: discord.Message
@@ -205,22 +204,21 @@ class Proposals():
             content=message.content,
             author=message.author.id
         )
-        content = discord.Embed(
-            colour=discord.Color.orange()
-        )
-        content.set_author(
-            name='Nuova proposta', icon_url=message.author.display_avatar)
-        content.add_field(
+        embed = discord.Embed(
+            colour=discord.Colour.orange(),
+            # L'url è necessario per unire eventuali allegati nello stesso embed
+            url='https://github.com/AFLdiscord/AFL-Bot'
+        ).set_author(
+            name='Nuova proposta', icon_url=message.author.display_avatar
+        ).add_field(
             name='Autore',
             value=message.author.mention,
             inline=False
-        )
-        content.add_field(
+        ).add_field(
             name='Testo:',
             value=message.content,
             inline=False
-        )
-        content.add_field(
+        ).add_field(
             name='Scadenza:',
             value=discord.utils.format_dt(
                 sf.next_datetime(message.created_at.astimezone().replace(
@@ -229,7 +227,16 @@ class Proposals():
             ),
             inline=False
         )
-        proposal_embed = await Config.get_config().poll_channel.send(embed=content)
+        embeds = [embed]
+        attachments = [await a.to_file() for a in message.attachments]
+        for file in attachments:
+            embeds.append(
+                discord.Embed(
+                    # Come detto precedentemente, l'url è necessario
+                    url='https://github.com/AFLdiscord/AFL-Bot'
+                ).set_image(url=f'attachment://{file.filename}')
+            )
+        proposal_embed = await Config.get_config().poll_channel.send(files=attachments, embeds=embeds)
         self.proposals[proposal_embed.id] = proposal
         await message.delete()
         if message.created_at.astimezone() > self.timestamp:
