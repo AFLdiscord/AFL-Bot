@@ -319,10 +319,12 @@ class Proposals():
                 continue
             author = Config.get_config().guild.get_member(proposal.author)
             assert author is not None
-            content = discord.Embed(
+            embed = discord.Embed(
                 description=report['description'],
                 colour=report['colour'],
-                timestamp=datetime.fromisoformat(proposal.timestamp)
+                timestamp=datetime.fromisoformat(proposal.timestamp),
+                # L'url è necessario per unire eventuali allegati nello stesso embed
+                url='https://github.com/AFLdiscord/AFL-Bot'
             ).set_author(
                 name=f'Proposta {report["result"]}', icon_url=author.display_avatar
             ).add_field(
@@ -331,17 +333,17 @@ class Proposals():
                 inline=False
             ).set_footer(
                 text=f'🟢: {proposal.yes}, 🔴: {proposal.no}, partecipazione: {(proposal.yes + proposal.no)*100/proposal.total_voters:.2f}%'
-            )
-            msg_content = proposal.content
-            if len(message.attachments):
-                msg_content += ' [File in allegato]'
-            content.add_field(
+            ).add_field(
                 name='Contenuto',
-                value=msg_content,
+                value=proposal.content,
                 inline=False
             )
-            attachments = [await a.to_file() for a in message.attachments]
-            await Config.get_config().poll_channel.send(embed=content, files=attachments)
+            # Riporto eventuali allegati, che sono degli embed inclusi nel
+            # messaggio della proposta
+            embeds = [embed]
+            if len(message.embeds) > 1:
+                embeds.extend(message.embeds[1:])
+            await Config.get_config().poll_channel.send(embeds=embeds)
             await BotLogger.get_instance().log(f'proposta di <@{proposal.author}> {report["result"]}:\n\n{proposal.content}')
             to_delete.add(message.id)
         for key in to_delete:
