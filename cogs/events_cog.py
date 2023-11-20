@@ -254,8 +254,10 @@ class EventCog(commands.Cog):
         await self.logger.log(f'nuovo membro: {member.mention}')
         dm = member.dm_channel if member.dm_channel is not None else await member.create_dm()
         await dm.send(self.config.greetings)
+        # Ignora la cache per risolvere #68
+        new_user = await self.bot.fetch_user(member.id)
         # controlla se il nome dell'utente è valido
-        check_nick = self.check_new_nickname(member.display_name, member.id)
+        check_nick = self.check_new_nickname(new_user.display_name, member.id)
         if not check_nick[0]:
             await dm.send(f'Il tuo nickname {check_nick[1]}, prima di essere accettato dovrai cambiarlo.')
             if check_nick[1] == 'contiene parole offensive':
