@@ -26,6 +26,7 @@ class AFLBot(commands.Bot):
             help_command=help_command,
             description=description,
             intents=intents,
+            member_cache_flags=discord.MemberCacheFlags.none(),
             **options)
         self.version: str
         self.start_time: datetime
