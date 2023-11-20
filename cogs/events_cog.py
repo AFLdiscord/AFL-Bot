@@ -9,6 +9,7 @@ Contiene anche due comandi:
 import re
 from datetime import date, datetime, time as t, timedelta
 from enum import Enum
+from git.repo import Repo
 from time import tzset  # Vedere periodic_checks
 from typing import Sequence, Tuple
 
@@ -53,7 +54,7 @@ class EventCog(commands.Cog):
 
     def __init__(self, bot: AFLBot):
         self.bot: AFLBot = bot
-        self.bot.version = 'v2.4.1'
+        self.bot.version = max(Repo().tags, key=lambda t: t.commit.committed_datetime).name
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
