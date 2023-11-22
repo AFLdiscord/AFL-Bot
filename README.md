@@ -11,7 +11,13 @@ Gli obiettivi principali di sviluppo attualmente sono:
 
 Scritto in [python (3.8+)](https://www.python.org/downloads/) sfruttando le librerie [discord.py](https://github.com/Rapptz/discord.py) e dotenv.
 
-Per utilizzare il bot:
+Il bot va creato (seguendo [questa guida](https://www.writebots.com/discord-bot-token/) fino al punto 4, incluso) e aggiunto al proprio server usando il seguente link
+
+`https://discord.com/api/oauth2/authorize?client_id=BOTCLIENTID&permissions=41646633118934&scope=bot%20applications.commands`
+
+sostituendo `BOTCLIENTID` con l'user id del bot, ricavabile dal portale sviluppatori di Discord.  
+
+Per avviare il bot:
 
 - clonare il repo
 - installare le dipendenze
@@ -49,4 +55,3 @@ Rispettare lo stile di programmazione riportato sotto.
 
 - [Linee guida sullo stile del codice](https://www.python.org/dev/peps/pep-0008/)
 - [Documentazione discord.py](https://discordpy.readthedocs.io/en/latest/)
-- [Come creare applicazione e ottenere il token del bot](https://www.writebots.com/discord-bot-token/)
