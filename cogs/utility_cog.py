@@ -127,11 +127,15 @@ class UtilityCog(commands.Cog, name='Utility'):
         avatar.set_image(url=user.display_avatar)
         await ctx.send(embed=avatar)
 
-    @commands.hybrid_command(brief='permette di cambiare nickname periodicamente', hidden=True)
+    @commands.hybrid_command(brief='OBSOLETO permette di cambiare nickname periodicamente', hidden=True)
     async def setnick(self, ctx: commands.Context, *, new_nick: str):
         """Permette di cambiare il proprio nickname periodicamente. La frequenza con
         cui è possibile farlo è definita nel config. Impedisce che due membri abbiano lo
         lo stesso nickname.
+
+        Il comando è obsoleto e verrà rimosso in una prossima release, in
+        quanto discord fornisce già un comando slash per fare altrettanto
+        e gestire la logica dei nickname tre volte anziché due non ha senso.
 
         Sintassi:
         <setnick afler       # cambia il nickname in afler
