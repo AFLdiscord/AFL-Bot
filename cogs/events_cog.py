@@ -147,9 +147,7 @@ class EventCog(commands.Cog):
             return
         # Gestione delle proposte
         if message.channel == self.config.poll_channel:
-            await self.logger.log(f'membro {message.author.mention} ha aggiunto una proposta')
             await self.proposals.add_proposal(message)
-            await self.logger.log(f'proposta aggiunta al file:\n\n{message.content}')
             return
         # Ignoro i comandi
         if self.is_command(message):
@@ -320,9 +318,7 @@ class EventCog(commands.Cog):
             # o per ripristino che non necessita alcun aggiornamento dell'archivio
             return
         # controllo il tempo passato dall'ultimo cambio
-        today = date.today()
-        min_delta = timedelta(days=self.config.nick_change_days)
-        if today - afler.last_nick_change < min_delta:
+        if not afler.can_renew_nick():
             renewal = datetime.combine(afler.last_nick_change, t(0, 0))
             renewal = sf.next_datetime(renewal, self.config.nick_change_days)
             await dm.send(f'Potrai cambiare nickname nuovamente a partire dal {discord.utils.format_dt(renewal, "D")}')

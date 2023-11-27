@@ -172,6 +172,10 @@ class Afler():
         self.nickname = new_nick
         self.last_nick_change = date.today()
 
+    def can_renew_nick(self) -> bool:
+        """Controlla se l'afler può rinnovare il nickname."""
+        return date.today() - self.last_nick_change >= timedelta(Config.get_config().nick_change_days)
+
     @property
     def total_messages(self) -> int:
         """Restituisce il numero totale di messaggi inviati dall'afler.
