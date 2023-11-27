@@ -164,11 +164,9 @@ class UtilityCog(commands.Cog, name='Utility'):
             old_nick = discord.utils.escape_markdown(ctx.author.display_name)
             item.nick = new_nick
             self.archive.save()
-            escaped_nick = discord.utils.escape_markdown(
-                new_nick)   # serve per stampare
-            await ctx.author.edit(nick=escaped_nick)    # type: ignore
-            await ctx.send(f'Nickname cambiato in {escaped_nick}')
-            await self.logger.log(f'Nickname di {ctx.author.mention} modificato in {escaped_nick} (era {old_nick})')
+            await ctx.author.edit(nick=new_nick)    # type: ignore
+            await ctx.send(f'Nickname cambiato in {item.escaped_nick}')
+            await self.logger.log(f'Nickname di {ctx.author.mention} modificato in {item.escaped_nick} (era {discord.utils.escape_markdown(old_nick)})')
 
     @commands.hybrid_command(brief='imposta la propria bio')
     async def setbio(self, ctx: commands.Context, *, bio: str):

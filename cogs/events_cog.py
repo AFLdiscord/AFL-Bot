@@ -262,6 +262,9 @@ class EventCog(commands.Cog):
             if check_nick[1] == 'contiene parole offensive':
                 await member.kick(reason="ForbiddenUsername")
                 await self.logger.log(f'nuovo membro {member.mention} kickato per username improprio')
+        else:
+            # Impone il nickname per semplificare i controlli di coerenza
+            await member.edit(nick=new_user.display_name)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -282,27 +285,32 @@ class EventCog(commands.Cog):
         """
         if before.bot:
             return
-        new_nick = after.display_name
-
+        
+        if after.nick is None:
+            # Impone la presenza di un nick
+            await after.edit(nick=before.display_name)
+            return
+        
         # nuovo membro AFL
         if self.config.afl_role not in before.roles and self.config.afl_role in after.roles:
             await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
-            afler = Afler.new_entry(new_nick)
+            afler = Afler.new_entry(after.nick)
             self.archive.add(after.id, afler)
             self.archive.save()
             return
 
         # altri update che non serve gestire (per ora)
-        if before.display_name == new_nick:
+        if before.nick is None or before.nick == after.nick:
             return
 
         # cambio di nickname
+        new_nick = after.nick
         dm = before.dm_channel if before.dm_channel is not None else await before.create_dm()
         report = self.check_new_nickname(new_nick, before.id)
         if not report[0]:
             # nickname non disponibile in ogni caso: invia motivo in dm
             await dm.send(f'Cambio di nickname rifiutato. Motivo: {report[1]}')
-            await after.edit(nick=before.display_name)
+            await after.edit(nick=before.nick)
             return
         if self.config.afl_role not in after.roles:
             # l'utente non è AFL ed il cambio è lecito -> non fare niente
@@ -311,9 +319,9 @@ class EventCog(commands.Cog):
         try:
             afler: Afler = self.archive.get(before.id)
         except KeyError:
-            await self.logger.log(escape_markdown(f'membro {before.mention} ha cambiato nickname, ma non risulta nell\'archivio (before:{before.display_name} after:{after.display_name})'))
+            await self.logger.log(escape_markdown(f'membro {before.mention} ha cambiato nickname, ma non risulta nell\'archivio (before:{before.nick} after:{after.nick})'))
             return
-        if after.display_name == afler.nick:
+        if after.nick == afler.nick:
             # consenti il cambio forzato del nick da parte dei moderatori
             # o per ripristino che non necessita alcun aggiornamento dell'archivio
             return
@@ -328,7 +336,7 @@ class EventCog(commands.Cog):
             afler.nick = new_nick
             self.archive.save()
             await dm.send(f'Nickname cambiato con successo')
-            await self.logger.log(escape_markdown(f'nickname di {before.mention} modificato in {new_nick} (era {before.display_name})'))
+            await self.logger.log(escape_markdown(f'nickname di {before.mention} modificato in {new_nick} (era {before.nick})'))
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -404,28 +412,6 @@ class EventCog(commands.Cog):
         return (payload.event_type == 'REACTION_ADD' and (
             self.config.orator_role in payload.member.roles or
             any(role in self.config.moderation_roles for role in payload.member.roles)))
-
-    @commands.Cog.listener()
-    async def on_user_update(self, before: discord.User, after: discord.User):
-        """In caso di cambio di username, resetta il nickname a quello presente nel file."""
-        if before.bot:
-            return
-        if (before.name == after.name) and (before.discriminator == after.discriminator):
-            # non ci interessa, vuol dire che ha cambiato immagine
-            return
-        try:
-            item: Afler = self.archive.get(before.id)
-        except KeyError:
-            await self.logger.log(escape_markdown(f'utente {before.mention} non trovato nell\'archivio durante on_user_update (before:{before.name} after:{after.name})'))
-            return
-        old_nick: str = item.escaped_nick
-        member = self.config.guild.get_member(after.id)
-        if member is None:
-            await self.logger.log('errore imprevisto nel recuperare il membro durante on_user_update')
-            return
-        if old_nick != member.nick:
-            await self.logger.log(f'ripristino nickname di {member.mention} da `{escape_markdown(member.display_name)}` a `{old_nick}`')
-            await member.edit(nick=old_nick)
 
     def check_new_nickname(self, new_nick: str, afler_id: int) -> Tuple[bool, str]:
         """Controlla se il nuovo nickname di un afler sia valido.
@@ -594,12 +580,10 @@ class EventCog(commands.Cog):
         :param members: l'elenco dei membri del server
         """
         archive_ids = set(self.archive.keys())
-        current_members = set(member.id for member in members)
-        ex_members = archive_ids.difference(current_members)
-        new_members = map(
-            lambda id: self.config.guild.get_member(id),
-            current_members.difference(archive_ids)
-        )
+        current_members = set(m for m in members if not m.bot)
+        ex_members = archive_ids.difference(set(m.id for m in current_members))
+        new_members = set(m for m in members if m.id not in archive_ids)
+        current_members = current_members.difference(new_members)
         # rimuovere i membri usciti
         for id in ex_members:
             self.archive.remove(id)
@@ -607,24 +591,30 @@ class EventCog(commands.Cog):
             await self.logger.log(f"membro <@{id}> rimosso dall'archivio")
         # aggiungere i nuovi membri entrati
         for member in new_members:
-            if member is None or member.bot or self.config.afl_role not in member.roles:
+            await self.on_member_join(member)
+        # controllo che i nickname siano gli stessi settati nell'archivio
+        for member in current_members:
+            afler = self.archive.get(member.id)
+            if member.nick == afler.nick:
                 continue
-            self.archive.add(member.id, Afler.new_entry(member.display_name))
-            await self.logger.log(f"membro {member.mention} aggiunto all'archivio")
-        # controllo che i nickname siano gli stessi settati nell'archivio, altrimenti aggiornare
-        for member in members:
-            if member is None or member.bot or self.config.afl_role not in member.roles:
+            if member.nick is None:
+                await member.edit(nick=afler.nick)
                 continue
-            try:
-                entry: Afler = self.archive.get(member.id)
-            except Exception:
-                await self.logger.log(f'error nell\'estrarre {member.display_name} (id = {member.id}) dall\'archivio')
+            # nickname cambiato
+            report = self.check_new_nickname(member.nick, member.id)
+            if report[0] and afler.can_renew_nick():
+                await self.logger.log(f'nickname di {member.mention} modificato in {escape_markdown(member.nick)} (era {afler.escaped_nick})')
+                afler.nick = member.nick
                 continue
+            dm = member.dm_channel if member.dm_channel is not None else await member.create_dm()
+            if not report[0]:
+                # nickname non disponibile in ogni caso: invia motivo in dm
+                await dm.send(f'Cambio di nickname rifiutato. Motivo: {report[1]}')
             else:
-                if member.display_name != entry.nick:
-                    # questo aggiorna anche la data di cambio
-                    await self.logger.log(f'aggiornato archivio di {member.mention} (nuovo nickname)')
-                    entry.nick = member.display_name
+                renewal = datetime.combine(afler.last_nick_change, t(0, 0))
+                renewal = sf.next_datetime(renewal, self.config.nick_change_days)
+                await dm.send(f'Potrai cambiare nickname nuovamente a partire dal {discord.utils.format_dt(renewal, "D")}')
+            await member.edit(nick=afler.nick)
         self.archive.save()
 
     def is_command(self, message: discord.Message) -> bool:
