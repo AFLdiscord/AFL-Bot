@@ -86,7 +86,7 @@ class UtilityCog(commands.Cog, name='Utility'):
                 break
         if not is_a_mod and item.orator:
             assert item.orator_expiration is not None
-            expiration = datetime.combine(item.orator_expiration, time(0,0))
+            expiration = datetime.combine(item.orator_expiration, time(0, 0))
             status.add_field(
                 name='Oratore:', value=f'scade il {format_dt(expiration, "D")}', inline=False)
         if item.dank:
@@ -97,8 +97,10 @@ class UtilityCog(commands.Cog, name='Utility'):
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
             if item.last_violation_date != None:
-                violations_expiration = datetime.combine(item.last_violation_date, time(0,0))
-                violations_expiration = next_datetime(violations_expiration, self.config.violations_reset_days)
+                violations_expiration = datetime.combine(
+                    item.last_violation_date, time(0, 0))
+                violations_expiration = next_datetime(
+                    violations_expiration, self.config.violations_reset_days)
                 status.add_field(
                     name='Violazioni:',
                     value=f'{item.warn_count()} (scade il {format_dt(violations_expiration, "D")})', inline=False)
