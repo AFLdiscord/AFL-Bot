@@ -58,7 +58,7 @@ class BotLogger():
         """
         self.channel = Config.get_config().log_channel
 
-    async def log(self,  msg: str, media: Optional[List[discord.Attachment]] = None) -> None:
+    async def log(self,  msg: str, media: Optional[List[discord.Attachment]] = None) -> Optional[discord.Message]:
         """Compila il messaggio da inviare nel canale. Il formato
         è il seguente:
 
@@ -66,14 +66,20 @@ class BotLogger():
 
         La data arriva da datetime.now()
 
+        Restituisce il messaggio di log, se possibile, per salvare gli
+        allegati delle proposte.
+
         :param msg: il messaggio con l'evento da loggare
         :param media: eventuali allegati del messaggio (immagini, video, etc)
+
+        :returns: il messaggio di log
+        :rtype: Optional[discord.Message]
         """
         timestamp = datetime.now()
         if self.channel is None:
             # fallback sul terminale
             print(f'[{timestamp}]:\n{msg}')
-            return
+            return None
         msg = f'`{timestamp}`\n{msg}'
         log_message = discord.Embed(
             title='Log event',
@@ -82,4 +88,4 @@ class BotLogger():
             timestamp=timestamp.astimezone(timezone.utc)
         )
         files: List[discord.File] = [await m.to_file() for m in media] if media else []
-        await self.channel.send(embed=log_message, files=files)
+        return await self.channel.send(embed=log_message, files=files)

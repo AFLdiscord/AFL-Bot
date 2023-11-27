@@ -227,9 +227,13 @@ class Proposals():
             ),
             inline=False
         )
+        log = await BotLogger.get_instance().log(f'nuova proposta di {message.author.mention}:\n\n{message.content}', media=message.attachments)
+        assert log is not None
         embeds = [embed]
-        attachments = [await a.to_file() for a in message.attachments]
-        for file in attachments:
+        # Uso gli attachment del log perché, al contrario degli attachment
+        # del messaggio originale, il messaggio di log non verrà eliminato
+        # e gli url delle immagini saranno sempre validi
+        for file in log.attachments:
             # Come riportato in https://github.com/discord/discord-api-docs/issues/1253,
             # non è concesso ai bot di inserire video negli embed.
             # TODO: Aggiungere eventuali altri formati validi per l'embed
@@ -242,9 +246,9 @@ class Proposals():
                 discord.Embed(
                     # Come detto precedentemente, l'url è necessario
                     url='https://github.com/AFLdiscord/AFL-Bot'
-                ).set_image(url=f'attachment://{file.filename}')
+                ).set_image(url=file.url)
             )
-        proposal_embed = await Config.get_config().poll_channel.send(files=attachments, embeds=embeds)
+        proposal_embed = await Config.get_config().poll_channel.send(embeds=embeds)
         self.proposals[proposal_embed.id] = proposal
         await message.delete()
         if message.created_at.astimezone() > self.timestamp:
