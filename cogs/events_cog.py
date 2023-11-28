@@ -168,25 +168,11 @@ class EventCog(commands.Cog):
 
         :param message: il messaggio mandato
         """
-        # Gestione contatori per i ruoli oratore e cazzaro
+        assert isinstance(message.author, discord.Member)
         if self.valid_for_orator(message):
-            # incrementa il conteggio
-            afler = self.archive.get(message.author.id)
-            afler.increase_orator_buffer()
-            self.archive.save()
+            await self.archive.increase_orator_buffer(message.author)
         elif self.valid_for_dank(message):
-            if message.author.id in self.archive.keys():
-                afler = self.archive.get(message.author.id)
-            else:
-                afler = Afler.new_entry(message.author.display_name)
-                self.archive.add(message.author.id, afler)
-            # incrementa il conteggio
-            afler.increase_dank_counter()
-            if afler.is_eligible_for_dank():
-                await self.set_dank(afler, message.author.id)
-            elif afler.is_dank_expired():
-                await self.remove_dank_from_afler(afler, message.author.id)
-            self.archive.save()
+            await self.archive.increase_dank_counter(message.author)
 
     @commands.Cog.listener()
     async def on_message_delete(self, message: discord.Message):
@@ -549,24 +535,6 @@ class EventCog(commands.Cog):
         await self.logger.log(msg)
         await self.config.main_channel.send(embed=discord.Embed(description=f'{msg} :)'))
         afler.remove_dank()
-
-    async def set_dank(self, afler: Afler, id: int) -> None:
-        """Imposta il ruolo cazzaro dall'afler.
-
-        :param afler: l'istanza nell'archivio dell'afler a cui conferire il ruolo
-        :param id: l'id di discord dell'afler
-        """
-        member = self.config.guild.get_member(id)
-        assert member is not None
-        await member.add_roles(self.config.dank_role)
-        msg = ''
-        if afler.dank:
-            msg = f'{member.mention}: rinnovato ruolo {self.config.dank_role.mention}'
-        else:
-            msg = f'{member.mention} è diventato un {self.config.dank_role.mention}'
-        await self.logger.log(msg)
-        await self.config.main_channel.send(embed=discord.Embed(description=msg))
-        afler.set_dank()
 
     async def coherency_check(self, members: Sequence[discord.Member]) -> None:
         """Controlla la coerenza tra l'elenco membri del server e l'elenco

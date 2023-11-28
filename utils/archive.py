@@ -10,6 +10,7 @@ from utils.bot_logger import BotLogger
 from utils.config import Config
 from utils.shared_functions import update_json_file
 
+import discord
 from discord.utils import MISSING
 
 # archivio con i dati
@@ -238,3 +239,28 @@ class Archive():
                 await logger.log(msg)
                 await config.main_channel.send(embed=Embed(description=f'{msg} :)'))
                 afler.remove_dank()
+
+    async def increase_orator_buffer(self, afler: discord.Member) -> None:
+        """Incrementa il buffer oratore dell'afler."""
+        item = self.get(afler.id)
+        item.increase_orator_buffer()
+        self.save()
+
+    async def increase_dank_counter(self, afler: discord.Member) -> None:
+        """Incrementa il contatore cazzaro dell'afler, eventualmente
+        assegnando il ruolo.
+        """
+        item = self.get(afler.id)
+        item.increase_dank_counter()
+        if item.is_eligible_for_dank():
+            result = ''
+            if item.dank:
+                result = f': rinnovato ruolo '
+            else:
+                result = f' è diventato un '
+            msg = f'{afler.mention}{result}{Config.get_config().dank_role.mention}'
+            await BotLogger.get_instance().log(msg)
+            await Config.get_config().main_channel.send(embed=discord.Embed(description=msg))
+            item.set_dank()
+            await afler.add_roles(Config.get_config().dank_role)
+        self.save()
