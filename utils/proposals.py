@@ -233,6 +233,7 @@ class Proposals():
         # Uso gli attachment del log perché, al contrario degli attachment
         # del messaggio originale, il messaggio di log non verrà eliminato
         # e gli url delle immagini saranno sempre validi
+        is_first = True
         for file in log.attachments:
             # Come riportato in https://github.com/discord/discord-api-docs/issues/1253,
             # non è concesso ai bot di inserire video negli embed.
@@ -242,6 +243,10 @@ class Proposals():
                 # In questo modo i file vengono allegati al messaggio
                 # del bot e compariranno prima dell'embed: questo ordine
                 # non sembra essere modificabile. So sad.
+            if is_first:
+                embed.set_image(url=file.url)
+                is_first = False
+                continue
             embeds.append(
                 discord.Embed(
                     # Come detto precedentemente, l'url è necessario
@@ -352,6 +357,8 @@ class Proposals():
             )
             # Riporto eventuali allegati, che sono degli embed inclusi nel
             # messaggio della proposta
+            if message.embeds[0].image is not None:
+                embed.set_image(url=message.embeds[0].image.url)
             embeds = [embed]
             if len(message.embeds) > 1:
                 embeds.extend(message.embeds[1:])
