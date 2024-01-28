@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 import json
 import re
+import urllib
 from typing import List, Optional
 
 import discord
@@ -69,6 +70,8 @@ def link_to_clean(message: str) -> Optional[str]:
             # la regex effettua l'estrazione di questa porzione di link
             cleaned_link = re.findall(
                 r'https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
+        elif word.__contains__('youtube.com') or word.__contains__('youtu.be'):
+            cleaned_link = re.sub(r'[\?\&]si=[A-Za-z0-9]{16}', '', word)
     return cleaned_link
 
 
