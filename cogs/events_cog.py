@@ -155,12 +155,12 @@ class EventCog(commands.Cog):
         # Eventuale incremento dei contatori
         await self.increase_counter(message)
         # Gestione dei link
-        link = sf.link_to_clean(message.content)
-        if link is not None:
+        cleaned_message = sf.clean_links(message.content)
+        if cleaned_message != message.content:
             # Il contributo va considerato anche qui per ovviare all'eventuale eliminazione
             await message.delete()
             await self.increase_counter(message)
-            await message.channel.send(f'Link da {message.author.mention}:\n{link}')
+            await message.channel.send(f'Da {message.author.mention}:\n{cleaned_message}')
 
     async def increase_counter(self, message: discord.Message) -> None:
         """Controlla la categoria del canale in cui è stato mandato il

@@ -2,7 +2,7 @@
 
 - update_json_file  salva in json le modifiche
 - get_extensions    carica la lista delle estensioni
-- link_to_clean     "ripulisce" i link
+- clean_links     "ripulisce" i link
 - evaluate_diff     valuta le differenze tra due messaggi
 - discord_tag       verifica se il testo sia un tag discord
 - relevant_message  stabilisce se analizzare un messaggio o meno
@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 import json
 import re
-import urllib
 from typing import List, Optional
 
 import discord
@@ -48,31 +47,33 @@ def get_extensions() -> List[str]:
     return extensions
 
 
-def link_to_clean(message: str) -> Optional[str]:
-    """Controlla se il messaggio è un link da accorciare. In tal caso ritorna il link accorciato
-    altrimenti None.
+def clean_links(message: str) -> str:
+    """Controlla se il messaggio ha dei link da accorciare e in caso positivo li accorcia.
+    Se non c'è nessun link da accorciare, il messaggio rimane intatto.
 
     Supporto per ora:
     - link prodotti amazon
+    - link youtube
 
     :param message: da controllare
-    :returns: None o il link stesso accorciato
+    :returns: il messaggio, con eventuali link ripuliti
     :rtype: str
     """
     cleaned_link: Optional[str] = None
-    words = message.strip()
-    words = message.split(' ')
-    if len(words) == 1:   # il messaggio non ha spazi, potrebbe essere un link
-        word = words[0]
-        if word.__contains__('www.amazon'):
+    words = message.strip().split(' ')
+    for i, word in enumerate(words):
+        if 'www.amazon' in word:
             # si assume che i link ai prodotti amazon abbiano tutti la stessa struttura:
             #     https://amazon.identificativo_nazione_o_com/nome_lungo_descrittivo/dp/10CARATTER
             # la regex effettua l'estrazione di questa porzione di link
             cleaned_link = re.findall(
                 r'https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
-        elif word.__contains__('youtube.com') or word.__contains__('youtu.be'):
+        elif 'youtube.com' in word or 'youtu.be' in word:
             cleaned_link = re.sub(r'[\?\&]si=[A-Za-z0-9]{16}', '', word)
-    return cleaned_link
+        if cleaned_link is not None:
+            words[i] = cleaned_link
+            cleaned_link = None
+    return ' '.join(words)
 
 
 class TypedMatcher(SequenceMatcher):
