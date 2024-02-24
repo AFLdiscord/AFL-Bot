@@ -69,7 +69,7 @@ def clean_links(message: str) -> str:
             cleaned_link = re.findall(
                 r'https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
         elif 'youtube.com' in word or 'youtu.be' in word:
-            cleaned_link = re.sub(r'[\?\&]si=[A-Za-z0-9]{16}', '', word)
+            cleaned_link = re.sub(r'[\?\&]si=[_A-Za-z0-9]{16}', '', word)
         if cleaned_link is not None:
             words[i] = cleaned_link
             cleaned_link = None
