@@ -10,7 +10,15 @@ import re
 from datetime import date, datetime, time as t, timedelta
 from enum import Enum
 from git.repo import Repo
-from time import tzset  # Vedere periodic_checks
+# tzset is not available on windows
+# this is not a fix, just a workaround to allow testing on windows
+# since the bot will run on a linux server
+try:
+    from time import tzset  # Vedere periodic_checks
+except ImportError:
+    def tzset():
+        ...
+
 from typing import Sequence, Tuple
 
 import discord
