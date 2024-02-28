@@ -64,12 +64,15 @@ def clean_links(message: str) -> str:
     words = message.strip().split(' ')
     for i, word in enumerate(words):
         parsing = urlparse(word)
-        if parsing.netloc.endswith('amzn.eu'):
+        netloc = parsing.netloc
+        if netloc == 'amzn.eu':
             cleaned_link = requests.get(word).url
-        elif parsing.netloc.endswith('amazon.com') or parsing.netloc.endswith('amazon.it'):
+        elif (netloc.endswith('.amazon.com') or netloc.endswith('.amazon.it') or
+              netloc == 'amazon.com' or netloc == 'amazon.it'):
             parsing = parsing._replace(params='', query='')
             cleaned_link = urlunparse(parsing)
-        elif parsing.netloc.endswith('youtube.com') or parsing.netloc.endswith('youtu.be'):
+        elif (netloc.endswith('.youtube.com') or netloc.endswith('.youtu.be') or
+              netloc == 'youtube.com' or netloc == 'youtu.be'):
             query = parse_qs(parsing.query)
             try:
                 del query['si']
