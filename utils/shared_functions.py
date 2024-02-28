@@ -13,6 +13,7 @@ from difflib import SequenceMatcher
 import json
 import re
 from typing import List, Optional
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 import discord
 from discord.utils import MISSING
@@ -62,14 +63,19 @@ def clean_links(message: str) -> str:
     cleaned_link: Optional[str] = None
     words = message.strip().split(' ')
     for i, word in enumerate(words):
-        if 'www.amazon' in word:
-            # si assume che i link ai prodotti amazon abbiano tutti la stessa struttura:
-            #     https://amazon.identificativo_nazione_o_com/nome_lungo_descrittivo/dp/10CARATTER
-            # la regex effettua l'estrazione di questa porzione di link
-            cleaned_link = re.findall(
-                r'https:\/\/www\.amazon\..*\/.*\/[A-Z0-9]{10}', word)[0]
-        elif 'youtube.com' in word or 'youtu.be' in word:
-            cleaned_link = re.sub(r'[\?\&]si=[_A-Za-z0-9]{16}', '', word)
+        parsing = urlparse(word)
+        if parsing.netloc.endswith('amazon.com') or parsing.netloc.endswith('amazon.it'):
+            parsing = parsing._replace(params='', query='')
+            cleaned_link = urlunparse(parsing)
+        elif parsing.netloc.endswith('youtube.com') or parsing.netloc.endswith('youtu.be'):
+            query = parse_qs(parsing.query)
+            try:
+                del query['si']
+            except KeyError:
+                continue
+            query = urlencode(query, doseq=True)
+            parsing = parsing._replace(query=query)
+            cleaned_link = urlunparse(parsing)
         if cleaned_link is not None:
             words[i] = cleaned_link
             cleaned_link = None
