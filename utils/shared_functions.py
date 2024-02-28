@@ -66,8 +66,10 @@ def clean_links(message: str) -> str:
         parsing = urlparse(word)
         netloc = parsing.netloc
         if netloc == 'amzn.eu':
-            cleaned_link = requests.get(word).url
-        elif (netloc.endswith('.amazon.com') or netloc.endswith('.amazon.it') or
+            word = requests.get(word).url
+            parsing = urlparse(word)
+            netloc = parsing.netloc
+        if (netloc.endswith('.amazon.com') or netloc.endswith('.amazon.it') or
               netloc == 'amazon.com' or netloc == 'amazon.it'):
             parsing = parsing._replace(params='', query='')
             cleaned_link = urlunparse(parsing)
