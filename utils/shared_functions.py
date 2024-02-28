@@ -11,9 +11,9 @@
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 import json
-import re
 from typing import List, Optional
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+import requests
 
 import discord
 from discord.utils import MISSING
@@ -64,7 +64,9 @@ def clean_links(message: str) -> str:
     words = message.strip().split(' ')
     for i, word in enumerate(words):
         parsing = urlparse(word)
-        if parsing.netloc.endswith('amazon.com') or parsing.netloc.endswith('amazon.it'):
+        if parsing.netloc.endswith('amzn.eu'):
+            cleaned_link = requests.get(word).url
+        elif parsing.netloc.endswith('amazon.com') or parsing.netloc.endswith('amazon.it'):
             parsing = parsing._replace(params='', query='')
             cleaned_link = urlunparse(parsing)
         elif parsing.netloc.endswith('youtube.com') or parsing.netloc.endswith('youtu.be'):
