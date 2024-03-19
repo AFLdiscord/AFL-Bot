@@ -279,7 +279,7 @@ class EventCog(commands.Cog):
         """Rimuove, se presente, l'utente da aflers.json nel momento in cui lascia il server."""
         if member.bot:
             return
-        await self.logger.log(f'membro {member.mention} rimosso/uscito dal server')
+        await self.logger.log(f'membro {member.mention} ({member.name}) rimosso/uscito dal server')
         self.archive.remove(member.id)
         self.archive.save()
 
@@ -293,12 +293,12 @@ class EventCog(commands.Cog):
         """
         if before.bot:
             return
-        
+
         if after.nick is None:
             # Impone la presenza di un nick
             await after.edit(nick=before.display_name)
             return
-        
+
         # nuovo membro AFL
         if self.config.afl_role not in before.roles and self.config.afl_role in after.roles:
             await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
