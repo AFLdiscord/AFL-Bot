@@ -235,7 +235,7 @@ class RedditCog(commands.Cog):
                 submission.banned_by is None and
                 submission.author is not None and
                 submission.removed_by is None and
-                'removed_by_category' not in vars(submission)
+                ('removed_by_category' not in vars(submission) or submission.removed_by_category != 'deleted')
             ):
                 return submission
 
