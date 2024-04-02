@@ -227,13 +227,15 @@ class RedditCog(commands.Cog):
             except StopAsyncIteration:
                 await self.create_post_iterator(sub)
                 submission = await generator.__anext__()
+            # technically we should check every time that these attributes are in fact present
             if (
                 not submission.stickied and
                 submission.is_reddit_media_domain and
                 submission.domain != 'v.redd.it' and
                 submission.banned_by is None and
                 submission.author is not None and
-                submission.removed_by is None
+                submission.removed_by is None and
+                'removed_by_category' not in vars(submission)
             ):
                 return submission
 
