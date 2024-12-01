@@ -83,6 +83,15 @@ def clean_links(message: str) -> str:
             query = urlencode(query, doseq=True)
             parsing = parsing._replace(query=query)
             cleaned_link = urlunparse(parsing)
+        elif netloc != '':
+            query = parse_qs(parsing.query)
+            if len(query):
+                for q in list(query.keys()):
+                    if q.startswith('utm_'):
+                        del query[q]
+            query = urlencode(query, doseq=True)
+            parsing = parsing._replace(query=query)
+            cleaned_link = urlunparse(parsing)
         if cleaned_link is not None:
             words[i] = cleaned_link
             cleaned_link = None
