@@ -56,6 +56,8 @@ def clean_links(message: str) -> str:
     Supporto per ora:
     - link prodotti amazon
     - link youtube
+    - link instagram
+    - link generici con parametri utm_
 
     :param message: da controllare
     :returns: il messaggio, con eventuali link ripuliti
@@ -71,8 +73,9 @@ def clean_links(message: str) -> str:
             parsing = urlparse(word)
             netloc = parsing.netloc
         if (netloc.endswith('.amazon.com') or netloc.endswith('.amazon.it') or
-              netloc == 'amazon.com' or netloc == 'amazon.it'):
-            parsing = parsing._replace(params='', query='')
+              netloc == 'amazon.com' or netloc == 'amazon.it' or
+              netloc == 'www.instagram.com'):
+            parsing = parsing._replace(params='', query='', netloc=parsing.netloc.replace('instagram', 'ddinstagram'))
             cleaned_link = urlunparse(parsing)
         elif (netloc.endswith('.youtube.com') or netloc.endswith('.youtu.be') or
               netloc == 'youtube.com' or netloc == 'youtu.be'):
