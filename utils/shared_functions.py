@@ -13,6 +13,7 @@ from difflib import SequenceMatcher
 import json
 from typing import List, Optional
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+import re
 import requests
 
 import discord
@@ -61,7 +62,7 @@ def clean_links(message: str) -> str:
     :rtype: str
     """
     cleaned_link: Optional[str] = None
-    words = message.strip().split(' ')
+    words = re.split(r'(\s)', message.strip())
     for i, word in enumerate(words):
         parsing = urlparse(word)
         netloc = parsing.netloc
@@ -76,10 +77,8 @@ def clean_links(message: str) -> str:
         elif (netloc.endswith('.youtube.com') or netloc.endswith('.youtu.be') or
               netloc == 'youtube.com' or netloc == 'youtu.be'):
             query = parse_qs(parsing.query)
-            try:
-                del query['si']
-            except KeyError:
-                continue
+            query.pop('si', None)
+            query.pop('pp', None)
             query = urlencode(query, doseq=True)
             parsing = parsing._replace(query=query)
             cleaned_link = urlunparse(parsing)
@@ -95,7 +94,7 @@ def clean_links(message: str) -> str:
         if cleaned_link is not None:
             words[i] = cleaned_link
             cleaned_link = None
-    return ' '.join(words)
+    return ''.join(words)
 
 
 class TypedMatcher(SequenceMatcher):
