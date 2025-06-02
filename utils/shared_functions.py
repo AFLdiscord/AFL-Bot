@@ -67,18 +67,20 @@ def clean_links(message: str) -> str:
     words = re.split(r'(\s)', message.strip())
     for i, word in enumerate(words):
         parsing = urlparse(word)
-        netloc = parsing.netloc
+        netloc = parsing.netloc.lstrip('www.')
         if netloc == 'amzn.eu':
             word = requests.get(word).url
             parsing = urlparse(word)
-            netloc = parsing.netloc
-        if (netloc.endswith('.amazon.com') or netloc.endswith('.amazon.it') or
-              netloc == 'amazon.com' or netloc == 'amazon.it' or
-              netloc == 'www.instagram.com'):
+        netloc = parsing.netloc.lstrip('www.')
+        if (netloc == 'amazon.co.uk' or
+            netloc == 'amazon.com' or
+            netloc == 'amazon.it' or
+            netloc == 'amazon.fr' or
+            netloc == 'amazon.de' or
+            netloc == 'instagram.com'):
             parsing = parsing._replace(params='', query='', netloc=parsing.netloc.replace('instagram', 'ddinstagram'))
             cleaned_link = urlunparse(parsing)
-        elif (netloc.endswith('.youtube.com') or netloc.endswith('.youtu.be') or
-              netloc == 'youtube.com' or netloc == 'youtu.be'):
+        elif (netloc == 'youtube.com' or netloc == 'youtu.be'):
             query = parse_qs(parsing.query)
             query.pop('si', None)
             query.pop('pp', None)
