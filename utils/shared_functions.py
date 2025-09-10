@@ -105,15 +105,6 @@ def clean_links(message: str) -> str:
     return ''.join(words)
 
 
-class TypedMatcher(SequenceMatcher):
-    """Serve soltanto per aggiungere il typing agli attributi :("""
-
-    def __init__(self, before: str, after: str):
-        super().__init__(None, before, after)
-        self.a: str
-        self.b: str
-
-
 def evaluate_diff(before: str, after: str) -> str:
     """Confronta due stringhe e restituisce una stringa formattata
     che evidenzia le differenze tra le due.
@@ -124,17 +115,17 @@ def evaluate_diff(before: str, after: str) -> str:
     :returns: una stringa formattata per evidenziare le modifiche
     :rtype: str
     """
-    diff = TypedMatcher(before, after)
+    diff = SequenceMatcher(a=before, b=after)
     output: list[str] = []
-    for opcode, a0, a1, b0, b1 in diff.get_opcodes():
+    for opcode, bef_start, bef_end, aft_start, aft_end in diff.get_opcodes():
         if opcode == 'equal':
-            output.append(diff.a[a0:a1])
+            output.append(before[bef_start:bef_end])
         elif opcode == 'insert':
-            output.append(f'**{diff.b[b0:b1]}**')
+            output.append(f'**{after[aft_start:aft_end]}**')
         elif opcode == 'delete':
-            output.append(f'~~{diff.a[a0:a1]}~~')
+            output.append(f'~~{before[bef_start:bef_end]}~~')
         elif opcode == 'replace':
-            output.append(f'~~{diff.a[a0:a1]}~~**{diff.b[b0:b1]}**')
+            output.append(f'~~{before[bef_start:bef_end]}~~**{after[aft_start:aft_end]}**')
         else:
             return f'Before:\n    {before}\nAfter:\n    {after}'
     return ''.join(output)
