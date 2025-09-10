@@ -71,7 +71,7 @@ class EventCog(commands.Cog):
     @commands.command(brief='aggiorna lo stato del bot')
     async def updatestatus(self, ctx: commands.Context):
         """Aggiorna lo stato del bot al contenuto di self.bot.version"""
-        botstat = discord.Game(name=f'AFL {self.bot.version}')
+        botstat = discord.CustomActivity(name=f'{self.bot.version}')
         await self.bot.change_presence(activity=botstat)
 
     class Sex(Enum):
@@ -500,7 +500,7 @@ class EventCog(commands.Cog):
         await self.bot.tree.sync()
         # salva il timestamp di avvio nel bot
         self.bot.start_time = datetime.now()
-        botstat = discord.Game(name=f'AFL {self.bot.version}')
+        botstat = discord.CustomActivity(name=f'{self.bot.version}')
         await self.bot.change_presence(activity=botstat)
         # inizializzazione del logger degli eventi sul canale
         await self.logger.initialize()
