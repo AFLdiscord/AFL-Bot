@@ -1,12 +1,16 @@
 """Modulo per l'interazione con le API di reddit, utilizzate per alcuni comandi"""
 from json import load
 import os
-from typing import Dict, List
+from typing import Dict, List, AsyncIterator
+
+# Necessari per workaround temporaneo
+from ssl import create_default_context
+from aiohttp import TCPConnector, ClientSession
 
 import discord
 from discord.ext import commands
 from asyncpraw import Reddit
-from asyncpraw.models import ListingGenerator, Submission
+from asyncpraw.models import Submission
 from asyncprawcore.exceptions import Redirect
 from aflbot import AFLBot
 from utils.archive import Archive
@@ -33,13 +37,17 @@ class RedditCog(commands.Cog):
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
+        # workaround temporaneo per Debian 13
+        sslcontext = create_default_context()
+        session = ClientSession(connector=TCPConnector(ssl=sslcontext))
         # initialize the reddit instance, need specific user agent
         self.reddit_instance: Reddit = Reddit(
             client_id=os.getenv('REDDIT_APP_ID'),
             client_secret=os.getenv('REDDIT_APP_SECRET'),
-            user_agent=f'discord:AFL-Bot:{self.bot.version} (by /u/Skylake-dev)'
+            user_agent=f'discord:AFL-Bot:{self.bot.version} (by /u/Skylake-dev)',
+            requestor_kwargs={"session": session}
         )
-        self.post_caches: Dict[str, ListingGenerator] = {}
+        self.post_caches: Dict[str, AsyncIterator] = {}
         try:
             with open('subreddits.json', 'r') as f:
                 self.subs = load(f)
