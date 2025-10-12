@@ -32,9 +32,9 @@ def update_json_file(data, json_file: str) -> None:
 
 
 def get_extensions() -> List[str]:
-    """Carica le estensioni dal file extensions.json. Si aspetta di trovare una lista con
-    i nomi delle estensioni da aggiungere al bot. Se non trova il file o ci sono errori ritorna
-    una lista vuota.
+    """Carica le estensioni dal file extensions.json. Si aspetta di trovare
+    una lista con i nomi delle estensioni da aggiungere al bot. Se non
+    trova il file o ci sono errori ritorna una lista vuota.
 
     :returns: la lista coi nomi delle estensioni
     :rtype: List[str]
@@ -50,7 +50,8 @@ def get_extensions() -> List[str]:
 
 
 def clean_links(message: str) -> str:
-    """Controlla se il messaggio ha dei link da accorciare e in caso positivo li accorcia.
+    """Controlla se il messaggio ha dei link da accorciare e in caso
+    positivo li accorcia.
     Se non c'è nessun link da accorciare, il messaggio rimane intatto.
 
     Supporto per ora:
@@ -72,13 +73,17 @@ def clean_links(message: str) -> str:
             word = requests.get(word).url
             parsing = urlparse(word)
         netloc = parsing.netloc.lstrip('www.')
-        if (netloc == 'amazon.co.uk' or
-            netloc == 'amazon.com' or
-            netloc == 'amazon.it' or
-            netloc == 'amazon.fr' or
-            netloc == 'amazon.de' or
-            netloc == 'instagram.com'):
-            parsing = parsing._replace(params='', query='', netloc=parsing.netloc.replace('instagram', 'ddinstagram'))
+        if (netloc == 'amazon.co.uk'
+                or netloc == 'amazon.com'
+                or netloc == 'amazon.it'
+                or netloc == 'amazon.fr'
+                or netloc == 'amazon.de'
+                or netloc == 'instagram.com'):
+            parsing = parsing._replace(
+                params='',
+                query='',
+                netloc=parsing.netloc.replace('instagram', 'kkinstagram')
+            )
             cleaned_link = urlunparse(parsing)
         elif (netloc == 'youtube.com' or netloc == 'youtu.be'):
             query = parse_qs(parsing.query)
@@ -106,8 +111,8 @@ def clean_links(message: str) -> str:
 
 
 def evaluate_diff(before: str, after: str) -> str:
-    """Confronta due stringhe e restituisce una stringa formattata
-    che evidenzia le differenze tra le due.
+    """Confronta due stringhe e restituisce una stringa formattata che
+    evidenzia le differenze tra le due.
 
     :param before: la stringa di partenza
     :param after: la stringa modificata
@@ -125,15 +130,17 @@ def evaluate_diff(before: str, after: str) -> str:
         elif opcode == 'delete':
             output.append(f'~~{before[bef_start:bef_end]}~~')
         elif opcode == 'replace':
-            output.append(f'~~{before[bef_start:bef_end]}~~**{after[aft_start:aft_end]}**')
+            output.append(f'~~{before[bef_start:bef_end]}~~'
+                          f'**{after[aft_start:aft_end]}**')
         else:
             return f'Before:\n    {before}\nAfter:\n    {after}'
     return ''.join(output)
 
 
 def discord_tag(content: str) -> bool:
-    """Controlla se la stringa riconosciuta come comando è un tag di discord.
-    Gestisce i conflitti nel caso in cui il prefisso del bot sia settato a '<'.
+    """Controlla se la stringa riconosciuta come comando è un tag di
+    discord. Gestisce i conflitti nel caso in cui il prefisso del bot
+    sia settato a '<'.
 
     I markdown di discord sono raggruppabili nelle seguenti categorie:
     <@id> -> menzione membri o ruoli
@@ -141,8 +148,9 @@ def discord_tag(content: str) -> bool:
     <:id> -> emoji personalizzate
     <a:id> -> emoji animate
     <t:timestamp> -> timestamp
-    Inoltre, viene gestita l'emoticon '<3', che non viene convertita automaticamente
-    nell'emoji standard quando il messaggio è inviato dal client mobile.
+    Inoltre, viene gestita l'emoticon '<3', che non viene convertita
+    automaticamente nell'emoji standard quando il messaggio è inviato
+    dal client mobile.
 
     :param content: comando che ha dato errore
 
@@ -165,9 +173,12 @@ def relevant_message(message: discord.Message) -> bool:
     global _guild
     if message.author.bot:
         return False
-    if message.type not in (discord.MessageType.default, discord.MessageType.reply):
-        # ignora i messaggi "di sistema" tipo creazione thread (vedi #59), pin, etc che sono generati
-        # automaticamente ma vengono attribuiti all'utente che esegue l'azione
+    if message.type not in (
+            discord.MessageType.default,
+            discord.MessageType.reply):
+        # ignora i messaggi "di sistema" tipo creazione thread (vedi #59),
+        # pin, etc che sono generati automaticamente ma vengono attribuiti
+        # all'utente che esegue l'azione
         return False
     if _guild is MISSING:
         # workaround per evitare una dipendenza circolare con Config, lo
