@@ -82,7 +82,7 @@ def clean_links(message: str) -> str:
             parsing = parsing._replace(
                 params='',
                 query='',
-                netloc=parsing.netloc.replace('instagram', 'kkinstagram')
+                netloc=parsing.netloc.replace('instagram', 'vxinstagram')
             )
             cleaned_link = urlunparse(parsing)
         elif (netloc == 'youtube.com' or netloc == 'youtu.be'):
