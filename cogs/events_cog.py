@@ -313,11 +313,9 @@ class EventCog(commands.Cog):
 
         # cambio di nickname
         new_nick = after.nick
-        dm = before.dm_channel if before.dm_channel is not None else await before.create_dm()
         report = self.check_new_nickname(new_nick, before.id)
         if not report[0]:
-            # nickname non disponibile in ogni caso: invia motivo in dm
-            await dm.send(f'Cambio di nickname rifiutato. Motivo: {report[1]}')
+            # nickname non disponibile in ogni caso
             await after.edit(nick=before.nick)
             return
         if self.config.afl_role not in after.roles:
@@ -337,13 +335,11 @@ class EventCog(commands.Cog):
         if not afler.can_renew_nick():
             renewal = datetime.combine(afler.last_nick_change, t(0, 0))
             renewal = sf.next_datetime(renewal, self.config.nick_change_days)
-            await dm.send(f'Potrai cambiare nickname nuovamente a partire dal {discord.utils.format_dt(renewal, "D")}')
             await after.edit(nick=afler.nick)
         else:
             # aggiorno il nickname nell'archivio
             afler.nick = new_nick
             self.archive.save()
-            await dm.send(f'Nickname cambiato con successo')
             await self.logger.log(escape_markdown(f'nickname di {before.mention} modificato in {new_nick} (era {before.nick})'))
 
     @commands.Cog.listener()
