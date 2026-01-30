@@ -9,7 +9,6 @@ Contiene anche due comandi:
 import re
 from datetime import date, datetime, time as t, timedelta
 from enum import Enum
-from git.repo import Repo
 # tzset is not available on windows
 # this is not a fix, just a workaround to allow testing on windows
 # since the bot will run on a linux server
@@ -62,7 +61,7 @@ class EventCog(commands.Cog):
 
     def __init__(self, bot: AFLBot):
         self.bot: AFLBot = bot
-        self.bot.version = max(Repo().tags, key=lambda t: t.commit.committed_datetime).name
+        self.bot.version = 'v2.4.3'
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
