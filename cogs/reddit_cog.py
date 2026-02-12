@@ -17,6 +17,7 @@ from utils.archive import Archive
 from utils.bot_logger import BotLogger
 from utils.config import Config
 from utils import shared_functions as sf
+from utils.paths import SUBREDDITS_FILE
 
 
 def is_moderator():
@@ -49,7 +50,7 @@ class RedditCog(commands.Cog):
         )
         self.post_caches: Dict[str, AsyncIterator] = {}
         try:
-            with open('subreddits.json', 'r') as f:
+            with open(SUBREDDITS_FILE, 'r') as f:
                 self.subs = load(f)
         except FileNotFoundError:
             self.subs = ['4chan']
@@ -101,7 +102,7 @@ class RedditCog(commands.Cog):
         self.subs.append(name)
         await ctx.reply(f'`{name}` aggiunto alla lista dei subreddit.')
         await BotLogger.get_instance().log(f'{ctx.author.mention} ha aggiunto `{name}` alla lista dei subreddit ammessi.')
-        sf.update_json_file(self.subs, 'subreddits.json')
+        sf.update_json_file(self.subs, SUBREDDITS_FILE)
 
     @reddit_manager.command(brief='rimuove un subreddit dalla lista dei subreddit ammessi')
     @is_moderator()
@@ -120,7 +121,7 @@ class RedditCog(commands.Cog):
         self.subs.remove(name)
         await ctx.reply(f'`{name}` rimosso dalla lista dei subreddit.')
         await BotLogger.get_instance().log(f'{ctx.author.mention} ha rimosso `{name}` dalla lista dei subreddit ammessi.')
-        sf.update_json_file(self.subs, 'subreddits.json')
+        sf.update_json_file(self.subs, SUBREDDITS_FILE)
 
     @commands.hybrid_command(brief='ritorna un post dal subreddit richiesto', aliases=['r', 'rd'])
     async def reddit(self, ctx: commands.Context,

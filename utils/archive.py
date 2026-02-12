@@ -8,6 +8,7 @@ from typing import Any, ClassVar, Dict, List
 from utils.afler import Afler
 from utils.bot_logger import BotLogger
 from utils.config import Config
+from utils.paths import AFLERS_FILE, DATA_DIR
 from utils.shared_functions import update_json_file
 
 from discord.utils import MISSING
@@ -67,7 +68,7 @@ class Archive():
         """
         archive: Dict[int, Any] = {}
         try:
-            with open('aflers.json', 'r') as file:
+            with open(AFLERS_FILE, 'r') as file:
                 raw_archive: Dict[str, Any] = json.load(file)
                 # conversione degli id da str a int così come sono su discord
                 for k in raw_archive:
@@ -77,7 +78,7 @@ class Archive():
         except json.JSONDecodeError:
             print(
                 "L'archivio sembra essere corrotto: backup e creazione di un nuovo archivio...")
-            rename('aflers.json', f'aflers-backup-{date.today()}.json')
+            rename(AFLERS_FILE, DATA_DIR / f'aflers-backup-{date.today()}.json')
             print(
                 f'Il vecchio archivio è stato salvato nel file aflers-backup-{date.today()}.json.')
         finally:
@@ -172,7 +173,7 @@ class Archive():
         e poi salvare tutto alla fine.
         """
         archive = {id: afler.__dict__ for id, afler in self.archive.items()}
-        update_json_file(archive, filename)
+        update_json_file(archive, DATA_DIR / filename)
 
     def contains_nick(self, nick: str) -> bool:
         """Controlla se un nickname sia utilizzato correntemente da un afler.

@@ -8,6 +8,8 @@ from utils import shared_functions
 import discord
 from discord.utils import MISSING
 
+from utils.paths import CONFIG_FILE
+
 
 class ConfigFields(TypedDict):
     """Helper per definire la struttura del file di config"""
@@ -140,7 +142,7 @@ class Config():
         :rtype: bool
         """
         try:
-            with open('config.json', 'r') as file:
+            with open(CONFIG_FILE, 'r') as file:
                 data = json.load(file)
                 self._load_config(data)
                 if Config._bot is not MISSING:
@@ -255,4 +257,4 @@ class Config():
 
     def save(self) -> None:
         """Save the current config"""
-        shared_functions.update_json_file(vars(self), 'config.json')
+        shared_functions.update_json_file(vars(self), CONFIG_FILE)

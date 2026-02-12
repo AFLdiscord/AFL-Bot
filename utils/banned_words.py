@@ -2,6 +2,8 @@ import re
 import json
 from typing import List
 
+from utils.paths import BANNED_WORDS_FILE
+
 
 class BannedWords():
     """Gestione delle parole bannate. In particolare si occupa di caricare la lista dal rispettivo
@@ -45,10 +47,10 @@ class BannedWords():
         Se il file non è presente o incorre in un errore nella procedura l'elenco rimane vuoto.
         """
         try:
-            with open('banned_words.json', 'r') as file:
+            with open(BANNED_WORDS_FILE, 'r') as file:
                 BannedWords.banned_words = json.load(file)
         except (FileNotFoundError, json.decoder.JSONDecodeError):
-            with open('banned_words.json', 'w+') as file:
+            with open(BANNED_WORDS_FILE, 'w+') as file:
                 BannedWords.banned_words = []
 
     @staticmethod

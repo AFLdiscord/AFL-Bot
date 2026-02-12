@@ -1,14 +1,8 @@
 .env
 .venv/
 .vscode
-aflers.json
-aflers.json.old
-aflers-old.json
-banned_words.json
-config.json
-proposals.json
-subreddits.json
+config/
+data/
 cogs/__pycache__
 utils/__pycache__
-utils/fields.json
 __pycache__

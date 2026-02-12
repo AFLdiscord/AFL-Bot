@@ -8,10 +8,11 @@
 - relevant_message  stabilisce se analizzare un messaggio o meno
 - next_datetime     restituisce la data corretta
 """
+from __future__ import annotations
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 import json
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import re
 import requests
@@ -19,8 +20,13 @@ import requests
 import discord
 from discord.utils import MISSING
 
+from utils.paths import EXTENSIONS_FILE
 
-def update_json_file(data, json_file: str) -> None:
+if TYPE_CHECKING:
+    from pathlib import Path
+
+
+def update_json_file(data, json_file: Path) -> None:
     """Scrive su file json i dati passati.
     Se il file non esiste, lo crea.
 
@@ -41,7 +47,7 @@ def get_extensions() -> List[str]:
     """
     extensions: List[str]
     try:
-        with open('extensions.json', 'r') as file:
+        with open(EXTENSIONS_FILE, 'r') as file:
             extensions = json.load(file)
     except (FileNotFoundError, json.JSONDecodeError):
         print('nessuna estensione trovata, controlla file extensions.json')

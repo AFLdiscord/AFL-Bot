@@ -1,7 +1,10 @@
-"""Script di aggiornamento dell'archivio."""
+"""Script di aggiornamento del bot."""
 import json
-from os import replace
+import os
 from typing import Any, Dict
+
+from utils.paths import BASE_DIR, CONFIG_DIR, CONFIG_FILE, DATA_DIR
+
 
 # Campi da aggiornare ad ogni release
 lastest_fields = [
@@ -51,28 +54,33 @@ fields_2_0 = [
 
 
 def run():
-    """Applica la patch al dizionario."""
-    try:
-        with open('aflers.json', 'r') as file:
-            aflers: Dict[str, Dict[str, Any]] = json.load(file)
-    except FileNotFoundError:
-        return
-    except json.JSONDecodeError:
-        print('aggiornamento non attuabile su archivio attuale perché corrotto')
-        replace('aflers.json', 'aflers-not-upgraded.json')
-        return
-    curr_fields = list(next(iter(aflers.values())).keys())
-    if curr_fields == lastest_fields:
-        return
-    if curr_fields == fields_2_0:
-        aflers_new = {id: from_2_0_to_lastest(
-            values) for id, values in aflers.items()}
-    else:
-        return
-    replace('aflers.json', 'aflers-old.json')
-    with open('aflers.json', 'w+') as file:
-        json.dump(aflers_new, file, indent=4)
+    """Esegue l'aggiornamento a versioni successive del bot."""
+    # pre-2.0 -> 2.0+: nuovo schema per aflers
+    if os.path.isfile('aflers.json'): # se non esiste => >=2.5
+        aflers: Dict[str, Dict[str, Any]]
+        try:
+            with open('aflers.json', 'r') as file:
+                aflers = json.load(file)
+        except json.JSONDecodeError:
+            print('aggiornamento non attuabile su archivio attuale perché corrotto')
+            os.replace('aflers.json', 'aflers-not-upgraded.json')
+        else:
+            curr_fields = list(next(iter(aflers.values())).keys())
+            if curr_fields == fields_2_0:
+                print('========== Aggiornamento alla 2.0+ ==========')
+                # Aggiorna alla >2.0
+                aflers_new = {
+                        id: from_2_0_to_lastest(values)
+                        for id, values in aflers.items()
+                }
+                os.replace('aflers.json', 'aflers-old.json')
+                with open('aflers.json', 'w+') as file:
+                    json.dump(aflers_new, file, indent=4)
+                print('========== Fine aggiornamento alla 2.0+ ==========')
 
+    # <2.5 -> >=2.5: nuova posizione file
+    if os.path.isfile('config.json') and not os.path.isfile(CONFIG_FILE):
+        update_to_2_5()
 
 def from_2_0_to_lastest(data: Dict[str, Any]) -> Dict[str, Any]:
     """Aggiorna il dizionario dell'afler dalla versione 2.0 all'ultima
@@ -103,3 +111,26 @@ def from_2_0_to_lastest(data: Dict[str, Any]) -> Dict[str, Any]:
     new_item['dank_first_message_timestamp'] = data['dank_first_message_timestamp']
     new_item['dank_total_messages'] = data['dank_total_messages']
     return new_item
+
+def update_to_2_5():
+    print('========== Aggiornamento alla versione 2.5+ ==========')
+
+    # Sposta file di config
+    os.rename('config.json', CONFIG_FILE)
+    print(f'config.json spostato in {CONFIG_DIR.relative_to(BASE_DIR)}')
+
+    # Sposta dati
+    if not os.path.isdir(DATA_DIR):
+        os.mkdir(DATA_DIR)
+    data_files = ('aflers', 'banned_words', 'proposals', 'subreddits')
+    for file in data_files:
+        try:
+            os.rename(f'{file}.json', f'{DATA_DIR}/{file}.json')
+            print(f'{file}.json spostato in {DATA_DIR.relative_to(BASE_DIR)}')
+        except FileNotFoundError:
+            print(f'{file}.json non esiste, skip')
+            pass
+        except FileExistsError:
+            print(f'{file}.json già presente in data, skip')
+
+    print('========== Fine aggiornamento alla 2.5+ ==========')

@@ -10,6 +10,7 @@ from discord.utils import MISSING
 from utils import shared_functions as sf
 from utils.config import Config
 from utils.bot_logger import BotLogger
+from utils.paths import PROPOSALS_FILE
 
 
 class Proposal():
@@ -139,7 +140,7 @@ class Proposals():
         """Legge le proposte da file."""
         raw_proposals: Dict[str, ProposalType]
         try:
-            with open('proposals.json', 'r') as file:
+            with open(PROPOSALS_FILE, 'r') as file:
                 raw_proposals = json.load(file)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             if isinstance(e, FileNotFoundError):
@@ -147,7 +148,7 @@ class Proposals():
             else:
                 mode = 'w'
             raw_proposals = {}
-            with open('proposals.json', mode) as file:
+            with open(PROPOSALS_FILE, mode) as file:
                 file.write('{}')
         proposals = {int(i): Proposal(
             timestamp=p['timestamp'],
@@ -416,4 +417,4 @@ class Proposals():
     def _save(self) -> None:
         """Salva su disco le modifiche effettuate alle proposte."""
         dict = {i: vars(p) for i, p in self.proposals.items()}
-        sf.update_json_file(dict, 'proposals.json')
+        sf.update_json_file(dict, PROPOSALS_FILE)

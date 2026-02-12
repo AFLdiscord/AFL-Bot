@@ -5,10 +5,12 @@ from typing import Any, Dict, List
 
 import discord
 from discord.ext import commands
+
 from utils import shared_functions
 from utils.archive import Archive
 from utils.banned_words import BannedWords
 from utils.bot_logger import BotLogger
+from utils.paths import BANNED_WORDS_FILE, CONFIG_FILE, EXTENSIONS_FILE
 from utils.config import Config
 
 
@@ -61,7 +63,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             return
         BannedWords.add(ban_word)
         shared_functions.update_json_file(
-            BannedWords.banned_words, 'banned_words.json')
+            BannedWords.banned_words, BANNED_WORDS_FILE)
         await self.logger.log(f'aggiunta parola bannata `{ban_word}`')
         await ctx.send('parola aggiunta correttamente', delete_after=5)
 
@@ -77,7 +79,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         if ban_word in BannedWords.banned_words:
             BannedWords.remove(ban_word)
             shared_functions.update_json_file(
-                BannedWords.banned_words, 'banned_words.json')
+                BannedWords.banned_words, BANNED_WORDS_FILE)
             await self.logger.log(f'rimossa parola bannata `{ban_word}`')
             await ctx.send('la parola è stata rimossa', delete_after=5)
         else:
@@ -105,10 +107,10 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         await self.logger.log((f'prefisso cambiato in ``{prefix}``'))
         await ctx.send(f'Prefisso cambiato in ``{prefix}``')
         self.config.current_prefix = prefix
-        with open('config.json', 'r') as file:
+        with open(CONFIG_FILE, 'r') as file:
             data: Dict[str, Any] = json.load(file)
         data['current_prefix'] = prefix
-        shared_functions.update_json_file(data, 'config.json')
+        shared_functions.update_json_file(data, CONFIG_FILE)
 
     @commands.command(brief='aggiorna la configurazione del bot')
     async def updateconfig(self, ctx: commands.Context):
@@ -193,7 +195,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             await ctx.send('Devi specificare il nome della cog da caricare.', delete_after=5)
             await ctx.message.delete(delay=5)
         else:
-            with open('extensions.json', 'r') as file:
+            with open(EXTENSIONS_FILE, 'r') as file:
                 extensions: List[str] = json.load(file)
             added = ''
             for ext in args:
@@ -214,7 +216,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 await ctx.send(f'Estensioni {added} aggiunte correttamente.')
                 # sync degli slash commands
                 await self.bot.tree.sync()
-            shared_functions.update_json_file(extensions, 'extensions.json')
+            shared_functions.update_json_file(extensions, EXTENSIONS_FILE)
 
     @commands.command(brief='rimuove una o più cog dal bot e dal file extensions.json')
     async def removecog(self, ctx: commands.Context, *args: str):
@@ -230,7 +232,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
             await ctx.send('Devi specificare il nome della cog da rimuovere.', delete_after=5)
             await ctx.message.delete(delay=5)
         else:
-            with open('extensions.json', 'r') as file:
+            with open(EXTENSIONS_FILE, 'r') as file:
                 extensions: List[str] = json.load(file)
             removed = ''
             for ext in args:
@@ -249,7 +251,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
                 await ctx.send(f'Estensioni {removed} rimosse correttamente.')
                 # sync degli slash commands
                 await self.bot.tree.sync()
-            shared_functions.update_json_file(extensions, 'extensions.json')
+            shared_functions.update_json_file(extensions, EXTENSIONS_FILE)
 
     @commands.command(brief='lista delle estensioni caricate all\'avvio')
     async def coglist(self, ctx: commands.Context):
@@ -259,7 +261,7 @@ class ConfigCog(commands.Cog, name='Configurazione'):
         Sintassi:
         <coglist          # stampa elenco cog
         """
-        with open('extensions.json', 'r') as file:
+        with open(EXTENSIONS_FILE, 'r') as file:
             extensions: List[str] = json.load(file)
         cogs = ''
         for ext in extensions:
