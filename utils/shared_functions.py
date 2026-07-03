@@ -93,8 +93,9 @@ def clean_links(message: str) -> str:
             cleaned_link = urlunparse(parsing)
         elif (netloc == 'youtube.com' or netloc == 'youtu.be'):
             query = parse_qs(parsing.query)
-            query.pop('si', None)
-            query.pop('pp', None)
+            for q in list(query.keys()):
+                if q not in ('v', 't', 'list'):
+                    del query[q]
             query = urlencode(query, doseq=True)
             parsing = parsing._replace(query=query)
             cleaned_link = urlunparse(parsing)
