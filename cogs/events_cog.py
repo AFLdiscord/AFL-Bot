@@ -255,6 +255,8 @@ class EventCog(commands.Cog):
         """
         if member.bot:
             return
+        if member == self.config.guild.owner:
+            return
         await self.config.presentation_channel.send(
             f'Benvenuto su AFL, {member.mention}! Presentati usando il comando `/presentation`')
         await self.logger.log(f'nuovo membro: {member.mention}')
@@ -291,6 +293,8 @@ class EventCog(commands.Cog):
         del cooldown (solo per AFL)
         """
         if before.bot:
+            return
+        if before == self.config.guild.owner:
             return
 
         if after.nick is None:
@@ -599,6 +603,9 @@ class EventCog(commands.Cog):
         for member in current_members:
             afler = self.archive.get(member.id)
             if member.nick == afler.nick:
+                continue
+            if member == self.config.guild.owner:
+                afler.nick = member.display_name
                 continue
             if member.nick is None:
                 await member.edit(nick=afler.nick)
