@@ -344,6 +344,7 @@ class ModerationCog(commands.Cog, name='Moderazione'):
             item = self.archive.get(member.id)
             item.modify_warn(number)
             if number < 0:  # non deve controllare il ban se è un unwarn
+                self.archive.save()
                 return
             if item.warn_count() == 3:
                 await member.add_roles(Config.get_config().surveillance_role)
