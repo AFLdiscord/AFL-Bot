@@ -9,6 +9,7 @@ from utils.archive import Archive
 from utils.banned_words import BannedWords
 from utils.bot_logger import BotLogger
 from utils.config import Config
+from utils.paths import DATA_DIR
 from utils import update
 
 update.run()
@@ -25,6 +26,10 @@ assert TOKEN is not None, 'Il token non è stato trovato'
 if not Config.get_config():
     print('controlla di avere creato correttamente config.json')
     exit()
+
+# crea la cartella `data` che conterrà i dati del server
+if not os.path.isdir(DATA_DIR):
+    os.mkdir(DATA_DIR)
 # carica le parole bannate
 BannedWords.load()
 # carica l'archivio dati
