@@ -103,11 +103,31 @@ class EventCog(commands.Cog):
             await interaction.response.send_message('Questo comando è riservato per la presentazione dei nuovi membri', ephemeral=True)
             return
         assert isinstance(interaction.user, discord.Member)
+        new_member = interaction.user
+        if self.config.afl_role in new_member.roles:
+            await interaction.response.send_message('Ti sei già presentato, ma sei ancora qui: sei un moderatore per caso?', ephemeral=True)
+            return
+        # controllo del nick prima di approvare la presentazione
+        await interaction.response.defer(thinking=True)
+        report = self.check_new_nickname(new_member.display_name, new_member.id)
+        if not report[0]:
+            # nick non valido
+            msg = await interaction.followup.send(
+                content=f'Il tuo nick nel server {report[1]}: cambialo e riprova.',
+                wait=True
+            )
+            await msg.delete(delay=10.0)
+            await self.logger.log(escape_markdown(
+                f'presentazione di {new_member.mention} ({new_member.name}) '
+                f'rifiutata.\nmotivo: il suo nick ({new_member.nick}) {report[1]}'
+                ))
+            return
+        # nick valido -> presentazione
         await interaction.user.add_roles(self.config.afl_role)
         afler = Afler.new_entry(interaction.user.display_name)
         self.archive.add(interaction.user.id, afler)
         msg = f'{interaction.user.mention} si è presentato con età={age} e sesso={sex.value}'
-        await interaction.response.send_message(msg)
+        await interaction.followup.send(content=msg)
         await self.logger.log(msg)
         welcomeMessage = discord.Embed(
             title=f'Diamo il benvenuto a {discord.utils.escape_markdown(interaction.user.display_name)}!',
@@ -247,33 +267,19 @@ class EventCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        """Invia il messaggio di benvenuto all'utente entrato nel server
-        e controlla che l'username sia adeguato.
-        Se l'utente contiene parole offensive, viene kickato dal server.
-        In generale, se l'username non è valido, viene mandato un messaggio
-        via canale privato.
-        """
+        """Invia il messaggio di benvenuto all'utente entrato nel server."""
         if member.bot:
             return
         if member == self.config.guild.owner:
             return
+        # Ignora la cache per risolvere #68
+        new_user = await self.bot.fetch_user(member.id)
+        # Impone il nickname per semplificare i controlli di coerenza
+        await member.edit(nick=new_user.display_name)
+        # Manda il benvenuto nel canale del server
         await self.config.presentation_channel.send(
             f'Benvenuto su AFL, {member.mention}! Presentati usando il comando `/presentation`')
         await self.logger.log(f'nuovo membro: {member.mention}')
-        dm = member.dm_channel if member.dm_channel is not None else await member.create_dm()
-        await dm.send(self.config.greetings)
-        # Ignora la cache per risolvere #68
-        new_user = await self.bot.fetch_user(member.id)
-        # controlla se il nome dell'utente è valido
-        check_nick = self.check_new_nickname(new_user.display_name, member.id)
-        if not check_nick[0]:
-            await dm.send(f'Il tuo nickname {check_nick[1]}, prima di essere accettato dovrai cambiarlo.')
-            if check_nick[1] == 'contiene parole offensive':
-                await member.kick(reason="ForbiddenUsername")
-                await self.logger.log(f'nuovo membro {member.mention} kickato per username improprio')
-        else:
-            # Impone il nickname per semplificare i controlli di coerenza
-            await member.edit(nick=new_user.display_name)
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
@@ -302,29 +308,31 @@ class EventCog(commands.Cog):
             await after.edit(nick=before.display_name)
             return
 
-        # nuovo membro AFL
-        if self.config.afl_role not in before.roles and self.config.afl_role in after.roles:
-            await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
-            afler = Afler.new_entry(after.nick)
-            self.archive.add(after.id, afler)
-            self.archive.save()
+        if self.config.afl_role not in before.roles:
+            if self.config.afl_role in after.roles:
+                # nuovo membro AFL
+                await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
+                afler = Afler.new_entry(after.nick)
+                self.archive.add(after.id, afler)
+                self.archive.save()
+            # altrimenti non è ancora diventato AFL e non va fatto nulla
             return
 
         # altri update che non serve gestire (per ora)
         if before.nick is None or before.nick == after.nick:
             return
 
-        # cambio di nickname
+        # cambio di nickname di un AFL: da gestire
         new_nick = after.nick
+        # controllo la disponibilità
         report = self.check_new_nickname(new_nick, before.id)
         if not report[0]:
             # nickname non disponibile in ogni caso
+            await self.logger.log(escape_markdown(
+                f'modifica del nickname di {before.mention} in {new_nick} bloccata.\nmotivo:{report[1]}'
+            ))
             await after.edit(nick=before.nick)
             return
-        if self.config.afl_role not in after.roles:
-            # l'utente non è AFL ed il cambio è lecito -> non fare niente
-            return
-        # l'utente è AFL: leggo la sua entry nell'archivio
         try:
             afler: Afler = self.archive.get(before.id)
         except KeyError:
@@ -436,7 +444,7 @@ class EventCog(commands.Cog):
         """
         if BannedWords.contains_banned_words(new_nick):
             return (False, 'contiene parole offensive')
-        elif self.archive.contains_nick(new_nick) and self.archive.get(afler_id).nick != new_nick:
+        elif self.archive.contains_nick(new_nick):
             return (False, 'è già in uso')
         elif any(new_nick == afler.name for afler in self.config.guild.members if afler.id != afler_id):
             return (False, 'è l\'username di un utente')
@@ -598,7 +606,13 @@ class EventCog(commands.Cog):
             await self.logger.log(f"membro <@{id}> rimosso dall'archivio")
         # aggiungere i nuovi membri entrati
         for member in new_members:
-            await self.on_member_join(member)
+            if self.config.afl_role in member.roles:
+                # AFL non presente nell'archivio, aggiungi
+                self.archive.add(member.id, Afler.new_entry(member.display_name))
+            else:
+                # nuovo membro che non si è ancora presentato, re-invita a farlo
+                # TODO: salvare lista nuovi membri non presentati
+                await self.on_member_join(member)
         # controllo che i nickname siano gli stessi settati nell'archivio
         for member in current_members:
             afler = self.archive.get(member.id)
