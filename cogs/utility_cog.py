@@ -141,36 +141,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         <setnick afler       # cambia il nickname in afler
         <setnick due aflers  # può contenere anche più parole
         """
-        try:
-            item: Afler = self.archive.get(ctx.author.id)
-        except KeyError:
-            await ctx.send('Non tovato nel file :(', delete_after=5)
-            return
-        # se new_nick è uguale al nickname attuale, non elaboro oltre
-        if item.nick == new_nick:
-            await ctx.send('Il nickname coincide con quello attuale')
-            return
-        last_change = item.last_nick_change
-        difference = date.today() - last_change
-        if difference.days < self.config.nick_change_days:
-            renewal = datetime.combine(item.last_nick_change, time(0, 0))
-            renewal = next_datetime(renewal, self.config.nick_change_days)
-            await ctx.send(f'Prossimo cambio il {discord.utils.format_dt(renewal, "D")}')
-        elif BannedWords.contains_banned_words(new_nick):
-            await ctx.send('Il nickname non può contenere parole offensive')
-        elif len(new_nick) > 32:
-            await ctx.send('La lunghezza massima del nickname è di 32 caratteri')
-        elif self.archive.contains_nick(new_nick):
-            await ctx.send('Questo nickname è già in uso')
-        elif any(ctx.author.id != afler and new_nick == self.bot.get_user(afler).name for afler in self.archive.keys()):  # type: ignore
-            await ctx.send('Questo nickname è l\'username di un utente, non puoi usarlo')
-        else:
-            old_nick = discord.utils.escape_markdown(ctx.author.display_name)
-            item.nick = new_nick
-            self.archive.save()
-            await ctx.author.edit(nick=new_nick)    # type: ignore
-            await ctx.send(f'Nickname cambiato in {item.escaped_nick}')
-            await self.logger.log(f'Nickname di {ctx.author.mention} modificato in {item.escaped_nick} (era {discord.utils.escape_markdown(old_nick)})')
+        await ctx.reply(f'Comando obsoleto, usa /nick {new_nick}')
 
     @commands.hybrid_command(brief='imposta la propria bio')
     async def setbio(self, ctx: commands.Context, *, bio: str):
