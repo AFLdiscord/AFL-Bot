@@ -335,9 +335,14 @@ class EventCog(commands.Cog):
         report = self.check_new_nickname(new_nick, before.id)
         if not report[0]:
             # nickname non disponibile in ogni caso
+            await before.send(escape_markdown(
+                f'Modifica del nick in {new_nick} bloccata.\n'
+                f'Motivo: {report[1]}.'
+            ))
             await self.logger.log(escape_markdown(
                 f'modifica del nickname di {before.mention} '
-                f'({before.nick} -> {new_nick}) bloccata.\nmotivo:{report[1]}'
+                f'({before.nick} -> {new_nick}) bloccata.\n'
+                f'motivo: {report[1]}'
             ))
             await after.edit(nick=before.nick)
             return
@@ -351,15 +356,29 @@ class EventCog(commands.Cog):
             # o per ripristino che non necessita alcun aggiornamento dell'archivio
             return
         # controllo il tempo passato dall'ultimo cambio
-        if not afler.can_renew_nick():
-            renewal = datetime.combine(afler.last_nick_change, t(0, 0))
-            renewal = sf.next_datetime(renewal, self.config.nick_change_days)
-            await after.edit(nick=afler.nick)
-        else:
+        if afler.can_renew_nick():
             # aggiorno il nickname nell'archivio
             afler.nick = new_nick
             self.archive.save()
-            await self.logger.log(escape_markdown(f'nickname di {before.mention} modificato in {new_nick} (era {before.nick})'))
+            await self.logger.log(escape_markdown(
+                f'modifica del nickname di {before.mention} '
+                f'({before.nick} -> {new_nick}) approvata.'
+            ))
+        else:
+            # avvisa membro quando potrà cambiare nick
+            renewal = datetime.combine(afler.last_nick_change, t(0, 0))
+            renewal = sf.next_datetime(renewal, self.config.nick_change_days)
+            renewal = discord.utils.format_dt(renewal, 'D')
+            await before.send(escape_markdown(
+                f'Modifica del nick in {new_nick} bloccata. '
+                f'Potrai cambiare nuovamente nickname su AFL il {renewal}.'
+            ))
+            await self.logger.log(escape_markdown(
+                f'modifica del nickname di {before.mention} '
+                f'({before.nick} -> {new_nick}) bloccata.\nmotivo: '
+                f'prossimo rinnovo il {renewal}'
+            ))
+            await after.edit(nick=afler.nick)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
