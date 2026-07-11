@@ -309,9 +309,16 @@ class EventCog(commands.Cog):
             return
 
         if self.config.afl_role not in before.roles:
-            if self.config.afl_role in after.roles:
-                # nuovo membro AFL
-                await self.logger.log(f'nuova entry nell\'archivio: {after.mention}')
+            if (self.config.afl_role in after.roles
+                and not self.archive.is_present(before.id)
+            ):
+                # nuovo membro AFL, aggiunto manualmente: può succedere, quando
+                # qualcuno esce e rientra entro poco tempo, che un moderatore
+                # lo faccia entrare skippando la presentazione.
+                await self.logger.log(
+                    f"nuovo membro approvato manualmente: {after.mention} "
+                    f"(nick={before.nick})"
+                )
                 afler = Afler.new_entry(after.nick)
                 self.archive.add(after.id, afler)
                 self.archive.save()
