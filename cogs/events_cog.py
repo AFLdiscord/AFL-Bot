@@ -336,7 +336,8 @@ class EventCog(commands.Cog):
         if not report[0]:
             # nickname non disponibile in ogni caso
             await self.logger.log(escape_markdown(
-                f'modifica del nickname di {before.mention} in {new_nick} bloccata.\nmotivo:{report[1]}'
+                f'modifica del nickname di {before.mention} '
+                f'({before.nick} -> {new_nick}) bloccata.\nmotivo:{report[1]}'
             ))
             await after.edit(nick=before.nick)
             return
