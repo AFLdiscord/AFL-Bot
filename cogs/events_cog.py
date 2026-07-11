@@ -444,9 +444,18 @@ class EventCog(commands.Cog):
         """
         if BannedWords.contains_banned_words(new_nick):
             return (False, 'contiene parole offensive')
-        elif self.archive.contains_nick(new_nick):
+        # se il nick è già presente, controlla che non sia il suo vecchio
+        # (in caso di reset)
+        if any(new_nick == member.nick
+               for (id, member) in self.archive.archive.items()
+               if afler_id != id
+        ):
             return (False, 'è già in uso')
-        elif any(new_nick == afler.name for afler in self.config.guild.members if afler.id != afler_id):
+        # stesso step ma con l'username
+        if any(new_nick == afler.name
+                 for afler in self.config.guild.members
+                 if afler.id != afler_id
+        ):
             return (False, 'è l\'username di un utente')
         return (True, '')
 
