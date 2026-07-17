@@ -78,6 +78,10 @@ class BannedWords():
         :returns: se il testo contiene o meno una parola bannata
         :rtype: bool
         """
+        # controllo semplice
+        if any(word in text for word in BannedWords.banned_words):
+            return True
+        # controlli anti-bypass
         text_to_check: str = text.lower()
         text_to_check = re.sub('0', 'o', text_to_check)
         text_to_check = re.sub('1', 'i', text_to_check)
