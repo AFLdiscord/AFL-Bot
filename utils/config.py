@@ -37,7 +37,6 @@ class ConfigFields(TypedDict):
     violations_reset_days: int
     nick_change_days: int
     bio_length_limit: int
-    greetings: str
 
 
 TextChannelsList = type(List[discord.TextChannel])
@@ -95,7 +94,6 @@ class Config():
     violations_reset_days: `int`      tempo dopo cui si resettano le violazioni in giorni
     nick_change_days: `int`           giorni concessi tra un cambio di nickname e l'altro (0 nessun limite)
     bio_length_limit: `int`           massimo numero di caratteri per la bio
-    greetings: `str`                  messaggio di benvenuto per i nuovi membri
 
     Methods
     -------------
@@ -187,7 +185,6 @@ class Config():
         self.violations_reset_days = data['violations_reset_days']
         self.nick_change_days = data['nick_change_days']
         self.bio_length_limit = data['bio_length_limit']
-        self.greetings = data['greetings']
 
     def load_models(self):
         """Carica i modelli il cui id è riportato nel file di configurazione.
