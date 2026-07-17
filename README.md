@@ -15,21 +15,34 @@ Il bot va creato (seguendo [questa guida](https://www.writebots.com/discord-bot-
 
 `https://discord.com/api/oauth2/authorize?client_id=BOTCLIENTID&permissions=41646633118934&scope=bot%20applications.commands`
 
-sostituendo `BOTCLIENTID` con l'user id del bot, ricavabile dal portale sviluppatori di Discord.  
+sostituendo `BOTCLIENTID` con l'user id del bot, ricavabile dal portale sviluppatori di Discord.
 
-Per avviare il bot:
-
-- clonare il repo
-- installare le dipendenze
+In pratica, dopo aver ottenuto un token, vanno seguiti questi step:
 
 ```bash
-pip install -r requirements.txt
-```
+# clonare il bot
+git clone https://github.com/AFLdiscord/AFL-Bot.git && cd AFL-Bot
 
-- creare il file config.json seguendo le indicazioni del [template](https://github.com/AFLdiscord/AFL-Bot/blob/master/config.template)
-- creare il file .env contenente il token di accesso del bot (è importante non condividerlo)
-- il contenuto del .env deve essere `DISCORD_TOKEN=your_token`
-- a questo punto si può avviare bot.py
+# (consigliato) creare un virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# installare le dipendenze
+pip install -r requirements.txt
+
+# creare file di config, modificando il template
+cd config
+cp config.template config.json
+vim config.json # o usa il tuo editor preferito
+cd ..
+
+# creare file .env per conservare il token
+your_token="insert-your-token-here"
+echo "DISCORD_TOKEN=$your_token" > .env
+
+# avviare il bot
+python bot.py
+```
 
 ### Post dai subreddit
 
