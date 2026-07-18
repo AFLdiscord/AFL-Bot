@@ -185,9 +185,24 @@ class EventCog(commands.Cog):
         cleaned_message = sf.clean_links(message.content)
         if cleaned_message != message.content:
             # Il contributo va considerato anche qui per ovviare all'eventuale eliminazione
-            await message.delete()
             await self.increase_counter(message)
-            await message.channel.send(f'Da {message.author.mention}:\n{cleaned_message}')
+            # Se ci sono allegati, vanno riportati
+            if len(message.attachments) > 0:
+                attachments = []
+                for a in message.attachments:
+                    try:
+                        attachments.append(await a.to_file(spoiler=a.is_spoiler()))
+                    except (discord.Forbidden, discord.HTTPException, discord.NotFound):
+                        # Skippa eventuali file non più raggiungibili, rip
+                        pass
+                await message.channel.send(
+                        f'Da {message.author.mention}:\n{cleaned_message}',
+                        files=attachments
+                )
+            else:
+                await message.channel.send(f'Da {message.author.mention}:\n{cleaned_message}')
+            # Messaggio eliminato solo alla fine per scaricare eventuali allegati correttamente
+            await message.delete()
 
     async def increase_counter(self, message: discord.Message) -> None:
         """Controlla la categoria del canale in cui è stato mandato il
