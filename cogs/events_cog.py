@@ -318,14 +318,13 @@ class EventCog(commands.Cog):
         if before == self.config.guild.owner:
             return
 
-        if after.nick is None:
-            # Impone la presenza di un nick
-            await after.edit(nick=before.display_name)
-            return
-
+        # gestione dei non membri
         if self.config.afl_role not in before.roles:
-            if (self.config.afl_role in after.roles
-                and not self.archive.is_present(before.id)
+            if before.nick is not None and after.nick is None:
+                # forza la presenza di un nick
+                await after.edit(nick=before.display_name)
+            elif (self.config.afl_role in after.roles
+                    and not self.archive.is_present(before.id)
             ):
                 # nuovo membro AFL, aggiunto manualmente: può succedere, quando
                 # qualcuno esce e rientra entro poco tempo, che un moderatore
@@ -337,15 +336,18 @@ class EventCog(commands.Cog):
                 afler = Afler.new_entry(after.nick)
                 self.archive.add(after.id, afler)
                 self.archive.save()
-            # altrimenti non è ancora diventato AFL e non va fatto nulla
             return
 
-        # altri update che non serve gestire (per ora)
-        if before.nick is None or before.nick == after.nick:
+        # imposizione del nick da parte del bot, ignoro
+        if before.nick is None and after.nick is not None:
+            return
+
+        # se non è cambiato il nick, non ci interessa al momento
+        if before.nick == after.nick:
             return
 
         # cambio di nickname di un AFL: da gestire
-        new_nick = after.nick
+        new_nick = after.nick or after.global_name or after.name
         # controllo la disponibilità
         report = self.check_new_nickname(new_nick, before.id)
         if not report[0]:
@@ -366,7 +368,7 @@ class EventCog(commands.Cog):
         except KeyError:
             await self.logger.log(escape_markdown(f'membro {before.mention} ha cambiato nickname, ma non risulta nell\'archivio (before:{before.nick} after:{after.nick})'))
             return
-        if after.nick == afler.nick:
+        if new_nick == afler.nick:
             # consenti il cambio forzato del nick da parte dei moderatori
             # o per ripristino che non necessita alcun aggiornamento dell'archivio
             return
@@ -379,6 +381,9 @@ class EventCog(commands.Cog):
                 f'modifica del nickname di {before.mention} '
                 f'({before.nick} -> {new_nick}) approvata.'
             ))
+            # se il nick nuovo è stato ottenuto via reset, setta esplicitamente nick
+            if after.nick is None:
+                await after.edit(nick=new_nick)
         else:
             # avvisa membro quando potrà cambiare nick
             renewal = datetime.combine(afler.last_nick_change, t(0, 0))
