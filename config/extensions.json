@@ -3,5 +3,6 @@
     "cogs.events_cog",
     "cogs.moderation_cog",
     "cogs.utility_cog",
-    "cogs.reddit_cog"
+    "cogs.reddit_cog",
+    "cogs.deprecated_cog"
 ]
