@@ -109,26 +109,27 @@ class UtilityCog(commands.Cog, name='Utility'):
                     value=f'{item.warn_count()} (scade il {format_dt(violations_expiration, "D")})', inline=False)
         await interact.followup.send(embed=status)
 
-    @commands.hybrid_command(brief='invia la propic dell\'utente')
-    async def avatar(self, ctx: commands.Context, user: Optional[Union[discord.User, discord.Member]] = None):
+    @app_commands.command(description="invia la propic dell'utente")
+    @app_commands.rename(user='utente')
+    @app_commands.describe(user='utente di discord, opzionale')
+    async def avatar(self, interaction: discord.Interaction, user: Optional[Union[discord.User, discord.Member]] = None):
         """Invia la propria propic o quella dell'utente menzionato. Non è necessario che l'utente
         faccia parte del server, basta che la menzione sia valida.
 
         Sintassi:
-        <avatar             # invia la propria propic
-        <avatar @someone    # invia la propic di 'someone'
+        /avatar             # invia la propria propic
+        /avatar @someone    # invia la propic di 'someone'
         """
         if user is None:
-            user = ctx.author
+            user = interaction.user
         # se l'utente è nel server, stampo il suo nickname invece del suo username
         member = self.config.guild.get_member(user.id)
         if member is not None:
             user = member
         avatar = discord.Embed(
             title=f'Avatar di {discord.utils.escape_markdown(user.display_name)}:'
-        )
-        avatar.set_image(url=user.display_avatar)
-        await ctx.send(embed=avatar)
+        ).set_image(url=user.display_avatar)
+        await interaction.response.send_message(embed=avatar)
 
     @commands.hybrid_command(brief='imposta la propria bio')
     async def setbio(self, ctx: commands.Context, *, bio: str):

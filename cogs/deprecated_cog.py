@@ -5,6 +5,7 @@ from aflbot import AFLBot
 # Lista dei comandi deprecati, da espandere man mano.
 deprecated_commands = [
     "status",
+    "avatar",
 ]
 
 class CommandDeprecatorMeta(commands.CogMeta):
