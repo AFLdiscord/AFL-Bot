@@ -21,6 +21,7 @@ except ImportError:
 from typing import Sequence, Tuple
 
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 from discord.utils import escape_markdown
 
@@ -53,6 +54,8 @@ class EventCog(commands.Cog):
     - on_user_update
 
     Gestione bot:
+    - interaction_check
+    - on_app_command_error
     - on_command_error
     - on_ready (avvia periodic_checks)
 
@@ -62,6 +65,8 @@ class EventCog(commands.Cog):
     def __init__(self, bot: AFLBot):
         self.bot: AFLBot = bot
         self.bot.version = 'v2.4.6'
+        self.bot.tree.on_error = self.on_app_command_error
+        self.bot.tree.interaction_check = self.interaction_check
         self.archive: Archive = Archive.get_instance()
         self.logger: BotLogger = BotLogger.get_instance()
         self.config: Config = Config.get_config()
@@ -505,6 +510,47 @@ class EventCog(commands.Cog):
         ):
             return (False, 'è l\'username di un utente')
         return (True, '')
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Check sui comandi per autorizzarne l'uso solo agli AFL"""
+        if not isinstance(interaction.user, discord.Member):
+            await interaction.response.send_message(
+                "I comandi possono essere usati solo nel server"
+            )
+            return False
+        for role in interaction.user.roles:
+            if self.config.afl_role_id == role.id:
+                return True
+        await interaction.response.send_message(
+            "I comandi possono essere usati solo dai membri presentati"
+        )
+        return False
+
+    async def on_app_command_error(
+            self,
+            interaction: discord.Interaction,
+            error: app_commands.AppCommandError
+    ) -> None:
+        """Gestione errori per gli slash command, molto più semplice rispetto
+        alla versione per i prefix command visto che ci pensa la libreria a fare
+        check e cast sui parametri.
+        """
+        # errore conversione parametri passati al comando
+        if isinstance(error, app_commands.TransformerError):
+            if isinstance(error.transformer, app_commands.transformers.MemberTransformer):
+                # l'unico caso non gestito da discord quando c'è un parametro
+                # discord.Member è quello in cui l'id è di un utente che non fa
+                # parte del server
+                await interaction.response.send_message(
+                    f'{error.value.mention} non fa parte del server.'
+                )
+            else:
+                await interaction.response.send_message(
+                    "Uno o più parametri sono invalidi."
+                )
+        elif isinstance(error, app_commands.CheckFailure):
+            # gestito direttamente in interaction_check
+            pass
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError):
