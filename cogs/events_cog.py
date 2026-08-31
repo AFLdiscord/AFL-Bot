@@ -352,7 +352,7 @@ class EventCog(commands.Cog):
             return
 
         # cambio di nickname di un AFL: da gestire
-        new_nick = after.nick or after.global_name or after.name
+        new_nick = after.display_name
         # controllo la disponibilità
         report = self.check_new_nickname(new_nick, before.id)
         if not report[0]:
