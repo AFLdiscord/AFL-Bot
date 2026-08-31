@@ -6,6 +6,7 @@ from git.repo import Repo
 from typing import Optional, Union
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 from discord.utils import format_dt
 from aflbot import AFLBot
@@ -45,8 +46,10 @@ class UtilityCog(commands.Cog, name='Utility'):
                 return True
         return False
 
-    @commands.hybrid_command(brief='ritorna statistiche sul membro menzionato')
-    async def status(self, ctx: commands.Context, member: Optional[discord.Member] = None):
+    @app_commands.command(description='Statistiche del membro menzionato')
+    @app_commands.rename(member='membro')
+    @app_commands.describe(member='membro di AFL, opzionale')
+    async def status(self, interact: discord.Interaction, member: Optional[discord.Member] = None):
         """Mostra il proprio status oppure quello del membro fornito come parametro tramite embed.
         Lo status comprende:
         - numero di messaggi inviati nell'ultimo periodo (nella finestra temporale)
@@ -54,18 +57,18 @@ class UtilityCog(commands.Cog, name='Utility'):
         - numero di violazioni e relativa scadenza
 
         Sintassi:
-        <status             ritorna lo status del chiamante
-        <status @someone    ritorna lo status di 'someone' se presente nel file
+        /status             ritorna lo status del chiamante
+        /status @someone    ritorna lo status di 'someone' se presente nell'archivio
         """
+        await interact.response.defer()
         if member is None:
-            assert isinstance(ctx.author, discord.Member)
-            member = ctx.author
+            assert isinstance(interact.user, discord.Member)
+            member = interact.user
         try:
             item: Afler = self.archive.get(member.id)
         except KeyError:
             await self.logger.log(f'richiesto status di {member.mention} ma non è presente nell\'archivio')
-            await ctx.send('l\'utente indicato non è registrato', delete_after=5)
-            await ctx.message.delete(delay=5)
+            await interact.followup.send(content='l\'utente indicato non è registrato', wait=True)
             return
         status = discord.Embed(
             title=f'Status di {item.escaped_nick}',
@@ -96,7 +99,7 @@ class UtilityCog(commands.Cog, name='Utility'):
         if item.warn_count() == 0:
             status.add_field(name='Violazioni:', value='0', inline=False)
         else:
-            if item.last_violation_date != None:
+            if item.last_violation_date is not None:
                 violations_expiration = datetime.combine(
                     item.last_violation_date, time(0, 0))
                 violations_expiration = next_datetime(
@@ -104,7 +107,7 @@ class UtilityCog(commands.Cog, name='Utility'):
                 status.add_field(
                     name='Violazioni:',
                     value=f'{item.warn_count()} (scade il {format_dt(violations_expiration, "D")})', inline=False)
-        await ctx.send(embed=status)
+        await interact.followup.send(embed=status)
 
     @commands.hybrid_command(brief='invia la propic dell\'utente')
     async def avatar(self, ctx: commands.Context, user: Optional[Union[discord.User, discord.Member]] = None):
